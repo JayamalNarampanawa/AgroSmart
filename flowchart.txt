@@ -1,0 +1,34 @@
+START
+  ↓
+Power ON System
+  ↓
+Initialize ESP32
+  ↓
+Initialize Sensors
+(Soil Moisture, Temperature, Humidity)
+  ↓
+Read Sensor Data
+  ↓
+Send Data to Firebase
+  ↓
+Display Data on
+Web Dashboard & Mobile App
+  ↓
+Store Data in Firebase
+  ↓
+Is Precision System Enabled?
+        ↓ YES                    ↓ NO
+Apply Precision Logic         Continue Monitoring
+(using collected data)            ↓
+        ↓                     Read Sensor Data
+Is Soil Moisture Low?
+        ↓ YES        ↓ NO
+Is Temperature High?
+        ↓ YES        ↓ NO
+Turn Pump ON      Keep Pump OFF
+        ↓
+Update Pump Status in Firebase
+        ↓
+Continue Monitoring Loop
+        ↓
+END (System Runs Continuously)
