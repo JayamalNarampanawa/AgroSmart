@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.root-transition{ transition: background-color 300ms ease, color 300ms ease }
+
+/* Light & Dark variables - Tailwind will handle most utilities, but we keep a few CSS vars */
+:root{
+  --bg: #0b1220; /* dark base */
+  --card: #071024;
+  --muted: #94a3b8;
+  --glass: rgba(255,255,255,0.04);
+  --accent-1: #06b6d4;
+  --accent-2: #10b981;
+}
+
+body{ background: var(--bg); }
+
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.04);
+  backdrop-filter: blur(6px);
+}
+
+.progress-bg{ background: linear-gradient(90deg,var(--accent-2),var(--accent-1)); }
+
+/* subtle animations */
+.card-hover{ transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms; }
+.card-hover:hover{ transform: translateY(-6px) scale(1.01); box-shadow: 0 12px 30px rgba(2,6,23,0.6); }
+
+.glow-border{ box-shadow: 0 0 30px rgba(6,182,212,0.06), inset 0 1px 0 rgba(255,255,255,0.02); }
+
+/* small value highlight animation when updated */
+@keyframes pulseValue{ 0%{ transform: scale(1) } 50%{ transform: scale(1.02) } 100%{ transform: scale(1) } }
+.value-pulse{ animation: pulseValue 900ms ease 0s 1 }
+
+.badge-on{ background: linear-gradient(90deg,var(--accent-2),var(--accent-1)); color: black }
+.badge-off{ background: rgba(255,255,255,0.04); color: var(--muted) }
+
+pre { white-space: pre-wrap; word-break: break-word; }
+
+/* wallpaper SVG as data URI for dark theme */
+.wallpaper{
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1600' height='900' viewBox='0 0 1600 900'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%2306151a'/><stop offset='1' stop-color='%230b1220'/></linearGradient></defs><rect width='100%' height='100%' fill='url(%23g)'/><g fill='none' stroke='%23102833' stroke-opacity='0.12' stroke-width='1'><path d='M0 700 Q400 600 800 700 T1600 700'/><path d='M0 600 Q300 520 800 600 T1600 600'/></g><g fill='%2306b6d4' fill-opacity='0.04'><circle cx='1400' cy='120' r='220'/></g></svg>");
+  background-size: cover;
+  background-position: center;
+}
+
+@keyframes progress{ 0%{ transform: translateX(-100%) } 100%{ transform: translateX(0%) } }
+
+/* small animation for progress bar inner */
+.progress-bg{ background: linear-gradient(90deg,var(--accent-2),var(--accent-1)); animation: progress 2s linear infinite }
+
+/* Improved text colors for dark theme for better readability */
+:root{
+  --text-primary: #dbeff6; /* main body text */
+  --text-secondary: #a9c8d6; /* secondary text */
+  --text-muted: #8aa6b8; /* muted */
+  --heading: #e6fbff; /* headings */
+}
+
+body { color: var(--text-primary); }
+
+/* Override common Tailwind slate utilities used in components to increase contrast */
+.text-slate-400 { color: var(--text-secondary) !important; }
+.text-slate-300 { color: #cfeefb !important; }
+.text-slate-500 { color: var(--text-muted) !important; }
+.text-slate-600 { color: #6f99a8 !important; }
+.text-slate-200 { color: #eefeff !important; }
+
+/* headings */
+.text-lg, h1, h2, h3, h4 { color: var(--heading) }
+
+/* small helper */
+.text-muted { color: var(--text-secondary) }
