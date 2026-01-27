@@ -29,3 +29,94 @@ Files of interest:
 - src/pages/Dashboard.jsx — main layout and components
 
 Replace Firebase placeholders before running.  
+
+## Cloud Functions: AI layer
+
+This repo includes a simple Cloud Functions implementation (rule-based v1) under `/functions` which:
+
+- Appends `AgroSmart/currentData` snapshots into `AgroSmart/history/logs/` when currentData changes.
+- Computes AI outputs on creation of `AgroSmart/history/logs/{logId}` and writes:
+	- `/AgroSmart/ai/currentInsight`
+	- `/AgroSmart/ai/suitability`
+	- `/AgroSmart/ai/recommendations`
+	- `/AgroSmart/ai/history/{logId}`
+
+Deployment steps:
+
+```bash
+# go to dashboard root
+cd dashboard
+
+# install functions deps
+cd functions
+npm install
+
+# initialize functions (if not already)
+firebase init functions
+
+# deploy only functions
+firebase deploy --only functions
+```
+
+Notes:
+- Functions use Node 18 runtime (`engines.node: 18`).
+- The scoring is rule-based and defined in `functions/index.js` as `Rule-based v1`. Tune constants there.
+
+### Option 1 — Client-side AI (development / no-backend)
+
+If you cannot deploy Cloud Functions, the dashboard supports running the AI pipeline in the client. This will:
+
+- Push a copy of `/AgroSmart/currentData` into `/AgroSmart/history/logs` from the authenticated dashboard client.
+- Compute suitability, insight, and recommendations client-side (rule-based v1) and write to `/AgroSmart/ai/*`.
+
+Files added for client-side AI:
+- `src/ai/computeAI.js` — rule-based scoring utilities.
+- `src/hooks/useClientAIWriter.js` — client-side logger and AI writer with dedupe and throttling.
+
+Important: For development only — the authenticated dashboard user must be allowed to write these paths in your Realtime Database Rules. Example (allow authenticated read/write):
+
+```json
+{
+	"rules": {
+		"AgroSmart": {
+			"history": {
+				"logs": {
+					".write": "auth != null",
+					".read": "auth != null"
+				}
+			},
+			"ai": {
+				".write": "auth != null",
+				".read": "auth != null"
+			}
+		}
+	}
+}
+```
+
+Only use these relaxed rules for local development. For production, tighten rules and prefer server-side functions.
+
+## Analytics: historical seeding & timeseries
+
+The dashboard now supports a client-side admin tool to seed a 90-day historical baseline (Kaggle means) and a continuous analytics timeseries combining historical + sensor records at `/AgroSmart/analytics/timeseries`.
+
+Steps to seed historical data once (client-side):
+
+1. Install dependency:
+
+```bash
+cd dashboard
+npm install papaparse
+```
+
+2. Start the dev server and sign in with an authenticated account.
+
+3. Open the Dashboard → Analytics. The admin widget "Seed Historical Data" will appear for authenticated users. Upload `Crop_recommendation.csv` or let the tool fetch `/src/assets/Crop_recommendation.csv` if included.
+
+4. Select crop (kidneybeans, mungbean, chickpea) and click "Seed historical data". The tool will write 90 days of simulated baseline records to `/AgroSmart/analytics/timeseries` unless historical data already exists.
+
+Notes:
+- This is a one-time client-side operation and does NOT require Cloud Functions.
+- The analytics feed schema is documented in the project; historical records have `soilMoisture` and `pumpStatus` set to `null`.
+
+

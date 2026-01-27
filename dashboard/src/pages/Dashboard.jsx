@@ -5,10 +5,27 @@ import ChartsPanel from '../components/ChartsPanel'
 import InsightsPanel from '../components/InsightsPanel'
 import AlertsPanel from '../components/AlertsPanel'
 import useSensorData from '../hooks/useSensorData'
+import useAnalyticsTimeseries from '../hooks/useAnalyticsTimeseries'
+import useAnalyticsAppender from '../hooks/useAnalyticsAppender'
+import SeedHistoricalData from '../components/SeedHistoricalData'
 import LoadingScreen from '../components/LoadingScreen'
+import useAIData from '../hooks/useAIData'
+import useClientAIEngine from '../hooks/useClientAIEngine'
+import AIOverviewPanel from '../components/AIOverviewPanel'
+import CropSuitabilityPanel from '../components/CropSuitabilityPanel'
+import FeatureDiffPanel from '../components/FeatureDiffPanel'
+import HistoricalComparisonChart from '../components/HistoricalComparisonChart'
+import RecommendationsPanel from '../components/RecommendationsPanel'
+import ChatWidget from '../components/ChatWidget'
 
 export default function Dashboard(){
-  const { current, history, error, isReady } = useSensorData()
+  const { current, history, error } = useSensorData()
+  const { insight, suitability, recs, loading: aiLoading } = useAIData()
+  const { aiResult, status: aiStatus, lastRunAt, error: aiEngineError } = useClientAIEngine(current, { requireAuth: false, writeBack: true, minInterval: 10000 })
+  // analytics timeseries (historical + sensor)
+  const { data: timeseries, loading: tsLoading } = useAnalyticsTimeseries({ limit: 3000 })
+  // append live sensor records into analytics feed
+  useAnalyticsAppender({ enabled: true, minInterval: 10000 })
   const [showLoading, setShowLoading] = useState(true)
 
   useEffect(()=>{
@@ -21,6 +38,11 @@ export default function Dashboard(){
       {showLoading && <LoadingScreen message={'Connecting to sensors...'}/>}
       <Navbar />
       <main className="mt-6">
+        {current?.timestamp && (Date.now() - current.timestamp > 10 * 60 * 1000) && (
+          <div className="mb-4 p-3 rounded bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200">
+            Sensor data appears stale (older than 10 minutes). Displaying last known values.
+          </div>
+        )}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <SensorCard title="Temperature" value={current?.temperature ?? '--'} unit="°C" type="temperature" />
           <SensorCard title="Humidity" value={current?.humidity ?? '--'} unit="%" type="humidity" />
@@ -30,7 +52,10 @@ export default function Dashboard(){
 
         <section className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 card p-4 rounded-lg shadow">
-            <ChartsPanel history={history} />
+            <div className="mb-4">
+              <SeedHistoricalData />
+            </div>
+            <ChartsPanel timeseries={timeseries} />
           </div>
           <div className="space-y-4">
             <div className="card p-4 rounded-lg shadow">
@@ -42,6 +67,30 @@ export default function Dashboard(){
           </div>
         </section>
         
+        {/* AI Insights Section (Client-side Kaggle comparison) */}
+        <section className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <AIOverviewPanel aiResult={aiResult} status={aiStatus} lastRunAt={lastRunAt} />
+              <div className="mt-4">
+                <HistoricalComparisonChart />
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 space-y-6">
+              <div className="card p-4 rounded-lg shadow">
+                <CropSuitabilityPanel suitability={aiResult ? { totals: aiResult.scores, breakdown: Object.fromEntries(Object.keys(aiResult.scores||{}).map(k=>[k,{ why: Object.entries(aiResult.diffs?.[k]||{}).map(([f,v])=> v===null? `${f}: N/A` : `${f} Δ${v}`) }])) } : null} />
+              </div>
+              <div className="card p-4 rounded-lg shadow">
+                <FeatureDiffPanel diffs={aiResult?.diffs?.[aiResult.topCrop]} crop={aiResult?.topCrop} />
+              </div>
+              <div className="card p-4 rounded-lg shadow">
+                <RecommendationsPanel recs={aiResult ? { topCrop: aiResult.topCrop, confidence: aiResult.scores?.[aiResult.topCrop], actions: ['Maintain temperature near historical average','Adjust humidity towards crop optimum','Monitor rainfall / water supply'], timestamp: aiResult?.timestamp ?? Date.now() } : null} />
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="mt-6">
           <div className="card p-4 rounded-lg shadow">
             <h4 className="font-semibold mb-2">Debug — Raw Firebase Data</h4>
@@ -51,10 +100,17 @@ export default function Dashboard(){
               <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(current, null, 2)}</pre>
               <div className="mt-2 mb-2"><strong>history (latest 20):</strong></div>
               <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(history.slice(-20), null, 2)}</pre>
+              <div className="mt-2 mb-2"><strong>ai/currentInsight:</strong></div>
+              <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(insight, null, 2)}</pre>
+              <div className="mt-2 mb-2"><strong>ai/suitability:</strong></div>
+              <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(suitability, null, 2)}</pre>
+              <div className="mt-2 mb-2"><strong>ai/recommendations:</strong></div>
+              <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(recs, null, 2)}</pre>
             </div>
           </div>
         </section>
       </main>
+      <ChatWidget />
     </div>
   )
 }

@@ -5,8 +5,8 @@ export default function LoadingScreen({message='Loading dashboard...'}){
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
       <div className="w-full h-full wallpaper opacity-90"></div>
       <div className="absolute flex flex-col items-center gap-4">
-        <div className="w-24 h-24 rounded-full flex items-center justify-center bg-gradient-to-br from-agGreen to-agBlue shadow-lg animate-pulse">
-          <div className="text-2xl font-bold text-black">AS</div>
+        <div className="w-28 h-28 rounded-full bg-white/10 flex items-center justify-center mx-auto overflow-hidden">
+          <img src="/src/assets/icon.jpeg" alt="AgroSmart" className="w-full h-full object-cover" />
         </div>
         <div className="text-lg font-semibold text-slate-200">{message}</div>
         <div className="mt-4">
