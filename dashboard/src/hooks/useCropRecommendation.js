@@ -42,6 +42,10 @@ export default function useCropRecommendation(){
         const out = computeRecommendation({ currentData: { temperature: temp, humidity: hum }, farmProfile: farmNorm, weather: weatherNorm })
         const payload = {
           recommendedCrop: out.bestCrop,
+          bestScore: out.bestScore ?? null,
+          matchLevel: out.matchLevel ?? "Unknown",
+          reasons: Array.isArray(out.reasons) ? out.reasons : [],
+          featureDiffs: out.featureDiffs || {},
           scores: out.scores,
           top3: out.top3,
           inputUsed: out.inputUsed,

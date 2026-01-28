@@ -11,11 +11,11 @@ import SeedHistoricalData from '../components/SeedHistoricalData'
 import LoadingScreen from '../components/LoadingScreen'
 import useAIData from '../hooks/useAIData'
 import useClientAIEngine from '../hooks/useClientAIEngine'
-import AIOverviewPanel from '../components/AIOverviewPanel'
 import CropSuitabilityPanel from '../components/CropSuitabilityPanel'
 import FeatureDiffPanel from '../components/FeatureDiffPanel'
 import HistoricalComparisonChart from '../components/HistoricalComparisonChart'
 import CropRecommendationPanel from '../components/CropRecommendationPanel'
+import CurrentVsIdealChart from '../components/CurrentVsIdealChart'
 import ChatWidget from '../components/ChatWidget'
 import SoilProfileCard from '../components/SoilProfileCard'
 import useCropRecommendation from '../hooks/useCropRecommendation'
@@ -23,7 +23,7 @@ import useCropRecommendation from '../hooks/useCropRecommendation'
 export default function Dashboard(){
   const { current, history, error } = useSensorData()
   const { insight, suitability, recs, loading: aiLoading } = useAIData()
-  const { aiResult, status: aiStatus, lastRunAt, error: aiEngineError } = useClientAIEngine(current, { requireAuth: false, writeBack: true, minInterval: 10000 })
+  const { aiResult } = useClientAIEngine(current, { requireAuth: false, writeBack: true, minInterval: 10000 })
   // analytics timeseries (historical + sensor)
   const { data: timeseries, loading: tsLoading } = useAnalyticsTimeseries({ limit: 3000 })
   // append live sensor records into analytics feed
@@ -78,9 +78,6 @@ export default function Dashboard(){
             <div className="lg:col-span-1">
               <SoilProfileCard />
               <div className="mt-4">
-                <AIOverviewPanel aiResult={aiResult} status={aiStatus} lastRunAt={lastRunAt} />
-              </div>
-              <div className="mt-4">
                 <HistoricalComparisonChart />
               </div>
             </div>
@@ -94,6 +91,9 @@ export default function Dashboard(){
               </div>
               <div className="card p-4 rounded-lg shadow">
                 <CropRecommendationPanel />
+              </div>
+              <div className="card p-4 rounded-lg shadow">
+                <CurrentVsIdealChart />
               </div>
             </div>
           </div>
