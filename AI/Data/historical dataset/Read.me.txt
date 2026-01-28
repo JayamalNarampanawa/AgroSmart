@@ -1,5 +1,7 @@
 Crop Recommendation Dataset
 
+https://www.kaggle.com/datasets/siddharthss/crop-recommendation-dataset/data
+
 Maximize agricultural yield by recommending appropriate crops
 
 by - Siddharth Sharma · Updated 5 years ago

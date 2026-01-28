@@ -15,8 +15,10 @@ import AIOverviewPanel from '../components/AIOverviewPanel'
 import CropSuitabilityPanel from '../components/CropSuitabilityPanel'
 import FeatureDiffPanel from '../components/FeatureDiffPanel'
 import HistoricalComparisonChart from '../components/HistoricalComparisonChart'
-import RecommendationsPanel from '../components/RecommendationsPanel'
+import CropRecommendationPanel from '../components/CropRecommendationPanel'
 import ChatWidget from '../components/ChatWidget'
+import SoilProfileCard from '../components/SoilProfileCard'
+import useCropRecommendation from '../hooks/useCropRecommendation'
 
 export default function Dashboard(){
   const { current, history, error } = useSensorData()
@@ -27,6 +29,9 @@ export default function Dashboard(){
   // append live sensor records into analytics feed
   useAnalyticsAppender({ enabled: true, minInterval: 10000 })
   const [showLoading, setShowLoading] = useState(true)
+
+  // start client-side crop recommendation engine (writes to /AgroSmart/ai/recommendation)
+  useCropRecommendation()
 
   useEffect(()=>{
     const t = setTimeout(()=>setShowLoading(false), 3000)
@@ -71,7 +76,10 @@ export default function Dashboard(){
         <section className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
-              <AIOverviewPanel aiResult={aiResult} status={aiStatus} lastRunAt={lastRunAt} />
+              <SoilProfileCard />
+              <div className="mt-4">
+                <AIOverviewPanel aiResult={aiResult} status={aiStatus} lastRunAt={lastRunAt} />
+              </div>
               <div className="mt-4">
                 <HistoricalComparisonChart />
               </div>
@@ -85,7 +93,7 @@ export default function Dashboard(){
                 <FeatureDiffPanel diffs={aiResult?.diffs?.[aiResult.topCrop]} crop={aiResult?.topCrop} />
               </div>
               <div className="card p-4 rounded-lg shadow">
-                <RecommendationsPanel recs={aiResult ? { topCrop: aiResult.topCrop, confidence: aiResult.scores?.[aiResult.topCrop], actions: ['Maintain temperature near historical average','Adjust humidity towards crop optimum','Monitor rainfall / water supply'], timestamp: aiResult?.timestamp ?? Date.now() } : null} />
+                <CropRecommendationPanel />
               </div>
             </div>
           </div>
