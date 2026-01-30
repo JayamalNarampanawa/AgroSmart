@@ -11,7 +11,7 @@ cd dashboard
 npm install
 ```
 
-2. Add your Firebase config in `src/firebase.js` (Realtime Database URL must point to US region DB)
+2. Create a local env file and add your config (Realtime Database URL must point to US region DB)
 
 3. Run locally
 
@@ -29,6 +29,13 @@ Files of interest:
 - src/pages/Dashboard.jsx — main layout and components
 
 Replace Firebase placeholders before running.  
+
+## Setup & Security
+
+1. Create `.env.local` in the dashboard root (same folder as `package.json`) using `.env.example` as a template.
+2. Never commit real keys or secrets. Keep `.env.local` out of git.
+3. The ML API should run locally or on a trusted LAN host; do not expose it publicly without proper security.
+4. Configure Firebase Realtime Database rules securely for production. Use relaxed rules only for local development.
 
 ## Cloud Functions: AI layer
 

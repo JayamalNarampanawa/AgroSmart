@@ -1,10 +1,11 @@
 import { ref, update, serverTimestamp } from "firebase/database"
 import { database } from "../firebase"
+import { envConfig } from "../config/env"
 
 export default async function updateRainfallFromApi(){
-  const apiKey = import.meta.env.VITE_OWM_API_KEY
-  const lat = import.meta.env.VITE_LAT
-  const lon = import.meta.env.VITE_LON
+  const apiKey = envConfig.openWeather.apiKey
+  const lat = envConfig.openWeather.lat
+  const lon = envConfig.openWeather.lon
 
   if(!apiKey || !lat || !lon){
     console.error("OpenWeatherMap env vars missing. Check VITE_OWM_API_KEY/VITE_LAT/VITE_LON.")
