@@ -1,4 +1,5 @@
 import React from 'react'
+import iconUrl from '../assets/icon.jpeg'
 
 export default function LoadingScreen({message='Loading dashboard...'}){
   return (
@@ -6,7 +7,7 @@ export default function LoadingScreen({message='Loading dashboard...'}){
       <div className="w-full h-full wallpaper opacity-90"></div>
       <div className="absolute flex flex-col items-center gap-4">
         <div className="w-28 h-28 rounded-full bg-white/10 flex items-center justify-center mx-auto overflow-hidden">
-          <img src="/src/assets/icon.jpeg" alt="AgroSmart" className="w-full h-full object-cover" />
+          <img src={iconUrl} alt="AgroSmart" className="w-full h-full object-cover" />
         </div>
         <div className="text-lg font-semibold text-slate-200">{message}</div>
         <div className="mt-4">

@@ -12,23 +12,44 @@
   --glass: rgba(255,255,255,0.04);
   --accent-1: #06b6d4;
   --accent-2: #10b981;
+  --accent-3: #60a5fa;
 }
 
 body{ background: var(--bg); }
 
+.app-shell{
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 600px at 8% -10%, rgba(14,165,233,0.18), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(16,185,129,0.12), transparent 55%),
+    linear-gradient(180deg, #070d1b 0%, #0b1222 50%, #0a1220 100%);
+}
+
+.app-shell::before{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.2;
+  pointer-events: none;
+}
+
 .card{
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  border: 1px solid rgba(255,255,255,0.04);
-  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
 }
 
 .progress-bg{ background: linear-gradient(90deg,var(--accent-2),var(--accent-1)); }
 
 /* subtle animations */
 .card-hover{ transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms; }
-.card-hover:hover{ transform: translateY(-6px) scale(1.01); box-shadow: 0 12px 30px rgba(2,6,23,0.6); }
+.card-hover:hover{ transform: translateY(-4px) scale(1.01); box-shadow: 0 18px 40px rgba(2,6,23,0.6); }
 
-.glow-border{ box-shadow: 0 0 30px rgba(6,182,212,0.06), inset 0 1px 0 rgba(255,255,255,0.02); }
+.glow-border{ box-shadow: 0 0 30px rgba(6,182,212,0.08), inset 0 1px 0 rgba(255,255,255,0.02); }
 
 /* small value highlight animation when updated */
 @keyframes pulseValue{ 0%{ transform: scale(1) } 50%{ transform: scale(1.02) } 100%{ transform: scale(1) } }
@@ -52,6 +73,7 @@ pre { white-space: pre-wrap; word-break: break-word; }
 
 /* small animation for progress bar inner */
 .progress-bg{ background: linear-gradient(90deg,var(--accent-2),var(--accent-1)); animation: progress 2s linear infinite }
+.progress-static{ background: linear-gradient(90deg,var(--accent-2),var(--accent-1)); }
 
 /* Improved text colors for dark theme for better readability */
 :root{
@@ -75,3 +97,9 @@ body { color: var(--text-primary); }
 
 /* small helper */
 .text-muted { color: var(--text-secondary) }
+
+.glass-panel{
+  background: linear-gradient(180deg, rgba(9,16,32,0.9), rgba(7,13,27,0.85));
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 20px 45px rgba(2,6,23,0.55);
+}

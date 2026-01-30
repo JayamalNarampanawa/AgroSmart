@@ -17,7 +17,7 @@ export default function CropRecommendationPanel(){
   const badgeClass = matchLevel === "Good"
     ? "bg-emerald-600 text-white"
     : matchLevel === "Moderate"
-      ? "bg-yellow-500 text-white"
+      ? "bg-amber-500 text-white"
       : matchLevel === "Poor"
         ? "bg-red-600 text-white"
         : "bg-slate-500 text-white"
@@ -53,58 +53,74 @@ export default function CropRecommendationPanel(){
   const mlReady = !!(mlResult?.predictedCrop && typeof mlResult?.confidence === 'number')
   const mlValidated = mlReady && mlResult.predictedCrop === best && mlResult.confidence >= 0.6
   const mlBadgeClass = mlValidated ? "bg-emerald-600 text-white" : "bg-amber-500 text-white"
-  const mlBadgeText = mlValidated ? "Validated by ML" : "ML result differs – review recommended"
+  const mlBadgeText = mlValidated ? "Validated by ML" : "ML result differs - review recommended"
   const confidencePct = mlReady ? (mlResult.confidence * 100).toFixed(2) : null
 
   if(!rec) return (
-    <div className="p-4 rounded-lg shadow-md bg-white dark:bg-slate-800">No recommendation yet</div>
+    <div className="text-slate-400">No recommendation yet</div>
   )
 
   return (
-    <div className="p-4 rounded-lg shadow-md bg-gradient-to-r from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
-      <div className="flex items-center justify-between">
-        <div className="font-semibold">Crop Recommendation</div>
+    <div className="rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Recommendation</div>
+          <div className="text-lg font-semibold">Crop Recommendation</div>
+        </div>
         <div className="flex items-center gap-2">
-          <div className={`text-xs px-2 py-1 rounded-full font-semibold uppercase tracking-wide ${badgeClass}`}>{badgeText}</div>
-          <div className="text-sm px-2 py-1 rounded-full bg-indigo-600 text-white capitalize">{best}</div>
+          <div className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide ${badgeClass}`}>{badgeText}</div>
+          <div className="text-sm px-2.5 py-1 rounded-full bg-indigo-600 text-white capitalize">{best}</div>
         </div>
       </div>
-      <div className="mt-3">
-        <div className="text-sm text-slate-700 dark:text-slate-300">Why this crop?</div>
-        {reasons.length === 0 ? (
-          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">No explanation available.</div>
-        ) : (
-          <ul className="mt-2 list-disc list-inside text-sm text-slate-700 dark:text-slate-300">
-            {reasons.map((r,i)=>(
-              <li key={i}>{r}</li>
+
+      <div className="mt-4 grid gap-5 lg:grid-cols-[1.4fr_0.8fr]">
+        <div>
+          <div className="text-sm text-slate-300">Why this crop?</div>
+          {reasons.length === 0 ? (
+            <div className="mt-2 text-sm text-slate-400">No explanation available.</div>
+          ) : (
+            <ul className="mt-3 space-y-2 text-sm text-slate-200">
+              {reasons.map((r,i)=>(
+                <li key={i} className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                  <span>{r}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="rounded-xl border border-white/8 bg-white/3 p-4">
+          <div className="text-xs uppercase tracking-widest text-slate-400">Top 3</div>
+          <ul className="mt-3 space-y-2 text-sm">
+            {top3.map((t,i)=>(
+              <li key={i} className="flex items-center justify-between capitalize">
+                <span>{i+1}. {t.crop}</span>
+                <span className="text-slate-300">{t.score === null ? 'N/A' : String(Math.round(t.score * 100)/100)}</span>
+              </li>
             ))}
           </ul>
-        )}
-        <div className="text-sm text-slate-700 dark:text-slate-300">Top 3</div>
-        <ul className="mt-2 list-decimal list-inside text-sm">
-          {top3.map((t,i)=>(
-            <li key={i} className="capitalize">{t.crop} - score: {t.score === null ? 'N/A' : String(Math.round(t.score * 100)/100)}</li>
-          ))}
-        </ul>
-        <div className="mt-4">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold">ML Validation</div>
-            {mlReady && (
-              <div className={`text-xs px-2 py-1 rounded-full font-semibold uppercase tracking-wide ${mlBadgeClass}`}>{mlBadgeText}</div>
-            )}
-          </div>
-          <div className="mt-2 text-sm text-slate-700 dark:text-slate-300">
-            <div>ML predicted crop: <span className="font-semibold capitalize">{mlResult?.predictedCrop || '—'}</span></div>
-            <div>Confidence: <span className="font-semibold">{confidencePct !== null ? `${confidencePct}%` : '—'}</span></div>
-            {mlError && (
-              <div className="mt-1 text-xs text-amber-600">ML service unavailable.</div>
-            )}
-          </div>
         </div>
-        <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-          <div className="font-semibold">Inputs used</div>
-          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded mt-1">{JSON.stringify(rec.inputUsed, null, 2)}</pre>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-white/8 bg-white/3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="font-semibold">ML Validation</div>
+          {mlReady && (
+            <div className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide ${mlBadgeClass}`}>{mlBadgeText}</div>
+          )}
         </div>
+        <div className="mt-2 text-sm text-slate-200">
+          <div>ML predicted crop: <span className="font-semibold capitalize">{mlResult?.predictedCrop || '-'}</span></div>
+          <div>Confidence: <span className="font-semibold">{confidencePct !== null ? `${confidencePct}%` : '-'}</span></div>
+          {mlError && (
+            <div className="mt-1 text-xs text-amber-300">ML service unavailable.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 text-sm text-slate-300">
+        <div className="font-semibold">Inputs used</div>
+        <pre className="text-xs bg-slate-950/70 border border-white/8 p-3 rounded-xl mt-2 overflow-auto">{JSON.stringify(rec.inputUsed, null, 2)}</pre>
       </div>
     </div>
   )

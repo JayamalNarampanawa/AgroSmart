@@ -15,19 +15,25 @@ export default function InsightsPanel({ current }){
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Smart Insights</h3>
-      <div className="space-y-3">
-        <div className="p-3 rounded-md bg-black/20 border border-white/4">
-          <div className="text-sm text-slate-400">Soil Condition</div>
-          <div className="text-lg font-semibold">{soilStatus}</div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Insights</div>
+          <h3 className="text-lg font-semibold">Smart Insights</h3>
         </div>
-        <div className="p-3 rounded-md bg-black/20 border border-white/4">
-          <div className="text-sm text-slate-400">Suggestion</div>
-          <div className="text-lg font-semibold">{irrigationSuggestion}</div>
+        <div className="text-xs text-slate-400">Auto-evaluated</div>
+      </div>
+      <div className="grid gap-3">
+        <div className="p-4 rounded-xl bg-white/4 border border-white/8">
+          <div className="text-xs uppercase tracking-widest text-slate-400">Soil Condition</div>
+          <div className="text-lg font-semibold mt-1">{soilStatus}</div>
         </div>
-        <div className="p-3 rounded-md bg-black/10 border border-white/3">
-          <div className="text-sm text-slate-400">Environmental Summary</div>
-          <div className="text-sm">{envTrend}</div>
+        <div className="p-4 rounded-xl bg-white/4 border border-white/8">
+          <div className="text-xs uppercase tracking-widest text-slate-400">Suggestion</div>
+          <div className="text-lg font-semibold mt-1">{irrigationSuggestion}</div>
+        </div>
+        <div className="p-4 rounded-xl bg-white/3 border border-white/6">
+          <div className="text-xs uppercase tracking-widest text-slate-400">Environment</div>
+          <div className="text-sm mt-1">{envTrend}</div>
         </div>
       </div>
     </div>

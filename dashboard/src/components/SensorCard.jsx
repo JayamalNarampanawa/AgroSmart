@@ -4,7 +4,7 @@ function Progress({ value }){
   const pct = Math.min(100, Math.max(0, Math.round((value/4095)*100)))
   return (
     <div className="w-full bg-white/6 rounded-full h-2 overflow-hidden mt-2">
-      <div className="h-2 progress-bg" style={{width: `${pct}%`}} />
+      <div className="h-2 progress-static" style={{width: `${pct}%`}} />
     </div>
   )
 }
@@ -53,13 +53,23 @@ function getSensorVisual(type, value){
   if(type === 'light'){
     if(isNaN(v)) return {icon:'', color:'#94a3b8', status:'--'}
     if(v < 200) return {icon:(
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="4" fill="#cbd5e1"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" stroke="#94a3b8" strokeWidth="1" strokeLinecap="round"/></svg>
-    ), color:'#94a3b8', status:'Low'}
-    if(v > 2000) return {icon:(
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="5" fill="#fff6d6"/><path d="M12 1v3M12 20v3M4 4l2 2M18 18l2 2M1 12h3M20 12h3M4 20l2-2M18 6l2-2" stroke="#fbbf24" strokeWidth="1" strokeLinecap="round"/></svg>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="5" fill="#fff6d6" stroke="#fbbf24" strokeWidth="1.2"/>
+        <path d="M12 1v3M12 20v3M4 4l2 2M18 18l2 2M1 12h3M20 12h3M4 20l2-2M18 6l2-2" stroke="#fbbf24" strokeWidth="1.2" strokeLinecap="round"/>
+      </svg>
     ), color:'#fbbf24', status:'Bright'}
+    if(v > 2000) return {icon:(
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 3a7 7 0 100 14 6.5 6.5 0 01-6-9.5A7 7 0 0015 3z" fill="#0f172a" stroke="#94a3b8" strokeWidth="1.2"/>
+        <circle cx="17.5" cy="6.5" r="1" fill="#94a3b8"/>
+        <circle cx="19" cy="9.5" r="0.7" fill="#94a3b8"/>
+      </svg>
+    ), color:'#94a3b8', status:'Dark'}
     return {icon:(
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="5" fill="#fff"/><path d="M12 2v3M12 19v3M4 4l2 2M18 18l2 2" stroke="#ffd166" strokeWidth="1" strokeLinecap="round"/></svg>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="4" fill="#fff3c4" stroke="#facc15" strokeWidth="1.2"/>
+        <path d="M12 3v2M12 19v2M5 5l1.6 1.6M17.4 17.4l1.6 1.6M3 12h2M19 12h2" stroke="#facc15" strokeWidth="1.2" strokeLinecap="round"/>
+      </svg>
     ), color:'#ffd166', status:'Normal'}
   }
 
@@ -71,22 +81,22 @@ export default function SensorCard({ title, value, unit, type }){
   const visual = getSensorVisual(type, value)
 
   return (
-    <div className="card card-hover p-4 rounded-lg shadow flex flex-col">
+    <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-slate-950/55 p-5 shadow-[0_14px_30px_rgba(2,6,23,0.5)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_22px_45px_rgba(2,6,23,0.6)]">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm text-slate-400">{title}</div>
-          <div className={`text-2xl font-semibold ${value !== '--' ? 'value-pulse' : ''}`}>{nice}</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">{title}</div>
+          <div className={`text-3xl font-semibold mt-2 ${value !== '--' ? 'value-pulse' : ''}`}>{nice}</div>
         </div>
         <div className="flex items-center gap-3">
-          <div style={{width:56, height:56}} className="rounded-full flex items-center justify-center bg-black/10">
+          <div style={{width:64, height:64}} className="rounded-2xl flex items-center justify-center bg-white/5 ring-1 ring-white/10">
             {visual.icon}
           </div>
         </div>
       </div>
       {type === 'soil' && value !== '--' && <Progress value={Number(value)} />}
-      <div className="mt-3 flex items-center justify-between text-xs">
-        <div className="text-muted">Updated: <span className="text-slate-300">live</span></div>
-        <div className="px-2 py-1 rounded text-xs" style={{background: visual.color, color: '#001'}}>{visual.status}</div>
+      <div className="mt-4 flex items-center justify-between text-xs">
+        <div className="text-muted">Updated: <span className="text-slate-200">live</span></div>
+        <div className="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide" style={{background: visual.color, color: '#001'}}>{visual.status}</div>
       </div>
     </div>
   )

@@ -4,7 +4,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 function timeLabel(ts){
   if(!ts) return ''
   const d = new Date(Number(ts))
-  // show date for older points, time for today
   const today = new Date()
   if(d.toDateString() === today.toDateString()) return d.toLocaleTimeString()
   return d.toLocaleDateString()
@@ -38,13 +37,21 @@ export default function ChartsPanel({ timeseries = [] }){
   return (
     <div className="space-y-6">
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-xl font-semibold">Analytics</div>
-        <div className="text-sm text-slate-400">Showing {data.length} points • Past = simulated historical baseline</div>
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Analytics</div>
+          <div className="text-xl font-semibold">Climate Signals</div>
+        </div>
+        <div className="text-xs text-slate-400">Showing {data.length} points • Past = simulated historical baseline</div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-2">Temperature (°C)</h3>
-        <div className="text-xs text-slate-500 mb-2">Legend: <span className="px-2">Historical (Kaggle baseline)</span> <span className="px-2">Real-time Sensors</span></div>
+      <div className="rounded-xl border border-white/8 bg-slate-950/40 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold">Temperature (°C)</h3>
+          <div className="text-xs text-slate-400 flex items-center gap-2">
+            <span className="px-2 py-1 rounded-full bg-white/6">Historical</span>
+            <span className="px-2 py-1 rounded-full bg-white/6">Real-time</span>
+          </div>
+        </div>
         <div style={{height:260}}>
           <ResponsiveContainer>
             <LineChart data={data}>
@@ -60,9 +67,11 @@ export default function ChartsPanel({ timeseries = [] }){
         </div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-2">Soil Moisture</h3>
-        <div className="text-sm text-slate-500 mb-2">Sensor-only values. Historical baseline does not include soil moisture.</div>
+      <div className="rounded-xl border border-white/8 bg-slate-950/40 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-base font-semibold">Soil Moisture</h3>
+          <div className="text-xs text-slate-400">Sensor-only values</div>
+        </div>
         <div style={{height:220}}>
           <ResponsiveContainer>
             <AreaChart data={data}>
@@ -81,8 +90,11 @@ export default function ChartsPanel({ timeseries = [] }){
         </div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-2">Irrigation Activity (Pump ON count per day)</h3>
+      <div className="rounded-xl border border-white/8 bg-slate-950/40 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-base font-semibold">Irrigation Activity</h3>
+          <div className="text-xs text-slate-400">Pump ON count per day</div>
+        </div>
         <div style={{height:180}}>
           <ResponsiveContainer>
             <BarChart data={pumpSeries}>

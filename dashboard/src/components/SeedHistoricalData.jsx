@@ -9,13 +9,11 @@ const CROPS = ['kidneybeans','mungbean','chickpea']
 function parseRowsForCrop(rows, crop){
   const lowerCrop = crop.toLowerCase()
   const matches = rows.filter(r=>{
-    // find a column that likely contains the crop label
     const keys = Object.keys(r)
     const labelKey = keys.find(k=>/crop|label|type|name/i.test(k))
     if(labelKey){
       return String(r[labelKey]).toLowerCase().includes(lowerCrop)
     }
-    // fallback: check any cell
     return Object.values(r).some(v=>String(v || '').toLowerCase().includes(lowerCrop))
   })
   if(matches.length === 0) return null
@@ -68,7 +66,6 @@ export default function SeedHistoricalData(){
       return
     }
 
-    // get CSV either from packaged path or uploaded text
     let csv = csvText
     if(!csv){
       try{
@@ -80,7 +77,7 @@ export default function SeedHistoricalData(){
     }
 
     if(!csv){
-      setStatus('No CSV available — please upload Crop_recommendation.csv')
+      setStatus('No CSV available - please upload Crop_recommendation.csv')
       setProgress(null)
       return
     }
@@ -104,7 +101,6 @@ export default function SeedHistoricalData(){
       d.setDate(today.getDate() - i)
       d.setHours(9,0,0,0)
       const ts = d.getTime()
-      // generate push key
       const newRef = push(ref(database, basePath))
       const key = newRef.key
       updates[`/${basePath}/${key}`] = {
@@ -146,23 +142,29 @@ export default function SeedHistoricalData(){
   if(!user) return null
 
   return (
-    <div className="card p-4 rounded-lg shadow">
-      <h4 className="font-semibold mb-2">Admin — Seed Historical Data</h4>
-      <div className="text-sm text-slate-500 mb-3">Simulate past 90 days from Kaggle dataset means for selected crop. Visible to authenticated users only.</div>
-      <div className="flex gap-2 items-center mb-3">
-        <label className="text-sm">Crop:</label>
-        <select value={selectedCrop} onChange={e=>setSelectedCrop(e.target.value)} className="px-2 py-1 border rounded">
+    <div className="rounded-xl border border-dashed border-white/12 bg-white/2 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Admin</div>
+          <h4 className="font-semibold">Seed Historical Data</h4>
+        </div>
+        <div className="text-xs text-slate-400">Authenticated only</div>
+      </div>
+      <div className="text-sm text-slate-400 mb-4">Simulate past 90 days from Kaggle dataset means for selected crop.</div>
+      <div className="flex flex-wrap gap-3 items-center mb-4">
+        <label className="text-xs uppercase tracking-widest text-slate-400">Crop</label>
+        <select value={selectedCrop} onChange={e=>setSelectedCrop(e.target.value)} className="px-3 py-2 rounded-xl bg-slate-900/60 border border-white/10 text-sm text-slate-100">
           {CROPS.map(c=>(<option key={c} value={c}>{c}</option>))}
         </select>
-        <label className="text-sm">CSV upload:</label>
-        <input type="file" accept=".csv" onChange={handleFileUpload} />
+        <label className="text-xs uppercase tracking-widest text-slate-400">CSV upload</label>
+        <input type="file" accept=".csv" onChange={handleFileUpload} className="text-xs text-slate-300" />
       </div>
 
       <div className="flex items-center gap-3">
-        <button className="px-3 py-2 bg-indigo-600 text-white rounded" onClick={handleSeed}>Seed historical data</button>
-        <label className="text-sm flex items-center gap-2"><input type="checkbox" checked={force} onChange={e=>setForce(e.target.checked)} /> Force reseed</label>
+        <button className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors" onClick={handleSeed}>Seed historical data</button>
+        <label className="text-xs flex items-center gap-2 text-slate-300"><input type="checkbox" checked={force} onChange={e=>setForce(e.target.checked)} /> Force reseed</label>
       </div>
-      {progress && <div className="mt-3 text-sm text-slate-600">{progress}</div>}
+      {progress && <div className="mt-3 text-sm text-slate-300">{progress}</div>}
       {status && <div className="mt-3 text-sm font-medium">{status}</div>}
     </div>
   )

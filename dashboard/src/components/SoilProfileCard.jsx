@@ -50,32 +50,37 @@ export default function SoilProfileCard(){
   }
 
   return (
-    <div className="p-4 rounded-lg shadow-md bg-white dark:bg-slate-800">
-      <div className="flex items-center justify-between mb-3">
-        <div className="font-semibold">Soil Profile</div>
-        <div className="text-xs px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700">pH: {profile.phIsDefault ? 'Default' : 'Updated'}</div>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
+    <div>
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <label className="text-xs">Nitrogen (N)</label>
-          <input name="N" value={profile.N ?? ''} onChange={handleChange} className="w-full mt-1 p-2 rounded border" />
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Soil Profile</div>
+          <div className="font-semibold">NPK and pH</div>
         </div>
-        <div>
-          <label className="text-xs">Phosphorus (P)</label>
-          <input name="P" value={profile.P ?? ''} onChange={handleChange} className="w-full mt-1 p-2 rounded border" />
-        </div>
-        <div>
-          <label className="text-xs">Potassium (K)</label>
-          <input name="K" value={profile.K ?? ''} onChange={handleChange} className="w-full mt-1 p-2 rounded border" />
-        </div>
-        <div>
-          <label className="text-xs">pH</label>
-          <input name="ph" value={profile.ph ?? ''} onChange={handleChange} className="w-full mt-1 p-2 rounded border" />
+        <div className="text-xs px-2.5 py-1 rounded-full bg-white/6 border border-white/10">
+          pH: {profile.phIsDefault ? 'Default' : 'Updated'}
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <button onClick={save} disabled={!editing || saving} className="px-3 py-2 bg-indigo-600 text-white rounded disabled:opacity-60">Save</button>
-        <button onClick={()=>setEditing(false)} disabled={saving} className="px-3 py-2 bg-slate-200 rounded">Cancel</button>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-slate-400">Nitrogen (N)</label>
+          <input name="N" value={profile.N ?? ''} onChange={handleChange} className="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900/60 border border-white/10 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-400/40" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400">Phosphorus (P)</label>
+          <input name="P" value={profile.P ?? ''} onChange={handleChange} className="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900/60 border border-white/10 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-400/40" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400">Potassium (K)</label>
+          <input name="K" value={profile.K ?? ''} onChange={handleChange} className="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900/60 border border-white/10 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-400/40" />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400">pH</label>
+          <input name="ph" value={profile.ph ?? ''} onChange={handleChange} className="w-full mt-1 px-3 py-2 rounded-xl bg-slate-900/60 border border-white/10 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-400/40" />
+        </div>
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <button onClick={save} disabled={!editing || saving} className="px-4 py-2 rounded-xl bg-sky-500 text-white font-semibold disabled:opacity-60 transition-colors hover:bg-sky-400">Save</button>
+        <button onClick={()=>setEditing(false)} disabled={saving} className="px-4 py-2 rounded-xl bg-white/8 text-slate-200 border border-white/10 transition-colors hover:bg-white/12">Cancel</button>
       </div>
     </div>
   )
