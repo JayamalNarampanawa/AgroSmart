@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+*.local
+dist/
+.vscode/
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cert
+*secret*.json
+*secrets*.json
+*service-account*.json
+firebase-adminsdk*.json
