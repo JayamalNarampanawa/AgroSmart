@@ -61,7 +61,7 @@ export default function CropRecommendationPanel(){
   )
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
+    <div className="holo-panel rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Recommendation</div>

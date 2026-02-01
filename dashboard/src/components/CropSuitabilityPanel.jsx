@@ -2,15 +2,15 @@ import React from 'react'
 
 function Progress({value}){
   return (
-    <div className="w-full bg-slate-900/60 border border-white/8 rounded-full h-2 overflow-hidden">
-      <div style={{width: `${value}%`}} className="h-2 bg-gradient-to-r from-emerald-400 to-green-600" />
+    <div className="holo-progress w-full rounded-full h-2 overflow-hidden">
+      <div style={{width: `${value}%`}} className="holo-progress-bar" />
     </div>
   )
 }
 
 export default function CropSuitabilityPanel({ suitability }){
   if(!suitability) return (
-    <div className="p-4 rounded-xl border border-white/8 bg-slate-950/40">Waiting for AI suitability results...</div>
+    <div className="holo-panel p-4 rounded-xl border border-white/8 bg-slate-950/40">Waiting for AI suitability results...</div>
   )
 
   const breakdown = suitability?.breakdown ?? null
@@ -22,7 +22,7 @@ export default function CropSuitabilityPanel({ suitability }){
   const top = entries[0]
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
+    <div className="holo-panel rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Suitability</div>

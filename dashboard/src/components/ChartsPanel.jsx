@@ -1,5 +1,7 @@
 import React from 'react'
+import { motion } from 'framer-motion'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Legend } from 'recharts'
+import useMotionPreferences from '../hooks/useMotionPreferences.jsx'
 
 function timeLabel(ts){
   if(!ts) return ''
@@ -23,6 +25,9 @@ function groupPumpByDay(records){
 }
 
 export default function ChartsPanel({ timeseries = [] }){
+  const { enabled, reducedMotion } = useMotionPreferences()
+  const allowMotion = enabled && !reducedMotion
+
   const data = timeseries.map(h=>({
     original: h,
     time: timeLabel(h.timestamp),
@@ -34,6 +39,10 @@ export default function ChartsPanel({ timeseries = [] }){
 
   const pumpSeries = groupPumpByDay(timeseries)
 
+  const enter = allowMotion
+    ? { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5, ease: 'easeOut' } }
+    : {}
+
   return (
     <div className="space-y-6">
       <div className="mb-2 flex items-center justify-between">
@@ -41,10 +50,10 @@ export default function ChartsPanel({ timeseries = [] }){
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Analytics</div>
           <div className="text-xl font-semibold">Climate Signals</div>
         </div>
-        <div className="text-xs text-slate-400">Showing {data.length} points • Past = simulated historical baseline</div>
+        <div className="text-xs text-slate-400">Showing {data.length} points â€¢ Past = simulated historical baseline</div>
       </div>
 
-      <div className="rounded-xl border border-white/8 bg-slate-950/40 p-4">
+      <motion.div className="chart-3d rounded-xl border border-white/8 bg-slate-950/40 p-4" {...enter}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold">Temperature (°C)</h3>
           <div className="text-xs text-slate-400 flex items-center gap-2">
@@ -60,14 +69,14 @@ export default function ChartsPanel({ timeseries = [] }){
               <YAxis />
               <Tooltip />
               <Legend />
-              <Line name="Historical (Kaggle)" type="monotone" dataKey="tempHistorical" stroke="#06b6d4" dot={false} />
-              <Line name="Sensors" type="monotone" dataKey="tempSensor" stroke="#ef4444" dot={false} />
+              <Line name="Historical (Kaggle)" type="monotone" dataKey="tempHistorical" stroke="#38bdf8" strokeWidth={1.5} dot={false} isAnimationActive={allowMotion} />
+              <Line name="Sensors" type="monotone" dataKey="tempSensor" stroke="#fb7185" strokeWidth={2.5} dot={<LiveDot />} isAnimationActive={allowMotion} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="rounded-xl border border-white/8 bg-slate-950/40 p-4">
+      <motion.div className="chart-3d rounded-xl border border-white/8 bg-slate-950/40 p-4" {...enter}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-semibold">Soil Moisture</h3>
           <div className="text-xs text-slate-400">Sensor-only values</div>
@@ -84,13 +93,13 @@ export default function ChartsPanel({ timeseries = [] }){
               <XAxis dataKey="time" />
               <YAxis />
               <Tooltip />
-              <Area type="monotone" dataKey="soilMoisture" stroke="#10b981" fillOpacity={1} fill="url(#soilGrad)" />
+              <Area type="monotone" dataKey="soilMoisture" stroke="#34d399" fillOpacity={1} fill="url(#soilGrad)" isAnimationActive={allowMotion} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="rounded-xl border border-white/8 bg-slate-950/40 p-4">
+      <motion.div className="chart-3d rounded-xl border border-white/8 bg-slate-950/40 p-4" {...enter}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-semibold">Irrigation Activity</h3>
           <div className="text-xs text-slate-400">Pump ON count per day</div>
@@ -101,11 +110,19 @@ export default function ChartsPanel({ timeseries = [] }){
               <XAxis dataKey="time" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="pumpOnCount" fill="#0ea5e9" />
+              <Bar dataKey="pumpOnCount" fill="#38bdf8" isAnimationActive={allowMotion} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
     </div>
+  )
+}
+
+function LiveDot(props){
+  const { cx, cy, stroke } = props
+  if(cx == null || cy == null) return null
+  return (
+    <circle cx={cx} cy={cy} r={3.4} fill={stroke} className="live-dot" />
   )
 }

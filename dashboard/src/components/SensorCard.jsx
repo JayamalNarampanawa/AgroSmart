@@ -1,4 +1,7 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import Tilt from 'react-parallax-tilt'
+import useMotionPreferences from '../hooks/useMotionPreferences.jsx'
 
 function Progress({ value }){
   const pct = Math.min(100, Math.max(0, Math.round((value/4095)*100)))
@@ -79,13 +82,27 @@ function getSensorVisual(type, value){
 export default function SensorCard({ title, value, unit, type }){
   const nice = value === '--' ? value : `${value}${unit}`
   const visual = getSensorVisual(type, value)
+  const { enabled, reducedMotion } = useMotionPreferences()
+  const allowMotion = enabled && !reducedMotion
+  const [pulse, setPulse] = useState(false)
 
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-slate-950/55 p-5 shadow-[0_14px_30px_rgba(2,6,23,0.5)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_22px_45px_rgba(2,6,23,0.6)]">
+  useEffect(() => {
+    if(value === '--') return
+    setPulse(true)
+    const t = setTimeout(() => setPulse(false), 700)
+    return () => clearTimeout(t)
+  }, [value])
+
+  const card = (
+    <motion.div
+      className="sensor-card-3d p-5"
+      animate={allowMotion ? { y: [0, -4, 0] } : undefined}
+      transition={allowMotion ? { duration: 4.5, ease: 'easeInOut', repeat: Infinity } : undefined}
+    >
       <div className="flex items-center justify-between">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">{title}</div>
-          <div className={`text-3xl font-semibold mt-2 ${value !== '--' ? 'value-pulse' : ''}`}>{nice}</div>
+          <div className={`text-3xl font-semibold mt-2 ${pulse ? 'value-pulse' : ''}`}>{nice}</div>
         </div>
         <div className="flex items-center gap-3">
           <div style={{width:64, height:64}} className="rounded-2xl flex items-center justify-center bg-white/5 ring-1 ring-white/10">
@@ -94,10 +111,29 @@ export default function SensorCard({ title, value, unit, type }){
         </div>
       </div>
       {type === 'soil' && value !== '--' && <Progress value={Number(value)} />}
-      <div className="mt-4 flex items-center justify-between text-xs">
+      <div className="mt-4 flex items-center justify-between text-xs sensor-footer">
         <div className="text-muted">Updated: <span className="text-slate-200">live</span></div>
         <div className="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide" style={{background: visual.color, color: '#001'}}>{visual.status}</div>
       </div>
-    </div>
+    </motion.div>
+  )
+
+  return (
+    allowMotion ? (
+      <Tilt
+        tiltMaxAngleX={8}
+        tiltMaxAngleY={8}
+        glareEnable
+        glareMaxOpacity={0.18}
+        glareColor="#7dd3fc"
+        glarePosition="all"
+        transitionSpeed={1200}
+        className="sensor-tilt"
+      >
+        {card}
+      </Tilt>
+    ) : (
+      card
+    )
   )
 }

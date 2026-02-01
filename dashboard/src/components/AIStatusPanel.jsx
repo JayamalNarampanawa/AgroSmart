@@ -8,7 +8,7 @@ export default function AIStatusPanel({ insight, loading, engineName, lastRunAt,
   const irrigation = insight?.irrigationAdvice
 
   if(loading) return (
-    <div className="p-4 rounded-lg shadow-md bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900">
+    <div className="holo-panel p-4 rounded-lg shadow-md bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-900">
       <div className="animate-pulse space-y-2">
         <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3" />
         <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
@@ -18,15 +18,18 @@ export default function AIStatusPanel({ insight, loading, engineName, lastRunAt,
   )
 
   if(!insight) return (
-    <div className="p-4 rounded-lg shadow-md bg-white dark:bg-slate-800">
-      <div className="text-sm text-slate-600 dark:text-slate-300">Waiting for AI results…</div>
+    <div className="holo-panel p-4 rounded-lg shadow-md bg-white dark:bg-slate-800">
+      <div className="text-sm text-slate-600 dark:text-slate-300">Waiting for AI resultsâ€¦</div>
     </div>
   )
 
   return (
-    <div className="p-4 rounded-lg shadow-md bg-gradient-to-r from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
+    <div className="holo-panel p-4 rounded-lg shadow-md bg-gradient-to-r from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold">AI Status: <span className="text-indigo-600">Active</span></div>
+        <div className="text-sm font-semibold flex items-center gap-2">
+          <span className="holo-indicator" />
+          AI Status: <span className="text-indigo-600">Active</span>
+        </div>
         <div className="flex items-center gap-3">
           <div className="text-xs text-slate-500">Last: {updatedAt}</div>
           {engineName && <div className="text-xs text-slate-500 px-2 py-1 rounded bg-slate-100 dark:bg-slate-700">{engineName}</div>}

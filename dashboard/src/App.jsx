@@ -1,11 +1,17 @@
 import React, { useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import Dashboard from './pages/Dashboard'
 import ensureFarmProfileDefaults from './utils/ensureFarmProfileDefaults'
 import ensureWeatherDefaults from './utils/ensureWeatherDefaults'
 import updateRainfallFromApi from './utils/updateRainfallFromApi'
+import useMotionPreferences from './hooks/useMotionPreferences.jsx'
 
 export default function App(){
+  const location = useLocation()
+  const { enabled, reducedMotion } = useMotionPreferences()
+  const allowMotion = enabled && !reducedMotion
+
   useEffect(()=>{
     // Ensure both farm profile and weather defaults exist on startup
     let rainfallIntervalId = null
@@ -28,9 +34,19 @@ export default function App(){
     }
   }, [])
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={allowMotion ? { opacity: 0, y: 12 } : false}
+        animate={allowMotion ? { opacity: 1, y: 0 } : false}
+        exit={allowMotion ? { opacity: 0, y: -12 } : false}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
   )
 }
