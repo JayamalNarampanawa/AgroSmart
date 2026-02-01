@@ -47,9 +47,13 @@ export default function Dashboard(){
   },[])
 
   return (
-    <div className="app-shell app-shell-animate">
-      <Background3D />
-      <PerspectiveStage className="relative z-10 px-4 md:px-8 pt-6 pb-14">
+    <>
+      {/* Fixed ChatWidget - outside of scrollable content */}
+      <ChatWidget />
+      
+      <div className="app-shell app-shell-animate">
+        <Background3D />
+        <PerspectiveStage className="relative z-10 px-4 md:px-8 pt-6 pb-14">
         <AnimatePresence mode="wait">
           {showLoading && <LoadingScreen message={'Connecting to sensors...'}/>}
         </AnimatePresence>
@@ -165,8 +169,8 @@ export default function Dashboard(){
             </div>
           </footer>
         </AnimatedSection>
-        <ChatWidget />
       </PerspectiveStage>
     </div>
+    </>
   )
 }
