@@ -10,13 +10,13 @@ import { getAnalytics } from "firebase/analytics";
  * - Keep .env ONLY for Weather API / ML API base URL
  */
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_AUTH_DOMAIN",
-  databaseURL: "PASTE_YOUR_DATABASE_URL",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID",
-  appId: "PASTE_YOUR_APP_ID",
+   apiKey: "AIzaSyDTFHx8jKrkeXCwtGeBDQV29phYd2e_UdM",
+  authDomain: "agro-smart-2026.firebaseapp.com",
+  databaseURL: "https://agro-smart-2026-default-rtdb.firebaseio.com",
+  projectId: "agro-smart-2026",
+  storageBucket: "agro-smart-2026.firebasestorage.app",
+  messagingSenderId: "668916133955",
+  appId: "1:668916133955:web:2157ff3b8604a36e6e24f6"
 };
 
 const app = initializeApp(firebaseConfig);
