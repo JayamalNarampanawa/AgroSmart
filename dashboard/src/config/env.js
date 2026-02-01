@@ -1,21 +1,5 @@
 const raw = import.meta.env
 
-const required = [
-  'VITE_FIREBASE_API_KEY',
-  'VITE_FIREBASE_AUTH_DOMAIN',
-  'VITE_FIREBASE_DATABASE_URL',
-  'VITE_FIREBASE_PROJECT_ID',
-  'VITE_FIREBASE_STORAGE_BUCKET',
-  'VITE_FIREBASE_MESSAGING_SENDER_ID',
-  'VITE_FIREBASE_APP_ID'
-]
-
-const missing = required.filter(k=>!raw[k])
-if(missing.length){
-  console.error(`[AgroSmart] Missing required environment variables: ${missing.join(', ')}. Create .env.local based on .env.example.`)
-  throw new Error('Missing required environment variables.')
-}
-
 const warnMissing = (keys, message)=>{
   const absent = keys.filter(k=>!raw[k])
   if(absent.length){
@@ -23,7 +7,15 @@ const warnMissing = (keys, message)=>{
   }
 }
 
-warnMissing(['VITE_OWM_API_KEY', 'VITE_LAT', 'VITE_LON'], 'OpenWeatherMap configuration incomplete.')
+const hasOpenWeatherKey = Boolean(raw.VITE_OPENWEATHER_API_KEY || raw.VITE_OWM_API_KEY)
+if(!hasOpenWeatherKey || !raw.VITE_LAT || !raw.VITE_LON){
+  const missing = [
+    hasOpenWeatherKey ? null : 'VITE_OPENWEATHER_API_KEY',
+    raw.VITE_LAT ? null : 'VITE_LAT',
+    raw.VITE_LON ? null : 'VITE_LON'
+  ].filter(Boolean)
+  console.warn(`[AgroSmart] OpenWeatherMap configuration incomplete. Missing: ${missing.join(', ')}`)
+}
 
 export const envConfig = {
   firebase: {
@@ -37,7 +29,7 @@ export const envConfig = {
     measurementId: raw.VITE_FIREBASE_MEASUREMENT_ID || null
   },
   openWeather: {
-    apiKey: raw.VITE_OWM_API_KEY || null,
+    apiKey: raw.VITE_OPENWEATHER_API_KEY || raw.VITE_OWM_API_KEY || null,
     lat: raw.VITE_LAT || null,
     lon: raw.VITE_LON || null
   },

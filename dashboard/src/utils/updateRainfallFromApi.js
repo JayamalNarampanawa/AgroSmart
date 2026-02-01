@@ -8,7 +8,7 @@ export default async function updateRainfallFromApi(){
   const lon = envConfig.openWeather.lon
 
   if(!apiKey || !lat || !lon){
-    console.error("OpenWeatherMap env vars missing. Check VITE_OWM_API_KEY/VITE_LAT/VITE_LON.")
+    console.error("OpenWeatherMap env vars missing. Check VITE_OPENWEATHER_API_KEY/VITE_LAT/VITE_LON.")
     return
   }
 
