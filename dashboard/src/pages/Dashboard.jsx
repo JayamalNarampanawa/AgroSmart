@@ -67,96 +67,123 @@ export default function Dashboard(){
               </div>
             </AnimatedSection>
           )}
-          <AnimatedSection>
-            <section className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-5">
-              <SensorCard title="Temperature" value={current?.temperature ?? '--'} unit="°C" type="temperature" />
-              <SensorCard title="Humidity" value={current?.humidity ?? '--'} unit="%" type="humidity" />
-              <SensorCard title="Soil Moisture" value={current?.soilMoisture ?? '--'} unit="" type="soil" />
-              <SensorCard title="Light Level" value={current?.lightLevel ?? '--'} unit="lux" type="light" />
-            </section>
-          </AnimatedSection>
 
+          {/* PRIORITY 1: Live Sensor Data - Most Critical Information */}
           <AnimatedSection>
-            <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1fr)] gap-6">
-              <Card className="p-6 lg:p-7">
-                <SectionHeader
-                  eyebrow="Operations"
-                  title="Analytics Overview"
-                  subtitle="Live + historical context from Kaggle baselines"
-                  right={<StatusPill label={tsLoading ? 'Loading' : 'Updated'} tone={tsLoading ? 'warn' : 'info'} />}
-                />
-                <div className="mt-5">
-                  <SeedHistoricalData />
-                </div>
-                <div className="mt-6">
-                  <ChartsPanel timeseries={timeseries} />
-                </div>
-              </Card>
-              <div className="space-y-6">
-                <Card className="p-6" hoverable>
-                  <InsightsPanel current={current} history={history} />
-                </Card>
-                <Card className="p-6" hoverable>
-                  <AlertsPanel current={current} />
-                </Card>
+            <section>
+              <SectionHeader
+                eyebrow="Live Monitoring"
+                title="Current Sensor Readings"
+                subtitle="Real-time environmental data from your farm"
+                right={<StatusPill label="Live" tone="live" />}
+              />
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-5">
+                <SensorCard title="Temperature" value={current?.temperature ?? '--'} unit="°C" type="temperature" />
+                <SensorCard title="Humidity" value={current?.humidity ?? '--'} unit="%" type="humidity" />
+                <SensorCard title="Soil Moisture" value={current?.soilMoisture ?? '--'} unit="" type="soil" />
+                <SensorCard title="Light Level" value={current?.lightLevel ?? '--'} unit="lux" type="light" />
               </div>
             </section>
           </AnimatedSection>
 
-          {/* AI Insights Section (Client-side Kaggle comparison) */}
+          {/* PRIORITY 2: Alerts & Quick Insights - Immediate Action Items */}
+          <AnimatedSection>
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6" hoverable>
+                <AlertsPanel current={current} />
+              </Card>
+              <Card className="p-6" hoverable>
+                <InsightsPanel current={current} history={history} />
+              </Card>
+            </section>
+          </AnimatedSection>
+
+          {/* PRIORITY 3: AI Recommendations - Actionable Intelligence */}
           <AnimatedSection>
             <section className="space-y-6">
               <SectionHeader
                 eyebrow="Intelligence"
-                title="AI Insights"
-                subtitle="Rule-based suitability, ML validation, and crop recommendations"
-                right={<StatusPill label={aiLoading ? 'Processing' : 'Live'} tone={aiLoading ? 'warn' : 'live'} />}
+                title="AI-Powered Recommendations"
+                subtitle="Smart insights and crop recommendations based on your data"
+                right={<StatusPill label={aiLoading ? 'Processing' : 'Ready'} tone={aiLoading ? 'warn' : 'live'} />}
               />
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1 space-y-6">
-                  <Card className="p-6 holo-panel" hoverable>
-                    <SoilProfileCard />
-                  </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
+                  <CropRecommendationPanel />
+                </Card>
+                <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
+                  <CropSuitabilityPanel suitability={aiResult ? { totals: aiResult.scores, breakdown: Object.fromEntries(Object.keys(aiResult.scores||{}).map(k=>[k,{ why: Object.entries(aiResult.diffs?.[k]||{}).map(([f,v])=> v===null? `${f}: N/A` : `${f} delta ${v}`) }])) } : null} />
+                </Card>
+              </div>
+            </section>
+          </AnimatedSection>
+
+          {/* PRIORITY 4: Soil Management - Farm Configuration */}
+          <AnimatedSection>
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6 holo-panel" hoverable>
+                <SoilProfileCard />
+              </Card>
+              <Card className="p-6 holo-panel">
+                <CurrentVsIdealChart />
+              </Card>
+            </section>
+          </AnimatedSection>
+
+          {/* PRIORITY 5: Analytics & Historical Data - Detailed Analysis */}
+          <AnimatedSection>
+            <section className="space-y-6">
+              <SectionHeader
+                eyebrow="Analytics"
+                title="Historical Analysis"
+                subtitle="Trends, patterns, and detailed analytics"
+                right={<StatusPill label={tsLoading ? 'Loading' : 'Updated'} tone={tsLoading ? 'warn' : 'info'} />}
+              />
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6">
+                <Card className="p-6 lg:p-7">
+                  <div className="mb-6">
+                    <SeedHistoricalData />
+                  </div>
+                  <ChartsPanel timeseries={timeseries} />
+                </Card>
+                <div className="space-y-6">
                   <Card className="p-6 holo-panel">
                     <HistoricalComparisonChart />
                   </Card>
-                </div>
-
-                <div className="lg:col-span-2 space-y-6">
-                  <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
-                    <CropSuitabilityPanel suitability={aiResult ? { totals: aiResult.scores, breakdown: Object.fromEntries(Object.keys(aiResult.scores||{}).map(k=>[k,{ why: Object.entries(aiResult.diffs?.[k]||{}).map(([f,v])=> v===null? `${f}: N/A` : `${f} delta ${v}`) }])) } : null} />
-                  </Card>
                   <Card className="p-6 holo-panel">
                     <FeatureDiffPanel diffs={aiResult?.diffs?.[aiResult.topCrop]} crop={aiResult?.topCrop} />
-                  </Card>
-                  <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
-                    <CropRecommendationPanel />
-                  </Card>
-                  <Card className="p-6 holo-panel">
-                    <CurrentVsIdealChart />
                   </Card>
                 </div>
               </div>
             </section>
           </AnimatedSection>
 
+          {/* PRIORITY 6: Debug Information - Developer Tools (Collapsible) */}
           <AnimatedSection>
             <section className="pb-6">
               <Card className="p-6">
-                <h4 className="font-semibold mb-2">Debug - Raw Firebase Data</h4>
-                {error && <div className="text-red-600 mb-2">Error: {String(error?.message ?? error)}</div>}
-                <div className="text-sm text-slate-600 dark:text-slate-300">
-                  <div className="mb-2"><strong>currentData:</strong></div>
-                  <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(current, null, 2)}</pre>
-                  <div className="mt-2 mb-2"><strong>history (latest 20):</strong></div>
-                  <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(history.slice(-20), null, 2)}</pre>
-                  <div className="mt-2 mb-2"><strong>ai/currentInsight:</strong></div>
-                  <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(insight, null, 2)}</pre>
-                  <div className="mt-2 mb-2"><strong>ai/suitability:</strong></div>
-                  <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(suitability, null, 2)}</pre>
-                  <div className="mt-2 mb-2"><strong>ai/recommendations:</strong></div>
-                  <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto">{JSON.stringify(recs, null, 2)}</pre>
-                </div>
+                <details className="group">
+                  <summary className="cursor-pointer font-semibold mb-2 flex items-center gap-2 hover:text-emerald-400 transition-colors">
+                    <span className="transform group-open:rotate-90 transition-transform">▶</span>
+                    Debug - Raw Firebase Data
+                    <span className="text-xs text-slate-500 ml-auto">(Click to expand)</span>
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    {error && <div className="text-red-600 mb-2">Error: {String(error?.message ?? error)}</div>}
+                    <div className="text-sm text-slate-600 dark:text-slate-300">
+                      <div className="mb-2"><strong>currentData:</strong></div>
+                      <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(current, null, 2)}</pre>
+                      <div className="mt-4 mb-2"><strong>history (latest 20):</strong></div>
+                      <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(history.slice(-20), null, 2)}</pre>
+                      <div className="mt-4 mb-2"><strong>ai/currentInsight:</strong></div>
+                      <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(insight, null, 2)}</pre>
+                      <div className="mt-4 mb-2"><strong>ai/suitability:</strong></div>
+                      <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(suitability, null, 2)}</pre>
+                      <div className="mt-4 mb-2"><strong>ai/recommendations:</strong></div>
+                      <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(recs, null, 2)}</pre>
+                    </div>
+                  </div>
+                </details>
               </Card>
             </section>
           </AnimatedSection>
