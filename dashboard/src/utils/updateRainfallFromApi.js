@@ -68,7 +68,13 @@ export default async function updateRainfallFromApi(){
           const ts = typeof item?.dt === 'number' ? item.dt * 1000 : Date.now()
           const rain = item?.rain
           const rainfall = typeof rain?.["3h"] === "number" ? rain["3h"] : 0
-          return { ts, rainfall }
+          const tempK = item?.main?.temp
+          const temperature = typeof tempK === 'number' ? Math.round((tempK - 273.15) * 10) / 10 : null
+          const weather0 = Array.isArray(item?.weather) ? item.weather[0] : null
+          const weatherMain = weather0?.main ?? null
+          const weatherDesc = weather0?.description ?? null
+          const icon = weather0?.icon ?? null
+          return { ts, rainfall, temperature, weatherMain, weatherDesc, icon }
         })
       }
     }catch(e){

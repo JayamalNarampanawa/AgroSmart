@@ -1,5 +1,6 @@
 import React from 'react'
 import WeatherTrendChart from './WeatherTrendChart'
+import WeatherForecastPanel from './WeatherForecastPanel'
 import { soilWetnessPercent } from '../utils/soilMoisture'
 import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
 
@@ -70,6 +71,11 @@ export default function WeatherPanel({ weather, history, forecast, current }){
       <div className="mt-5">
         <div className="text-sm font-semibold mb-2">Rainfall trend and forecast</div>
         <WeatherTrendChart history={history} forecast={forecast} />
+      </div>
+
+      <div className="mt-5">
+        <div className="text-sm font-semibold mb-2">Forecast outlook</div>
+        <WeatherForecastPanel forecast={forecast} />
       </div>
 
       <div className="mt-4 text-sm text-slate-300">

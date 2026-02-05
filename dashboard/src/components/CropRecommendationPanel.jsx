@@ -35,7 +35,7 @@ export default function CropRecommendationPanel({ mlResult, mlError }){
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Recommendation</div>
           <div className="text-lg font-semibold">Explainable Recommendation (Primary)</div>
-          <div className="text-xs text-slate-400 mt-1">Rule-based similarity (real-time sensor vs ideal crop conditions)</div>
+          <div className="text-xs text-slate-400 mt-1">Rule-based similarity from sensor vs ideal crop conditions</div>
         </div>
         <div className="flex items-center gap-2">
           <div className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide ${badgeClass}`}>{badgeText}</div>
@@ -76,7 +76,7 @@ export default function CropRecommendationPanel({ mlResult, mlError }){
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <div className="font-semibold">ML Validation (Secondary)</div>
-            <div className="text-xs text-slate-400">Random Forest model used to confirm the primary recommendation</div>
+            <div className="text-xs text-slate-400">Random Forest model confirms the primary recommendation</div>
           </div>
           {mlReady && (
             <div className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide ${mlBadgeClass}`}>{mlBadgeText}</div>

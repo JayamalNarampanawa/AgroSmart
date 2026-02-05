@@ -49,7 +49,11 @@ export default function useWeatherData({ historyLimit = 336 } = {}){
       const rows = points.map((p, i)=>({
         id: `f-${i}`,
         ts: Number(p?.ts ?? 0),
-        rainfall: typeof p?.rainfall === 'number' ? p.rainfall : Number(p?.rainfall ?? 0)
+        rainfall: typeof p?.rainfall === 'number' ? p.rainfall : Number(p?.rainfall ?? 0),
+        temperature: p?.temperature ?? null,
+        weatherMain: p?.weatherMain ?? null,
+        weatherDesc: p?.weatherDesc ?? null,
+        icon: p?.icon ?? null
       })).filter(r=>r.ts > 0).sort((a,b)=>a.ts - b.ts)
       setForecast(rows)
     }, err=>{
