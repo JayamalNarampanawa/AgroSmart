@@ -2,6 +2,8 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Legend } from 'recharts'
 import useMotionPreferences from '../hooks/useMotionPreferences.jsx'
+import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
+import { soilWetnessPercent } from '../utils/soilMoisture'
 
 function timeLabel(ts){
   if(!ts) return ''
@@ -27,6 +29,7 @@ function groupPumpByDay(records){
 export default function ChartsPanel({ timeseries = [] }){
   const { enabled, reducedMotion } = useMotionPreferences()
   const allowMotion = enabled && !reducedMotion
+  const soilConfig = useSoilMoistureSettings()
 
   const data = timeseries.map(h=>({
     original: h,
@@ -34,6 +37,9 @@ export default function ChartsPanel({ timeseries = [] }){
     tempHistorical: h.source === 'historical' ? h.temperature : null,
     tempSensor: h.source === 'sensor' ? h.temperature : null,
     soilMoisture: h.source === 'sensor' ? h.soilMoisture : null,
+    soilMoistureWetness: h.source === 'sensor'
+      ? soilWetnessPercent(h.soilMoisture, soilConfig.wetMin, soilConfig.dryMax)
+      : null,
     pumpStatus: h.source === 'sensor' ? (h.pumpStatus ? 1 : 0) : null
   }))
 
@@ -79,7 +85,7 @@ export default function ChartsPanel({ timeseries = [] }){
       <motion.div className="chart-3d rounded-xl border border-white/8 bg-slate-950/40 p-4" {...enter}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-semibold">Soil Moisture</h3>
-          <div className="text-xs text-slate-400">Sensor-only values</div>
+          <div className="text-xs text-slate-400">Wetness (inverted sensor output)</div>
         </div>
         <div style={{height:220}}>
           <ResponsiveContainer>
@@ -91,9 +97,9 @@ export default function ChartsPanel({ timeseries = [] }){
                 </linearGradient>
               </defs>
               <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Area type="monotone" dataKey="soilMoisture" stroke="#34d399" fillOpacity={1} fill="url(#soilGrad)" isAnimationActive={allowMotion} />
+              <YAxis domain={[0, 100]} />
+              <Tooltip content={<SoilMoistureTooltip />} />
+              <Area name="Wetness (%)" type="monotone" dataKey="soilMoistureWetness" stroke="#34d399" fillOpacity={1} fill="url(#soilGrad)" isAnimationActive={allowMotion} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -124,5 +130,19 @@ function LiveDot(props){
   if(cx == null || cy == null) return null
   return (
     <circle cx={cx} cy={cy} r={3.4} fill={stroke} className="live-dot" />
+  )
+}
+
+function SoilMoistureTooltip({ active, payload, label }){
+  if(!active || !payload || payload.length === 0) return null
+  const row = payload[0]?.payload || {}
+  const wetness = row.soilMoistureWetness
+  const raw = row.soilMoisture
+  return (
+    <div className="rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 text-xs text-slate-100">
+      <div className="text-slate-300">{label}</div>
+      <div className="mt-1">Wetness: <span className="font-semibold">{wetness == null ? '--' : `${wetness}%`}</span></div>
+      <div>Raw: <span className="font-semibold">{raw == null ? '--' : raw}</span></div>
+    </div>
   )
 }

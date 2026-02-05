@@ -19,7 +19,12 @@ import CropRecommendationPanel from '../components/CropRecommendationPanel'
 import CurrentVsIdealChart from '../components/CurrentVsIdealChart'
 import ChatWidget from '../components/ChatWidget'
 import SoilProfileCard from '../components/SoilProfileCard'
+import WeatherPanel from '../components/WeatherPanel'
+import FinalResultCard from '../components/FinalResultCard'
 import useCropRecommendation from '../hooks/useCropRecommendation'
+import useRecommendationData from '../hooks/useRecommendationData'
+import useMlValidation from '../hooks/useMlValidation'
+import useWeatherData from '../hooks/useWeatherData'
 import Card from '../components/ui/Card'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusPill from '../components/ui/StatusPill'
@@ -32,6 +37,9 @@ export default function Dashboard(){
   const { current, history, error } = useSensorData()
   const { insight, suitability, recs, loading: aiLoading } = useAIData()
   const { aiResult } = useClientAIEngine(current, { requireAuth: false, writeBack: true, minInterval: 10000 })
+  const rec = useRecommendationData()
+  const { mlResult, mlError } = useMlValidation(rec)
+  const { weather, history: weatherHistory, forecast: weatherForecast } = useWeatherData()
   // analytics timeseries (historical + sensor)
   const { data: timeseries, loading: tsLoading } = useAnalyticsTimeseries({ limit: 3000 })
   // append live sensor records into analytics feed
@@ -98,6 +106,21 @@ export default function Dashboard(){
             </section>
           </AnimatedSection>
 
+          {/* Weather: Local conditions and rainfall trends */}
+          <AnimatedSection>
+            <section>
+              <SectionHeader
+                eyebrow="Weather"
+                title="Rainfall & Conditions"
+                subtitle="OpenWeatherMap snapshot and recent rainfall trend"
+                right={<StatusPill label="Live" tone="live" />}
+              />
+              <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
+                <WeatherPanel weather={weather} history={weatherHistory} forecast={weatherForecast} current={current} />
+              </Card>
+            </section>
+          </AnimatedSection>
+
           {/* PRIORITY 3: AI Recommendations - Actionable Intelligence */}
           <AnimatedSection>
             <section className="space-y-6">
@@ -109,12 +132,22 @@ export default function Dashboard(){
               />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
-                  <CropRecommendationPanel />
+                  <CropRecommendationPanel mlResult={mlResult} mlError={mlError} />
                 </Card>
                 <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
                   <CropSuitabilityPanel suitability={aiResult ? { totals: aiResult.scores, breakdown: Object.fromEntries(Object.keys(aiResult.scores||{}).map(k=>[k,{ why: Object.entries(aiResult.diffs?.[k]||{}).map(([f,v])=> v===null? `${f}: N/A` : `${f} delta ${v}`) }])) } : null} />
                 </Card>
               </div>
+              <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
+                <FinalResultCard
+                  rec={rec}
+                  mlResult={mlResult}
+                  mlError={mlError}
+                  current={current}
+                  weather={weather}
+                  weatherHistory={weatherHistory}
+                />
+              </Card>
             </section>
           </AnimatedSection>
 

@@ -1,11 +1,15 @@
 import React from 'react'
+import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
+import { soilWetnessPercent } from '../utils/soilMoisture'
 
 export default function AlertsPanel({ current }){
+  const soilConfig = useSoilMoistureSettings()
   const alerts = []
   if (!current) return <div className="text-slate-400">No realtime data</div>
 
+  const wetness = soilWetnessPercent(current.soilMoisture, soilConfig.wetMin, soilConfig.dryMax)
   if (current.temperature > 35) alerts.push({level:'high', text:'Temperature too high'})
-  if (current.soilMoisture > 2200) alerts.push({level:'medium', text:'Soil is very dry'})
+  if (wetness !== null && wetness < 30) alerts.push({level:'medium', text:'Soil is very dry'})
   if (current.lightLevel < 100) alerts.push({level:'low', text:'Light level low'})
 
   return (

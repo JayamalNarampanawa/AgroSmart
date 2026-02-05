@@ -1,11 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import useRecommendationData from '../hooks/useRecommendationData'
-import { getMlPrediction } from '../services/mlService'
 
-export default function CropRecommendationPanel(){
+export default function CropRecommendationPanel({ mlResult, mlError }){
   const rec = useRecommendationData()
-  const [mlResult, setMlResult] = useState(null)
-  const [mlError, setMlError] = useState(null)
 
   const best = rec?.recommendedCrop
   const top3 = Array.isArray(rec?.top3)
@@ -22,34 +19,6 @@ export default function CropRecommendationPanel(){
         ? "bg-red-600 text-white"
         : "bg-slate-500 text-white"
 
-  useEffect(()=>{
-    let alive = true
-    const input = rec?.inputUsed
-    if(!input || !best) return
-    const payload = {
-      N: input.N,
-      P: input.P,
-      K: input.K,
-      temperature: input.temperature,
-      humidity: input.humidity,
-      rainfall: input.rainfall,
-      ph: input.ph
-    }
-
-    getMlPrediction(payload).then(out=>{
-      if(!alive) return
-      setMlResult(out)
-      setMlError(null)
-    }).catch(err=>{
-      if(!alive) return
-      setMlResult(null)
-      setMlError(err)
-      console.error('ML prediction failed', err)
-    })
-
-    return ()=>{ alive = false }
-  }, [best, rec?.inputUsed])
-
   const mlReady = !!(mlResult?.predictedCrop && typeof mlResult?.confidence === 'number')
   const mlValidated = mlReady && mlResult.predictedCrop === best && mlResult.confidence >= 0.6
   const mlBadgeClass = mlValidated ? "bg-emerald-600 text-white" : "bg-amber-500 text-white"
@@ -65,7 +34,8 @@ export default function CropRecommendationPanel(){
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Recommendation</div>
-          <div className="text-lg font-semibold">Crop Recommendation</div>
+          <div className="text-lg font-semibold">Explainable Recommendation (Primary)</div>
+          <div className="text-xs text-slate-400 mt-1">Rule-based similarity (real-time sensor vs ideal crop conditions)</div>
         </div>
         <div className="flex items-center gap-2">
           <div className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide ${badgeClass}`}>{badgeText}</div>
@@ -104,7 +74,10 @@ export default function CropRecommendationPanel(){
 
       <div className="mt-5 rounded-xl border border-white/8 bg-white/3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="font-semibold">ML Validation</div>
+          <div>
+            <div className="font-semibold">ML Validation (Secondary)</div>
+            <div className="text-xs text-slate-400">Random Forest model used to confirm the primary recommendation</div>
+          </div>
           {mlReady && (
             <div className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide ${mlBadgeClass}`}>{mlBadgeText}</div>
           )}
