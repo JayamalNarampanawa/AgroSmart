@@ -1,13 +1,17 @@
 import React from 'react'
+import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
+import { soilWetnessPercent } from '../utils/soilMoisture'
 
 export default function InsightsPanel({ current }){
+  const soilConfig = useSoilMoistureSettings()
   const soil = current?.soilMoisture ?? null
+  const wetness = soilWetnessPercent(soil, soilConfig.wetMin, soilConfig.dryMax)
   let soilStatus = 'Unknown'
   let irrigationSuggestion = 'N/A'
 
-  if (soil !== null){
-    if (soil > 2200) { soilStatus = 'Dry'; irrigationSuggestion = 'Irrigation Recommended' }
-    else if (soil > 1200) { soilStatus = 'Optimal'; irrigationSuggestion = 'No action' }
+  if (wetness !== null){
+    if (wetness < 30) { soilStatus = 'Dry'; irrigationSuggestion = 'Irrigation Recommended' }
+    else if (wetness < 70) { soilStatus = 'Optimal'; irrigationSuggestion = 'No action' }
     else { soilStatus = 'Wet'; irrigationSuggestion = 'No irrigation' }
   }
 

@@ -2,17 +2,19 @@ import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Tilt from 'react-parallax-tilt'
 import useMotionPreferences from '../hooks/useMotionPreferences.jsx'
+import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
+import { soilWetnessPercent } from '../utils/soilMoisture'
 
-function Progress({ value }){
-  const pct = Math.min(100, Math.max(0, Math.round((value/4095)*100)))
+function Progress({ pct }){
+  const safe = typeof pct === 'number' ? Math.min(100, Math.max(0, Math.round(pct))) : 0
   return (
     <div className="w-full bg-white/6 rounded-full h-2 overflow-hidden mt-2">
-      <div className="h-2 progress-static" style={{width: `${pct}%`}} />
+      <div className="h-2 progress-static" style={{width: `${safe}%`}} />
     </div>
   )
 }
 
-function getSensorVisual(type, value){
+function getSensorVisual(type, value, soilWetness){
   const v = Number(value)
   if(type === 'temperature'){
     if(isNaN(v)) return {icon:'', color:'#94a3b8', status:'--'}
@@ -41,11 +43,12 @@ function getSensorVisual(type, value){
   }
 
   if(type === 'soil'){
-    if(isNaN(v)) return {icon:'', color:'#94a3b8', status:'--'}
-    if(v > 2200) return {icon:(
+    const wetness = typeof soilWetness === 'number' ? soilWetness : (isNaN(v) ? null : v)
+    if(wetness === null || wetness === undefined || Number.isNaN(wetness)) return {icon:'', color:'#94a3b8', status:'--'}
+    if(wetness < 30) return {icon:(
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3c2 3 5 3 6 6 1 3-1 6-6 12-5-6-7-9-6-12 1-3 4-3 6-6z" fill="#ffe8d6" stroke="#f97316"/></svg>
     ), color:'#f97316', status:'Dry'}
-    if(v > 1200) return {icon:(
+    if(wetness < 70) return {icon:(
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3c2 3 5 3 6 6 1 3-1 6-6 12-5-6-7-9-6-12 1-3 4-3 6-6z" fill="#ecfdf5" stroke="#10b981"/></svg>
     ), color:'#10b981', status:'Optimal'}
     return {icon:(
@@ -81,7 +84,9 @@ function getSensorVisual(type, value){
 
 export default function SensorCard({ title, value, unit, type }){
   const nice = value === '--' ? value : `${value}${unit}`
-  const visual = getSensorVisual(type, value)
+  const soilConfig = useSoilMoistureSettings()
+  const soilWetness = type === 'soil' ? soilWetnessPercent(value, soilConfig.wetMin, soilConfig.dryMax) : null
+  const visual = getSensorVisual(type, value, soilWetness)
   const { enabled, reducedMotion } = useMotionPreferences()
   const allowMotion = enabled && !reducedMotion
   const [pulse, setPulse] = useState(false)
@@ -110,7 +115,7 @@ export default function SensorCard({ title, value, unit, type }){
           </div>
         </div>
       </div>
-      {type === 'soil' && value !== '--' && <Progress value={Number(value)} />}
+      {type === 'soil' && value !== '--' && <Progress pct={soilWetness} />}
       <div className="mt-4 flex items-center justify-between text-xs sensor-footer">
         <div className="text-muted">Updated: <span className="text-slate-200">live</span></div>
         <div className="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide" style={{background: visual.color, color: '#001'}}>{visual.status}</div>

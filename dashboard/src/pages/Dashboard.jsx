@@ -19,7 +19,13 @@ import CropRecommendationPanel from '../components/CropRecommendationPanel'
 import CurrentVsIdealChart from '../components/CurrentVsIdealChart'
 import ChatWidget from '../components/ChatWidget'
 import SoilProfileCard from '../components/SoilProfileCard'
+import WeatherPanel from '../components/WeatherPanel'
+import FinalResultCard from '../components/FinalResultCard'
+import NavSectionBar from '../components/NavSectionBar'
 import useCropRecommendation from '../hooks/useCropRecommendation'
+import useRecommendationData from '../hooks/useRecommendationData'
+import useMlValidation from '../hooks/useMlValidation'
+import useWeatherData from '../hooks/useWeatherData'
 import Card from '../components/ui/Card'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusPill from '../components/ui/StatusPill'
@@ -32,6 +38,9 @@ export default function Dashboard(){
   const { current, history, error } = useSensorData()
   const { insight, suitability, recs, loading: aiLoading } = useAIData()
   const { aiResult } = useClientAIEngine(current, { requireAuth: false, writeBack: true, minInterval: 10000 })
+  const rec = useRecommendationData()
+  const { mlResult, mlError } = useMlValidation(rec)
+  const { weather, history: weatherHistory, forecast: weatherForecast } = useWeatherData()
   // analytics timeseries (historical + sensor)
   const { data: timeseries, loading: tsLoading } = useAnalyticsTimeseries({ limit: 3000 })
   // append live sensor records into analytics feed
@@ -59,7 +68,16 @@ export default function Dashboard(){
         </AnimatePresence>
         <Navbar />
         <Scroll3D>
-          <main className="mt-6 space-y-8">
+          <main className="mt-4 space-y-8">
+          <NavSectionBar
+            sections={[
+              { id: 'status', label: 'Status' },
+              { id: 'final', label: 'Final Result' },
+              { id: 'recommendations', label: 'Recommendations' },
+              { id: 'weather', label: 'Weather' },
+              { id: 'analytics', label: 'Analytics' }
+            ]}
+          />
           {current?.timestamp && (Date.now() - current.timestamp > 10 * 60 * 1000) && (
             <AnimatedSection>
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-400/20 text-amber-100">
@@ -68,11 +86,11 @@ export default function Dashboard(){
             </AnimatedSection>
           )}
 
-          {/* PRIORITY 1: Live Sensor Data - Most Critical Information */}
+          {/* PRIORITY 1: Quick Farm Status */}
           <AnimatedSection>
-            <section>
+            <section id="status">
               <SectionHeader
-                eyebrow="Live Monitoring"
+                eyebrow="Quick Farm Status"
                 title="Current Sensor Readings"
                 subtitle="Real-time environmental data from your farm"
                 right={<StatusPill label="Live" tone="live" />}
@@ -83,10 +101,24 @@ export default function Dashboard(){
                 <SensorCard title="Soil Moisture" value={current?.soilMoisture ?? '--'} unit="" type="soil" />
                 <SensorCard title="Light Level" value={current?.lightLevel ?? '--'} unit="lux" type="light" />
               </div>
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Pump Status</div>
+                  <div className="mt-2 text-lg font-semibold">
+                    {current?.pumpStatus === 1 || current?.pumpStatus === true ? 'ON' : 'OFF'}
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Last Updated</div>
+                  <div className="mt-2 text-sm text-slate-300">
+                    {current?.timestamp ? new Date(current.timestamp).toLocaleString() : 'Unknown'}
+                  </div>
+                </Card>
+              </div>
             </section>
           </AnimatedSection>
 
-          {/* PRIORITY 2: Alerts & Quick Insights - Immediate Action Items */}
+          {/* Alerts & Insights */}
           <AnimatedSection>
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="p-6" hoverable>
@@ -98,23 +130,62 @@ export default function Dashboard(){
             </section>
           </AnimatedSection>
 
-          {/* PRIORITY 3: AI Recommendations - Actionable Intelligence */}
+          {/* FINAL RESULT */}
           <AnimatedSection>
-            <section className="space-y-6">
+            <section id="final" className="space-y-6">
+              <SectionHeader
+                eyebrow="Decision"
+                title="Final Result (Decision Summary)"
+                subtitle="Farmer-friendly summary of the best crop choice"
+                right={<StatusPill label="Ready" tone="live" />}
+              />
+              <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
+                <FinalResultCard
+                  rec={rec}
+                  mlResult={mlResult}
+                  mlError={mlError}
+                  current={current}
+                  weather={weather}
+                  weatherHistory={weatherHistory}
+                />
+              </Card>
+            </section>
+          </AnimatedSection>
+
+          {/* Recommendation Details */}
+          <AnimatedSection>
+            <section id="recommendations" className="space-y-4">
               <SectionHeader
                 eyebrow="Intelligence"
-                title="AI-Powered Recommendations"
-                subtitle="Smart insights and crop recommendations based on your data"
+                title="Recommendation Details"
+                subtitle="View the primary explainable recommendation and ML validation"
                 right={<StatusPill label={aiLoading ? 'Processing' : 'Ready'} tone={aiLoading ? 'warn' : 'live'} />}
               />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
-                  <CropRecommendationPanel />
-                </Card>
-                <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
-                  <CropSuitabilityPanel suitability={aiResult ? { totals: aiResult.scores, breakdown: Object.fromEntries(Object.keys(aiResult.scores||{}).map(k=>[k,{ why: Object.entries(aiResult.diffs?.[k]||{}).map(([f,v])=> v===null? `${f}: N/A` : `${f} delta ${v}`) }])) } : null} />
-                </Card>
+              <div className="rounded-2xl border border-white/8 bg-slate-950/40 p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
+                    <CropRecommendationPanel mlResult={mlResult} mlError={mlError} />
+                  </Card>
+                  <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
+                    <CropSuitabilityPanel suitability={aiResult ? { totals: aiResult.scores, breakdown: Object.fromEntries(Object.keys(aiResult.scores||{}).map(k=>[k,{ why: Object.entries(aiResult.diffs?.[k]||{}).map(([f,v])=> v===null? `${f}: N/A` : `${f} delta ${v}`) }])) } : null} />
+                  </Card>
+                </div>
               </div>
+            </section>
+          </AnimatedSection>
+
+          {/* Weather: Local conditions and rainfall trends */}
+          <AnimatedSection>
+            <section id="weather">
+              <SectionHeader
+                eyebrow="Weather Insights"
+                title="Rainfall & Conditions"
+                subtitle="OpenWeatherMap snapshot and recent rainfall trend"
+                right={<StatusPill label="Live" tone="live" />}
+              />
+              <Card className="p-0 bg-transparent border-0 shadow-none" hoverable>
+                <WeatherPanel weather={weather} history={weatherHistory} forecast={weatherForecast} current={current} />
+              </Card>
             </section>
           </AnimatedSection>
 
@@ -132,7 +203,7 @@ export default function Dashboard(){
 
           {/* PRIORITY 5: Analytics & Historical Data - Detailed Analysis */}
           <AnimatedSection>
-            <section className="space-y-6">
+            <section id="analytics" className="space-y-6">
               <SectionHeader
                 eyebrow="Analytics"
                 title="Historical Analysis"
