@@ -1,8 +1,8 @@
 # 
 
-# 				**🌱 AgroSmart**
+# **🌱 AgroSmart**
 
-##### &nbsp;				IoT-Based Smart Agriculture Monitoring System with AI Decision Support
+#####  				IoT-Based Smart Agriculture Monitoring System with AI Decision Support
 
 
 
@@ -56,23 +56,23 @@ The system follows a monitoring-first architecture, where IoT hardware performs 
 
 
 
-&nbsp;		      Sensors 	
+ 		      Sensors
 
-&nbsp;			↓
+ 			↓
 
-&nbsp;		      ESP32 
+ 		      ESP32
 
-&nbsp;			↓
+ 			↓
 
-&nbsp;		Firebase Realtime Database
+ 		Firebase Realtime Database
 
-&nbsp;               	 ↓
+                	 ↓
 
-&nbsp;         Web Dashboard (Monitoring + AI Insights)
+          Web Dashboard (Monitoring + AI Insights)
 
-&nbsp;               	 ↓
+                	 ↓
 
-&nbsp;     	Local ESP32 Irrigation Logic (Rule-based)
+      	Local ESP32 Irrigation Logic (Rule-based)
 
 # 
 
@@ -184,19 +184,19 @@ Irrigation decisions are enforced locally on the ESP32.
 
 
 
-&nbsp; Irrigation automation
+  Irrigation automation
 
 
 
-&nbsp; Analytics and trend visualization
+  Analytics and trend visualization
 
 
 
 ###### **Temperature \& Humidity Sensor (DHT11)**
 
-&nbsp;
+ 
 
-* &nbsp;Measures ambient temperature and relative humidity.
+*  Measures ambient temperature and relative humidity.
 
 
 
@@ -268,73 +268,73 @@ Irrigation decisions are enforced locally on the ESP32.
 
 
 
-&nbsp;	Live sensor data
+ 	Live sensor data
 
 
 
-&nbsp;	AI recommendations
+ 	AI recommendations
 
 
 
-&nbsp;	Weather data
+ 	Weather data
 
 
 
-&nbsp;	Analytics time-series
+ 	Analytics time-series
 
 # 
 
-###### Chosen for:
+* ###### Chosen for:
 
 
 
-Real-time synchronization
+&nbsp;	Real-time synchronization
 
 
 
-Simplicity
+&nbsp;	Simplicity
 
 
 
-Reliability for academic IoT systems
+&nbsp;	Reliability for academic IoT systems
 
 
 
-Authentication \& Security
+###### **Authentication \& Security**
 
 
 
-Anonymous authentication enabled for ESP32 device access.
+&nbsp;	Anonymous authentication enabled for ESP32 device access.
 
 
 
-Database rules restrict unauthorized writes.
+&nbsp;	Database rules restrict unauthorized writes.
 
 
 
-All communication secured via HTTPS/TLS.
+&nbsp;	All communication secured via HTTPS/TLS.
 
 
 
-Data Retention \& Analytics
+###### **Data Retention \& Analytics**
+
+###### 
+
+&nbsp;	Live sensor data stored under structured paths.
 
 
 
-Live sensor data stored under structured paths.
-
-
-
-Simulated historical baselines used for analytics.
+&nbsp;	Simulated historical baselines used for analytics.
 
 
 
 
 
-###### Unified timeline:
+###### &nbsp;     Unified timeline:
 
 
 
-Historical baseline → real-time IoT data
+&nbsp;	  Historical baseline → real-time IoT data
 
 # 
 
@@ -346,85 +346,86 @@ Historical baseline → real-time IoT data
 
 
 
-##### Dashboard Features
+##### **Dashboard Features**
 
 
 
-###### Real-time visualization of:
-
-# 
-
-Temperature
+* Real-time visualization of:
 
 
 
-Humidity
+&nbsp;	Temperature
 
 
 
-Soil moisture
+&nbsp;	Humidity
 
 
 
-Light intensity
+&nbsp;	Soil moisture
 
 
 
-Pump status
+&nbsp;	Light intensity
 
 
 
-Weather integration using OpenWeatherMap API.
+&nbsp;	Pump status
 
 
 
-AI-based crop recommendation display.
+* Weather integration using OpenWeatherMap API.
 
 
 
-Analytics charts showing historical vs live data.
+* AI-based crop recommendation display.
 
 
 
-Explainable AI output with reasons and match levels.
+* Analytics charts showing historical vs live data.
 
 
 
-Design Philosophy
+* Explainable AI output with reasons and match levels.
 
 
 
-Farmer-friendly layout.
+###### **Design Philosophy**
 
 
 
-Clear prioritization:
+* Farmer-friendly layout.
 
 
 
-Current farm status
+* Clear prioritization:
 
 
 
-Final decision summary
+&nbsp;	Current farm status
 
 
 
-Recommendation details
+&nbsp;	Final decision summary
+
+
+	Recommendation details
 
 
 
-Weather insights
+&nbsp;	Weather insights
 
 
 
-Analytics
+&nbsp;	Analytics
 
 
 
-No mobile application is currently implemented.
+###### No mobile application is currently implemented.
 
-The system uses a web-only dashboard for monitoring and analysis.
+
+
+###### The system uses a web-only dashboard for monitoring and analysis.
 
 # 
 
@@ -464,7 +465,7 @@ The system uses a web-only dashboard for monitoring and analysis.
 
 
 
-&nbsp;	Soil moisture threshold triggers pump ON/OFF.
+ 	Soil moisture threshold triggers pump ON/OFF.
 
 
 
@@ -512,19 +513,19 @@ Used only for monitoring and insight generation.
 
 
 
-&nbsp;   Temperature
+    Temperature
 
 
 
-&nbsp;   Humidity
+    Humidity
 
 
 
-&nbsp;   Rainfall
+    Rainfall
 
 
 
-&nbsp;   Soil pH
+    Soil pH
 
 
 
@@ -536,15 +537,15 @@ Used only for monitoring and insight generation.
 
 
 
-&nbsp;   Recommended crop
+    Recommended crop
 
 
 
-&nbsp;   Match level (Good / Moderate / Poor)
+    Match level (Good / Moderate / Poor)
 
 
 
-&nbsp;   Human-readable reasons
+    Human-readable reasons
 
 # 
 
@@ -552,23 +553,23 @@ Used only for monitoring and insight generation.
 
 
 
-* &nbsp;Random Forest classifier.
+*  Random Forest classifier.
 
 
 
-* &nbsp;Trained offline.
+*  Trained offline.
 
 
 
-* &nbsp;Deployed as a FastAPI service (hosted).
+*  Deployed as a FastAPI service (hosted).
 
 
 
-* &nbsp;Used only to validate the primary recommendation.
+*  Used only to validate the primary recommendation.
 
 
 
-* &nbsp;Does not override rule-based AI.
+*  Does not override rule-based AI.
 
 # 
 
@@ -590,15 +591,15 @@ Rule-based AI remains authoritative.
 
 
 
-&nbsp;   Temperature
+    Temperature
 
 
 
-&nbsp;   Humidity
+    Humidity
 
 
 
-&nbsp;   Rainfall (1h / 3h)
+    Rainfall (1h / 3h)
 
 
 
@@ -610,15 +611,15 @@ Rule-based AI remains authoritative.
 
 
 
-&nbsp;    Rainfall insights
+     Rainfall insights
 
 
 
-&nbsp;    Irrigation delay suggestions
+     Irrigation delay suggestions
 
 
 
-&nbsp;    Contextual tips for farmers
+     Contextual tips for farmers
 
 
 
