@@ -1,34 +1,44 @@
-START
+flow chart - 
+ START
   ↓
 Power ON System
   ↓
 Initialize ESP32
   ↓
 Initialize Sensors
-(Soil Moisture, Temperature, Humidity)
+(Soil Moisture, Temperature, Humidity, Light)
   ↓
 Read Sensor Data
   ↓
-Send Data to Firebase
+Apply LOCAL Irrigation Logic (ESP32)
+(Soil Moisture Threshold Check)
   ↓
-Display Data on
-Web Dashboard & Mobile App
-  ↓
-Store Data in Firebase
-  ↓
-Is Precision System Enabled?
+Is Soil Moisture BELOW Threshold?
         ↓ YES                    ↓ NO
-Apply Precision Logic         Continue Monitoring
-(using collected data)            ↓
-        ↓                     Read Sensor Data
-Is Soil Moisture Low?
-        ↓ YES        ↓ NO
-Is Temperature High?
-        ↓ YES        ↓ NO
-Turn Pump ON      Keep Pump OFF
+Turn Pump ON                Keep Pump OFF
         ↓
-Update Pump Status in Firebase
+Update Pump Status (Local)
         ↓
-Continue Monitoring Loop
-        ↓
-END (System Runs Continuously)
+Send Sensor Data & Pump Status to Firebase
+  ↓
+Store Data in Firebase Realtime Database
+  ↓
+Display Data on Web Dashboard
+(Monitoring, Analytics, AI Insights)
+  ↓
+Generate AI Decision Support (Dashboard Only)
+- Explainable Rule-Based Recommendation
+- ML Validation (Secondary)
+(No Hardware Control)
+  ↓
+Wait for Next Interval
+  ↓
+Repeat Monitoring Loop
+
+Control Logic Clarification
+
+AgroSmart uses a monitoring-first architecture with local control.
+
+All irrigation decisions are executed directly on the ESP32 using predefined soil moisture thresholds to ensure reliable operation even during network outages.
+
+AI-based precision agriculture components operate only at the dashboard level, where they analyze collected data to generate crop recommendations and advisory insights. These AI outputs do not directly control pumps or actuators.
