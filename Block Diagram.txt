@@ -1,60 +1,81 @@
-+--------------------------------------------------+
-|        SMART AGRICULTURE MONITORING SYSTEM        |
-|                                                  |
-|  +--------------------+                          |
-|  | Soil Moisture      |                          |
-|  | Sensor             |                          |
-|  +--------------------+                          |
-|                                                  |
-|  +--------------------+                          |
-|  | Temperature &      |                          |
-|  | Humidity Sensor    |                          |
-|  | (DHT22)            |                          |
-|  +--------------------+                          |
-|                                                  |
-|                ↓                                 |
-|        +--------------------+                    |
-|        |      ESP32         |                    |
-|        |  Microcontroller   |                    |
-|        |                    |                    |
-|        | - Read sensor data |                    |
-|        | - Send data to     |                    |
-|        |   Firebase         |                    |
-|        +--------------------+                    |
-|                ↓                                 |
-|        +--------------------+                    |
-|        |   Firebase Cloud   |                    |
-|        |                    |                    |
-|        | - Store monitoring |
-|        |   data             |                    |
-|        | - Sync real-time   |                    |
-|        +--------------------+                    |
-|          ↓              ↓                       |
-| +--------------+   +------------------+          |
-| | Web Dashboard|   | Mobile App       |          |
-| | (Monitoring) |   | (Monitoring)     |          |
-| +--------------+   +------------------+          |
-+--------------------------------------------------+
+Block diagram - 
 
-                ↓ (Uses monitored data)
++------------------------------------------------------+
+|           SMART AGRICULTURE MONITORING SYSTEM         |
+|                                                      |
+|  Sensors                                              |
+|  +--------------------+                              |
+|  | Soil Moisture      |                              |
+|  | (Capacitive)       |                              |
+|  +--------------------+                              |
+|                                                      |
+|  +--------------------+                              |
+|  | Temperature &      |                              |
+|  | Humidity (DHT11)   |                              |
+|  +--------------------+                              |
+|                                                      |
+|  +--------------------+                              |
+|  | Light Sensor (LDR) |                              |
+|  +--------------------+                              |
+|                ↓                                     |
+|        +--------------------------+                  |
+|        |          ESP32           |                  |
+|        |  IoT Edge Controller     |                  |
+|        |                          |                  |
+|        | - Read sensor data       |                  |
+|        | - Local irrigation logic |                  |
+|        | - Control relay          |                  |
+|        | - Send data to Firebase  |                  |
+|        +--------------------------+                  |
+|                ↓                                     |
+|        +--------------------------+                  |
+|        |   Firebase Realtime DB   |                  |
+|        |                          |                  |
+|        | - Live sensor data       |                  |
+|        | - Analytics data         |                  |
+|        | - AI outputs             |                  |
+|        +--------------------------+                  |
+|                ↓                                     |
+|        +--------------------------+                  |
+|        |      Web Dashboard       |                  |
+|        |   (Monitoring & Insights)|                  |
+|        |                          |                  |
+|        | - Live visualization     |                  |
+|        | - Weather data           |                  |
+|        | - Analytics charts       |                  |
+|        | - AI recommendations     |                  |
+|        +--------------------------+                  |
++------------------------------------------------------+
+                ↓ (Uses monitored data only)
 
-+--------------------------------------------------+
-|     SMART PRECISION AGRICULTURE SYSTEM            |
-|                                                  |
-|  +--------------------------------------------+  |
-|  | Precision Logic                             |  |
-|  |                                            |  |
-|  | Uses:                                      |  |
-|  | - Soil moisture data                       |  |
-|  | - Temperature data                         |  |
-|  | - Humidity data                            |  |
-|  +--------------------------------------------+  |
-|                ↓                                 |
-|        +--------------------+                    |
-|        | Relay Module       |                    |
-|        +--------------------+                    |
-|                ↓                                 |
-|        +--------------------+                    |
-|        | Water Pump         |                    |
-|        +--------------------+                    |
-+--------------------------------------------------+
++------------------------------------------------------+
+|     SMART PRECISION AGRICULTURE (DECISION SUPPORT)   |
+|                                                      |
+|  +-----------------------------------------------+  |
+|  | Explainable Rule-Based AI (Primary)            |  |
+|  |                                               |  |
+|  | - Crop suitability analysis                   |  |
+|  | - Uses: Temp, Humidity, Rainfall, pH          |  |
+|  | - Human-readable explanations                 |  |
+|  +-----------------------------------------------+  |
+|                    ↓                                |
+|  +-----------------------------------------------+  |
+|  | ML Validation Layer (Secondary)                |  |
+|  |                                               |  |
+|  | - Random Forest model                         |  |
+|  | - Confirms primary recommendation              |  |
+|  | - Does NOT control hardware                   |  |
+|  +-----------------------------------------------+  |
+|                    ↓                                |
+|  +-----------------------------------------------+  |
+|  | Final Recommendation (Dashboard Only)         |  |
+|  |                                               |  |
+|  | - What to grow                                |  |
+|  | - Why (simple reasons)                        |  |
+|  | - Practical tips                              |  |
+|  +-----------------------------------------------+  |
++------------------------------------------------------+
+
+NOTE:
+• AI & ML do NOT directly control irrigation
+• Pump control remains local on ESP32 (rule-based)
