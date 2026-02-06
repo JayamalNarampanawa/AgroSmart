@@ -23,7 +23,6 @@ FirebaseConfig config;
 
 DHT dht(DHTPIN, DHTTYPE);
 
-// -------- Read Soil Moisture (average) --------
 int readSoil() {
   long sum = 0;
   for (int i = 0; i < 10; i++) {
@@ -39,32 +38,32 @@ void setup() {
   analogSetAttenuation(ADC_11db);
 
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, HIGH);   // Pump OFF initially (relay active LOW)
+  digitalWrite(RELAY_PIN, HIGH);
 
-  // -------- WiFi --------
+  // WiFi
   Serial.print("Connecting to WiFi");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
   }
-  Serial.println("\nWiFi Connected!");
+ Serial.println("\nWiFi Connected!");
 
-  // -------- Firebase --------
-  config.api_key = API_KEY;
-  config.database_url = DATABASE_URL;
+config.api_key = API_KEY;
+config.database_url = DATABASE_URL;
 
-  if (Firebase.signUp(&config, &auth, "", "")) {
-    Serial.println("Firebase Auth OK");
-  } else {
-    Serial.printf("Auth failed: %s\n",
-      config.signer.signupError.message.c_str());
-  }
-
-  Firebase.begin(&config, &auth);
-  Firebase.reconnectWiFi(true);
+if (Firebase.signUp(&config, &auth, "", "")) {
+  Serial.println("Firebase Auth OK");
+} else {
+  Serial.printf("Auth failed: %s\n", config.signer.signupError.message.c_str());
 }
 
+Firebase.begin(&config, &auth);
+Firebase.reconnectWiFi(true);
+
+}
+
+// 🔥 REQUIRED FUNCTION (THIS FIXES YOUR ERROR)
 void loop() {
 
   float temperature = dht.readTemperature();
@@ -78,29 +77,40 @@ void loop() {
   Serial.print("Soil Moisture: "); Serial.println(soil);
   Serial.print("Light Level: "); Serial.println(light);
 
-  // -------- CORRECT IRRIGATION LOGIC --------
-  // LOW value = WET
-  // HIGH value = DRY
-
   String irrigationStatus;
-
-  if (soil > 2200) {          // DRY soil → Pump ON
+  if (soil > 2200) {
     digitalWrite(RELAY_PIN, LOW);
     irrigationStatus = "ON";
-  } else {                    // WET soil → Pump OFF
+  } else {
     digitalWrite(RELAY_PIN, HIGH);
     irrigationStatus = "OFF";
   }
 
-  // -------- Firebase Upload --------
-  Firebase.RTDB.setFloat(&fbdo, "/AgroSmart/Temperature", temperature);
-  Firebase.RTDB.setFloat(&fbdo, "/AgroSmart/Humidity", humidity);
-  Firebase.RTDB.setInt(&fbdo, "/AgroSmart/SoilMoisture", soil);
-  Firebase.RTDB.setInt(&fbdo, "/AgroSmart/LightLevel", light);
-  Firebase.RTDB.setString(&fbdo, "/AgroSmart/Irrigation", irrigationStatus);
+  if (Firebase.RTDB.setFloat(&fbdo, "/AgroSmart/Temperature", temperature))
+    Serial.println("Temp sent");
+  else
+    Serial.println(fbdo.errorReason());
 
-  Serial.print("Irrigation: ");
-  Serial.println(irrigationStatus);
+  if (Firebase.RTDB.setFloat(&fbdo, "/AgroSmart/Humidity", humidity))
+    Serial.println("Humidity sent");
+  else
+    Serial.println(fbdo.errorReason());
+
+  if (Firebase.RTDB.setInt(&fbdo, "/AgroSmart/SoilMoisture", soil))
+    Serial.println("Soil sent");
+  else
+    Serial.println(fbdo.errorReason());
+
+  if (Firebase.RTDB.setInt(&fbdo, "/AgroSmart/LightLevel", light))
+    Serial.println("Light sent");
+  else
+    Serial.println(fbdo.errorReason());
+
+  if (Firebase.RTDB.setString(&fbdo, "/AgroSmart/Irrigation", irrigationStatus))
+    Serial.println("Irrigation sent");
+  else
+    Serial.println(fbdo.errorReason());
+
   Serial.println("--------------------------\n");
 
   delay(5000);
