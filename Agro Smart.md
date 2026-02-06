@@ -14,431 +14,441 @@ The system follows a monitoring-first architecture, where IoT hardware performs 
 
 # 
 
-# High-Level Objectives
+#### High-Level Objectives
 
 # 
 
-# Continuously monitor soil and environmental conditions using IoT sensors.
+* Continuously monitor soil and environmental conditions using IoT sensors.
+* 
+* Automate irrigation locally using rule-based thresholds.
+* 
+* Store real-time and historical data securely in the cloud.
+* 
+* Provide a web-based dashboard for visualization, analytics, and insights.
+* 
+* Use AI and ML only for recommendation and validation, not for hardware control.
 
-# 
+
 
-# Automate irrigation locally using rule-based thresholds.
+#### Core Components
 
 # 
 
-# Store real-time and historical data securely in the cloud.
+* ESP32 microcontroller (IoT edge device)
+* 
+* Sensors: soil moisture, temperature, humidity, light intensity
+* 
+* Actuator: relay-controlled irrigation pump
+* 
+* Firebase Realtime Database (cloud data storage)
+* 
+* Web dashboard (React-based, hosted)
+* 
+* AI decision support layer (client-side rule-based + ML validation API)
 
 # 
 
-# Provide a web-based dashboard for visualization, analytics, and insights.
+#### Data Flow Summary
 
-# 
 
-# Use AI and ML only for recommendation and validation, not for hardware control.
 
-# 
+&nbsp;		      Sensors 	
 
-# Core Components
+&nbsp;			↓
 
-# 
+&nbsp;		      ESP32 
 
-# ESP32 microcontroller (IoT edge device)
+&nbsp;			↓
 
-# 
+&nbsp;		Firebase Realtime Database
+
+&nbsp;               	 ↓
+
+&nbsp;         Web Dashboard (Monitoring + AI Insights)
+
+&nbsp;               	 ↓
 
-# Sensors: soil moisture, temperature, humidity, light intensity
+&nbsp;     	Local ESP32 Irrigation Logic (Rule-based)
 
 # 
 
-# Actuator: relay-controlled irrigation pump
+AI modules do not directly control hardware.
 
+Irrigation decisions are enforced locally on the ESP32.
+
 # 
+
+### 2\. Hardware Platform and Electronics
+
+#### Purpose and Function
+
 
-# Firebase Realtime Database (cloud data storage)
 
+##### ESP32 Controller
+
 # 
 
-# Web dashboard (React-based, hosted)
+Acts as the central IoT node.
 
 # 
 
-# AI decision support layer (client-side rule-based + ML validation API)
+###### Handles:
 
 # 
+
+Sensor data acquisition
 
-# Data Flow Summary
 
-# Sensors → ESP32 → Firebase Realtime Database
 
-# &nbsp;                ↓
+Wi-Fi connectivity
 
-# &nbsp;          Web Dashboard (Monitoring + AI Insights)
 
-# &nbsp;                ↓
 
-# &nbsp;       Local ESP32 Irrigation Logic (Rule-based)
+Local irrigation automation
 
 # 
 
+###### Selected for:
+
 # 
 
-# AI modules do not directly control hardware.
+Built-in Wi-Fi
 
-# Irrigation decisions are enforced locally on the ESP32.
 
-# 
 
-# 2\. Hardware Platform and Electronics
+Low power consumption
 
-# Purpose and Function
 
-# ESP32 Controller
 
-# 
+Real-time operation suitability
 
-# Acts as the central IoT node.
 
-# 
 
-# Handles:
+Power and Connectivity
 
-# 
 
-# Sensor data acquisition
 
-# 
+Powered using regulated 3.3V supply.
 
-# Wi-Fi connectivity
 
-# 
 
-# Local irrigation automation
+Wi-Fi connectivity to local access point.
 
-# 
+
 
-# Selected for:
+System designed to allow future battery or solar extension.
 
 # 
 
-# Built-in Wi-Fi
+##### Physical Deployment
 
-# 
+##### 
 
-# Low power consumption
+Sensors and controller mounted in a field-suitable enclosure.
 
-# 
 
-# Real-time operation suitability
 
-# 
+Relay module isolated for pump safety.
 
-# Power and Connectivity
 
-# 
 
-# Powered using regulated 5V / 3.3V supply.
+Design suitable for outdoor agricultural environments.
 
 # 
 
-# Wi-Fi connectivity to local access point.
+### 3\. Sensors and Actuators
 
-# 
 
-# System designed to allow future battery or solar extension.
 
-# 
+#### Purpose and Function
 
-# Physical Deployment
 
-# 
 
-# Sensors and controller mounted in a field-suitable enclosure.
+###### Soil Moisture Sensor (Capacitive)
 
-# 
 
-# Relay module isolated for pump safety.
 
-# 
+Measures soil moisture as an analog value.
+
 
-# Design suitable for outdoor agricultural environments.
 
+High readings indicate dry soil, low readings indicate wet soil.
+
 # 
 
-# 3\. Sensors and Actuators
+###### Used for:
 
-# Purpose and Function
 
-# Soil Moisture Sensor (Capacitive)
 
-# 
+Irrigation automation
 
-# Measures soil moisture as an analog value.
 
-# 
 
-# High readings indicate dry soil, low readings indicate wet soil.
+Analytics and trend visualization
 
-# 
 
-# Used for:
 
-# 
+Temperature \& Humidity Sensor (DHT11)
 
-# Irrigation automation
 
-# 
 
-# Analytics and trend visualization
+Measures ambient temperature and relative humidity.
 
 # 
 
-# Temperature \& Humidity Sensor (DHT11)
+###### Used for:
 
-# 
 
-# Measures ambient temperature and relative humidity.
 
-# 
+Crop suitability analysis
 
-# Used for:
 
-# 
 
-# Crop suitability analysis
+Environmental trend monitoring
 
-# 
 
-# Environmental trend monitoring
 
-# 
+Light Intensity Sensor (LDR)
 
-# Light Intensity Sensor (LDR)
 
-# 
 
-# Measures ambient light levels.
+Measures ambient light levels.
 
 # 
 
-# Used for:
+###### Used for:
 
-# 
 
-# Crop environment monitoring
 
-# 
+Crop environment monitoring
 
-# Analytics and visualization
 
-# 
 
-# Actuator (Relay-Controlled Pump)
+Analytics and visualization
 
-# 
 
-# Controls irrigation pump.
 
-# 
+Actuator (Relay-Controlled Pump)
 
-# Operates using local rule-based logic on ESP32.
 
-# 
 
-# Manual override supported through firmware logic (not AI-controlled).
+Controls irrigation pump.
 
-# 
 
-# 4\. Cloud Backend and Data Storage
 
-# Purpose and Function
+Operates using local rule-based logic on ESP32.
 
-# Firebase Realtime Database
 
-# 
 
-# Central cloud storage for:
+Manual override supported through firmware logic (not AI-controlled).
 
 # 
 
-# Live sensor data
+### 4\. Cloud Backend and Data Storage
 
-# 
 
-# AI recommendations
 
-# 
+#### Purpose and Function
 
-# Weather data
 
-# 
 
-# Analytics time-series
+##### Firebase Realtime Database
 
 # 
 
-# Chosen for:
+###### Central cloud storage for:
 
-# 
 
-# Real-time synchronization
 
-# 
+Live sensor data
 
-# Simplicity
 
-# 
 
-# Reliability for academic IoT systems
+AI recommendations
 
-# 
 
-# Authentication \& Security
 
-# 
+Weather data
 
-# Anonymous authentication enabled for ESP32 device access.
 
-# 
 
-# Database rules restrict unauthorized writes.
+Analytics time-series
 
 # 
 
-# All communication secured via HTTPS/TLS.
+###### Chosen for:
 
-# 
 
-# Data Retention \& Analytics
 
-# 
+Real-time synchronization
 
-# Live sensor data stored under structured paths.
 
-# 
 
-# Simulated historical baselines used for analytics.
+Simplicity
 
-# 
 
-# Unified timeline:
 
-# 
+Reliability for academic IoT systems
 
-# Historical baseline → real-time IoT data
 
-# 
 
-# 5\. Web Dashboard Interface
+Authentication \& Security
 
-# Purpose and Function
 
-# Dashboard Features
 
-# 
+Anonymous authentication enabled for ESP32 device access.
 
-# Real-time visualization of:
 
-# 
 
-# Temperature
+Database rules restrict unauthorized writes.
 
-# 
 
-# Humidity
 
-# 
+All communication secured via HTTPS/TLS.
 
-# Soil moisture
 
-# 
 
-# Light intensity
+Data Retention \& Analytics
 
-# 
 
-# Pump status
 
-# 
+Live sensor data stored under structured paths.
 
-# Weather integration using OpenWeatherMap API.
 
-# 
 
-# AI-based crop recommendation display.
+Simulated historical baselines used for analytics.
 
-# 
 
-# Analytics charts showing historical vs live data.
 
-# 
 
-# Explainable AI output with reasons and match levels.
 
-# 
+###### Unified timeline:
 
-# Design Philosophy
 
-# 
 
-# Farmer-friendly layout.
+Historical baseline → real-time IoT data
 
 # 
 
-# Clear prioritization:
+### 5\. Web Dashboard Interface
 
-# 
 
-# Current farm status
 
-# 
+#### Purpose and Function
 
-# Final decision summary
 
-# 
 
-# Recommendation details
+##### Dashboard Features
 
-# 
+
 
-# Weather insights
+###### Real-time visualization of:
 
 # 
 
-# Analytics
+Temperature
 
-# 
 
-# No mobile application is currently implemented.
 
-# The system uses a web-only dashboard for monitoring and analysis.
+Humidity
 
-# 
 
-# 6\. Data Flow and Control Logic
 
-# Purpose and Function
+Soil moisture
 
-# Sensor → Cloud Pipeline
 
-# 
 
-# ESP32 reads sensors periodically.
+Light intensity
 
-# 
 
-# Data uploaded to Firebase with timestamps.
 
-# 
+Pump status
 
-# Dashboard subscribes to real-time updates.
 
-# 
+
+Weather integration using OpenWeatherMap API.
+
+
+
+AI-based crop recommendation display.
+
+
+
+Analytics charts showing historical vs live data.
+
+
+
+Explainable AI output with reasons and match levels.
+
+
+
+Design Philosophy
+
+
+
+Farmer-friendly layout.
+
+
+
+Clear prioritization:
+
 
-# Irrigation Control Logic
 
+Current farm status
+
+
+
+Final decision summary
+
+
+
+Recommendation details
+
+
+
+Weather insights
+
+
+
+Analytics
+
+
+
+No mobile application is currently implemented.
+
+The system uses a web-only dashboard for monitoring and analysis.
+
 # 
+
+### 6\. Data Flow and Control Logic
+
+
+
+#### Purpose and Function
+
+
+
+###### Sensor → Cloud Pipeline
+
+
+
+ESP32 reads sensors periodically.
+
+
+
+Data uploaded to Firebase with timestamps.
+
+
+
+Dashboard subscribes to real-time updates.
+
+
+
+###### Irrigation Control Logic
+
+
 
-# Executed locally on ESP32.
+Executed locally on ESP32.
 
 # 
 
