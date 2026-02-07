@@ -1,4 +1,4 @@
-class AnalyticsPoint {
+﻿class AnalyticsPoint {
   final double? temperature;
   final double? humidity;
   final double? soilMoisture;
@@ -42,3 +42,4 @@ class AnalyticsPoint {
     );
   }
 }
+

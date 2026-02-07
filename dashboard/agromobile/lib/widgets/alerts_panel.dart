@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/sensor_data.dart';
 
@@ -114,3 +114,4 @@ class _Alert {
     }
   }
 }
+

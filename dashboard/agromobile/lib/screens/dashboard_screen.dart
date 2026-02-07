@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/analytics_point.dart';
@@ -250,7 +250,7 @@ class DashboardScreen extends StatelessWidget {
           SensorCard(
             title: 'Temperature',
             value: temp?.toStringAsFixed(1) ?? '--',
-            unit: '�C',
+            unit: '°C',
             icon: FontAwesomeIcons.temperatureHalf,
             accent: tempVisual.color,
             status: tempVisual.status,
@@ -399,3 +399,4 @@ _Visual _lightVisual(double? value) {
   if (value > 2000) return const _Visual(Color(0xFF94A3B8), 'Dark');
   return const _Visual(Color(0xFFFFD166), 'Normal');
 }
+

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/sensor_data.dart';
@@ -59,7 +59,7 @@ class _LogTile extends StatelessWidget {
               spacing: 12,
               runSpacing: 6,
               children: [
-                _chip('Temp', '${log.temperature?.toStringAsFixed(1) ?? '--'}�C'),
+                _chip('Temp', '${log.temperature?.toStringAsFixed(1) ?? '--'}°C'),
                 _chip('Humidity', '${log.humidity?.toStringAsFixed(1) ?? '--'}%'),
                 _chip('Soil', log.soilMoisture?.toStringAsFixed(0) ?? '--'),
                 _chip('Light', log.lightLevel?.toStringAsFixed(0) ?? '--'),
@@ -83,3 +83,4 @@ class _LogTile extends StatelessWidget {
     );
   }
 }
+

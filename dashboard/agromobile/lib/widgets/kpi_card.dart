@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class KpiCard extends StatelessWidget {
   final String label;
@@ -44,3 +44,4 @@ class KpiCard extends StatelessWidget {
     );
   }
 }
+

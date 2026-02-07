@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../models/farm_profile.dart';
 
@@ -147,3 +147,4 @@ class _SoilProfileFormState extends State<SoilProfileForm> {
     );
   }
 }
+

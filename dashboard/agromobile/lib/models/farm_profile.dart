@@ -1,4 +1,4 @@
-class FarmProfile {
+﻿class FarmProfile {
   final double n;
   final double p;
   final double k;
@@ -42,3 +42,4 @@ class FarmProfile {
     };
   }
 }
+

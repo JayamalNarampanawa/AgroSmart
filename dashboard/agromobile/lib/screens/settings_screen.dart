@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
@@ -82,3 +82,4 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
+

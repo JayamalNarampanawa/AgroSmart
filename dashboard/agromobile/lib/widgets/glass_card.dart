@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -37,3 +37,4 @@ class GlassCard extends StatelessWidget {
     );
   }
 }
+

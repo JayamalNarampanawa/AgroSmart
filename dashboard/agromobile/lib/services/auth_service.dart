@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
@@ -83,3 +83,4 @@ class AuthService {
     sessionEmail.value = null;
   }
 }
+

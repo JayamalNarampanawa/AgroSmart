@@ -1,4 +1,4 @@
-class SensorData {
+﻿class SensorData {
   final double? temperature;
   final double? humidity;
   final double? soilMoisture;
@@ -49,3 +49,4 @@ class SensorData {
     );
   }
 }
+

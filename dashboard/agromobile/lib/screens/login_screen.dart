@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../widgets/gradient_background.dart';
@@ -109,3 +109,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+

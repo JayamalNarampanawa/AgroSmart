@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class SectionHeader extends StatelessWidget {
   final String eyebrow;
@@ -52,3 +52,4 @@ class SectionHeader extends StatelessWidget {
     );
   }
 }
+

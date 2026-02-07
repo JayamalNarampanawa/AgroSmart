@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+ï»¿import 'package:flutter/material.dart';
 
 import '../models/sensor_data.dart';
 
@@ -28,7 +28,7 @@ class InsightsPanel extends StatelessWidget {
 
     final env = current == null
         ? 'No data'
-        : 'T:${current!.temperature?.toStringAsFixed(1) ?? '--'}°C · H:${current!.humidity?.toStringAsFixed(1) ?? '--'}%';
+        : 'T:${current!.temperature?.toStringAsFixed(1) ?? '--'}Â°C Â· H:${current!.humidity?.toStringAsFixed(1) ?? '--'}%';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,3 +78,4 @@ class _InsightTile extends StatelessWidget {
     );
   }
 }
+

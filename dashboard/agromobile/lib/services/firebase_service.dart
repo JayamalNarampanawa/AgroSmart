@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:firebase_database/firebase_database.dart';
 
@@ -93,3 +93,4 @@ class FirebaseService {
     await _root.child('farmProfile').update(profile.toMap());
   }
 }
+

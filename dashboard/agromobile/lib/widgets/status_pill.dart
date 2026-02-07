@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class StatusPill extends StatelessWidget {
   final String label;
@@ -29,3 +29,4 @@ class StatusPill extends StatelessWidget {
     );
   }
 }
+
