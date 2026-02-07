@@ -1,0 +1,5 @@
+How to Run-
+
+Run the API on browser - https://agrosmart-ml-api.onrender.com
+
+Run the Dashboard - https://agrosmart2026.netlify.app/
