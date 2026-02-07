@@ -38,7 +38,7 @@ class AppTheme {
       ),
       labelStyle: const TextStyle(color: Colors.white70),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: const Color(0xFF0B1220).withOpacity(0.9),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       elevation: 0,
