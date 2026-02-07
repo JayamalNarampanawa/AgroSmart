@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "668916133955",
+    "firebase_url": "https://agro-smart-2026-default-rtdb.firebaseio.com",
+    "project_id": "agro-smart-2026",
+    "storage_bucket": "agro-smart-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:668916133955:android:8bf4f788681a93a46e24f6",
+        "android_client_info": {
+          "package_name": "com.agrosmart.agromobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXw5oJEIiGCl9Q-NJKbtzLl7Avltzmz78"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
