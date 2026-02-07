@@ -57,8 +57,8 @@ export default function Dashboard(){
 
   return (
     <>
-      {/* Fixed ChatWidget - outside of scrollable content */}
-      <ChatWidget />
+      {/* Fixed ChatWidget - outside of scrollable content, hidden during loading */}
+      {!showLoading && <ChatWidget />}
       
       <div className="app-shell app-shell-animate">
         <Background3D />
