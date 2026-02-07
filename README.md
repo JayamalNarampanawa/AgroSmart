@@ -238,5 +238,10 @@ Crop recommendation scope is currently limited to 3 crops:
 
 Chickpea, Kidneybeans, Mungbean
 
+### **✅ To Run**
+
+Run the API on browser - https://agrosmart-ml-api.onrender.com
+
+Run the Dashboard - https://agrosmart2026.netlify.app/
 
 
