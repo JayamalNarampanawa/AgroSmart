@@ -1,29 +1,35 @@
-name: agromobile
-description: "A new Flutter project."
+name: agri_bot
+description: Agricultural Assistant Robot Mobile Application
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.0
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ^3.6.0
-  firebase_database: ^11.1.0
-  fl_chart: ^0.69.0
-  google_fonts: ^6.2.1
-  font_awesome_flutter: ^10.7.0
-  intl: ^0.19.0
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  crypto: ^3.0.3
-  flutter_local_notifications: ^17.2.2
+  cupertino_icons: ^1.0.2
+  percent_indicator: ^4.2.3
+  fl_chart: ^0.68.0
+  http: ^1.1.0
+  syncfusion_flutter_charts: ^26.2.14
+  syncfusion_flutter_gauges: ^26.2.14
+  google_fonts: ^6.1.0
+  animated_text_kit: ^4.2.2
+  lottie: ^2.7.0
+  shimmer: ^3.0.0
+  card_swiper: ^3.0.1
+  flutter_staggered_animations: ^1.1.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/animations/

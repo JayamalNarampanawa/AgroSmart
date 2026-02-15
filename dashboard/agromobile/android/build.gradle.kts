@@ -1,3 +1,5 @@
+import java.io.File
+
 allprojects {
     repositories {
         google()
@@ -5,17 +7,15 @@ allprojects {
     }
 }
 
-val newBuildDir = rootProject.layout.buildDirectory
-    .dir("../../build")
-    .get()
-rootProject.layout.buildDirectory.set(newBuildDir)
+// Use a build directory without spaces to avoid Windows path escaping issues.
+val rootBuildDir = file("C:/AgroSmartBuild/agri_mobile")
+rootProject.buildDir = rootBuildDir
 
 subprojects {
-    val newSubprojectBuildDir = newBuildDir.dir(name)
-    layout.buildDirectory.set(newSubprojectBuildDir)
+    buildDir = File(rootBuildDir, name)
     evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {
-    delete(rootProject.layout.buildDirectory)
+    delete(rootProject.buildDir)
 }
