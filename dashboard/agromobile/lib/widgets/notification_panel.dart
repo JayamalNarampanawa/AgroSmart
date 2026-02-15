@@ -14,76 +14,33 @@ class NotificationPanel extends StatefulWidget {
   State<NotificationPanel> createState() => _NotificationPanelState();
 }
 
-class _NotificationPanelState extends State<NotificationPanel>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _slideAnimation;
+class _NotificationPanelState extends State<NotificationPanel> {
   bool _showUnreadOnly = false;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(1.0, 0.0),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _close() async {
-    await _controller.reverse();
-    widget.onClose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _close,
+    return Align(
+      alignment: Alignment.centerRight,
       child: Container(
-        color: Colors.black.withOpacity(0.5),
-        child: GestureDetector(
-          onTap: () {}, // Prevent closing when tapping panel
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.85,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF0B1221),
-                      const Color(0xFF050A14),
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Column(
-                    children: [
-                      _buildHeader(),
-                      _buildFilterBar(),
-                      Expanded(child: _buildNotificationList()),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+        width: MediaQuery.of(context).size.width * 0.85,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0B1221),
+              Color(0xFF050A14),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              _buildFilterBar(),
+              Expanded(child: _buildNotificationList()),
+            ],
           ),
         ),
       ),
@@ -143,7 +100,7 @@ class _NotificationPanelState extends State<NotificationPanel>
           ),
           IconButton(
             icon: const Icon(Icons.close, color: Colors.white),
-            onPressed: _close,
+            onPressed: widget.onClose,
           ),
         ],
       ),
@@ -178,7 +135,7 @@ class _NotificationPanelState extends State<NotificationPanel>
                         _showUnreadOnly = value;
                       });
                     },
-                    activeColor: Theme.of(context).colorScheme.primary,
+                    activeThumbColor: Theme.of(context).colorScheme.primary,
                   ),
                 ],
               ),

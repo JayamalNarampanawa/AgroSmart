@@ -18,16 +18,16 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF050A14),
-              const Color(0xFF0B1221),
-              const Color(0xFF050A14),
+              Color(0xFF050A14),
+              Color(0xFF0B1221),
+              Color(0xFF050A14),
             ],
-            stops: const [0.0, 0.5, 1.0],
+            stops: [0.0, 0.5, 1.0],
           ),
         ),
         child: SafeArea(
@@ -113,9 +113,9 @@ class SettingsScreen extends StatelessWidget {
                               ),
                             ),
                             const Spacer(),
-                            Text(
+                            const Text(
                               'Database: AgroSmart',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12,
                               ),
