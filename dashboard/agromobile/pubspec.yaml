@@ -22,6 +22,13 @@ dependencies:
   shimmer: ^3.0.0
   card_swiper: ^3.0.1
   flutter_staggered_animations: ^1.1.1
+  crypto: ^3.0.7
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_local_notifications: ^20.1.0
+  firebase_core: ^4.4.0
+  firebase_database: ^12.1.3
+  font_awesome_flutter: ^10.12.0
 
 dev_dependencies:
   flutter_test:

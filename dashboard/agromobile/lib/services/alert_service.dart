@@ -7,13 +7,15 @@ class AlertService {
 
   static final AlertService instance = AlertService._();
 
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   final Map<String, DateTime> _lastNotified = {};
 
   Future<void> initialize() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: androidSettings);
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings: settings);
     const channel = AndroidNotificationChannel(
       'agrosmart_alerts',
       'AgroSmart Alerts',
@@ -21,7 +23,8 @@ class AlertService {
       importance: Importance.high,
     );
     await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
   }
 
@@ -45,10 +48,10 @@ class AlertService {
       }
       _lastNotified[entry.key] = now;
       await _plugin.show(
-        entry.key.hashCode,
-        'AgroSmart Alert',
-        entry.value,
-        const NotificationDetails(
+        id: entry.key.hashCode,
+        title: 'AgroSmart Alert',
+        body: entry.value,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             'agrosmart_alerts',
             'AgroSmart Alerts',
@@ -60,4 +63,3 @@ class AlertService {
     }
   }
 }
-
