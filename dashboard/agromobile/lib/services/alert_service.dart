@@ -15,7 +15,7 @@ class AlertService {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: androidSettings);
-    await _plugin.initialize(settings: settings);
+    await _plugin.initialize(settings);
     const channel = AndroidNotificationChannel(
       'agrosmart_alerts',
       'AgroSmart Alerts',
@@ -48,10 +48,10 @@ class AlertService {
       }
       _lastNotified[entry.key] = now;
       await _plugin.show(
-        id: entry.key.hashCode,
-        title: 'AgroSmart Alert',
-        body: entry.value,
-        notificationDetails: const NotificationDetails(
+        entry.key.hashCode,
+        'AgroSmart Alert',
+        entry.value,
+        const NotificationDetails(
           android: AndroidNotificationDetails(
             'agrosmart_alerts',
             'AgroSmart Alerts',

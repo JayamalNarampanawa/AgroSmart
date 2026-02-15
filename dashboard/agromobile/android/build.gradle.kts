@@ -7,8 +7,19 @@ allprojects {
     }
 }
 
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.2.1")
+        classpath("com.google.gms:google-services:4.4.0")
+    }
+}
+
 // Use a build directory without spaces to avoid Windows path escaping issues.
-val rootBuildDir = file("C:/AgroSmartBuild/agri_mobile")
+val rootBuildDir = file("../build")
 rootProject.buildDir = rootBuildDir
 
 subprojects {
