@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/notification_button.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -33,6 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               });
             },
           ),
+          const NotificationButton(),
         ],
       ),
       body: Container(

@@ -1,0 +1,159 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/notification_model.dart';
+import '../models/sensor_data.dart';
+import 'firebase_service.dart';
+
+class NotificationService {
+  NotificationService._();
+
+  static final NotificationService instance = NotificationService._();
+
+  final ValueNotifier<List<NotificationModel>> notifications =
+      ValueNotifier([]);
+  final ValueNotifier<int> unreadCount = ValueNotifier(0);
+
+  StreamSubscription<SensorData?>? _sensorSubscription;
+  SharedPreferences? _prefs;
+
+  // Thresholds for alerts
+  static const double lowMoistureThreshold = 30.0;
+  static const double highTempThreshold = 35.0;
+  static const double lowWaterLevelThreshold = 20.0;
+
+  Future<void> initialize() async {
+    _prefs = await SharedPreferences.getInstance();
+    await _loadNotifications();
+    _startMonitoring();
+  }
+
+  void _startMonitoring() {
+    _sensorSubscription =
+        FirebaseService.instance.currentDataStream().listen((data) {
+      if (data == null) return;
+
+      // Check soil moisture
+      if (data.soilMoisture != null &&
+          data.soilMoisture! < lowMoistureThreshold) {
+        _addNotification(
+          title: 'Low Soil Moisture',
+          message:
+              'Soil moisture is ${data.soilMoisture!.toStringAsFixed(1)}%. Consider irrigation.',
+          type: NotificationType.warning,
+          priority: NotificationPriority.high,
+        );
+      }
+
+      // Check temperature
+      if (data.temperature != null && data.temperature! > highTempThreshold) {
+        _addNotification(
+          title: 'High Temperature Alert',
+          message:
+              'Temperature is ${data.temperature!.toStringAsFixed(1)}°C. Monitor crops closely.',
+          type: NotificationType.alert,
+          priority: NotificationPriority.high,
+        );
+      }
+
+      // Irrigation status change
+      if (data.pumpStatus == true) {
+        _addNotification(
+          title: 'Irrigation Started',
+          message: 'Water pump is now active.',
+          type: NotificationType.info,
+          priority: NotificationPriority.low,
+        );
+      }
+    });
+  }
+
+  void _addNotification({
+    required String title,
+    required String message,
+    required NotificationType type,
+    required NotificationPriority priority,
+  }) {
+    // Check if similar notification exists in last 5 minutes
+    final now = DateTime.now();
+    final recentNotifications = notifications.value.where((n) {
+      return n.title == title && now.difference(n.timestamp).inMinutes < 5;
+    });
+
+    if (recentNotifications.isNotEmpty) return; // Avoid duplicates
+
+    final notification = NotificationModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      message: message,
+      type: type,
+      timestamp: now,
+      priority: priority,
+    );
+
+    final updated = [notification, ...notifications.value];
+    notifications.value = updated;
+    _updateUnreadCount();
+    _saveNotifications();
+  }
+
+  void markAsRead(String id) {
+    final updated = notifications.value.map((n) {
+      return n.id == id ? n.copyWith(isRead: true) : n;
+    }).toList();
+    notifications.value = updated;
+    _updateUnreadCount();
+    _saveNotifications();
+  }
+
+  void markAllAsRead() {
+    final updated =
+        notifications.value.map((n) => n.copyWith(isRead: true)).toList();
+    notifications.value = updated;
+    _updateUnreadCount();
+    _saveNotifications();
+  }
+
+  void clearAll() {
+    notifications.value = [];
+    unreadCount.value = 0;
+    _saveNotifications();
+  }
+
+  void clearRead() {
+    final updated = notifications.value.where((n) => !n.isRead).toList();
+    notifications.value = updated;
+    _updateUnreadCount();
+    _saveNotifications();
+  }
+
+  void _updateUnreadCount() {
+    unreadCount.value = notifications.value.where((n) => !n.isRead).length;
+  }
+
+  Future<void> _saveNotifications() async {
+    if (_prefs == null) return;
+    final jsonList =
+        notifications.value.map((n) => jsonEncode(n.toMap())).toList();
+    await _prefs!.setStringList('notifications', jsonList);
+  }
+
+  Future<void> _loadNotifications() async {
+    if (_prefs == null) return;
+    final jsonList = _prefs!.getStringList('notifications') ?? [];
+    final loaded = jsonList
+        .map((json) => NotificationModel.fromMap(jsonDecode(json)))
+        .toList();
+    notifications.value = loaded;
+    _updateUnreadCount();
+  }
+
+  void dispose() {
+    _sensorSubscription?.cancel();
+    notifications.dispose();
+    unreadCount.dispose();
+  }
+}

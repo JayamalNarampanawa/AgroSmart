@@ -6,6 +6,7 @@ import 'services/alert_service.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_service.dart';
 import 'services/settings_service.dart';
+import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -20,6 +21,7 @@ void main() async {
   await SettingsService.instance.initialize();
   await AlertService.instance.initialize();
   await FirebaseService.instance.initialize();
+  await NotificationService.instance.initialize();
 
   runApp(const AgriBot());
 }
