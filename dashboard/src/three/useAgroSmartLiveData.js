@@ -29,6 +29,7 @@ const parseIrrigationStatus = (payload = {}) => {
   const candidates = [
     payload.irrigationStatus,
     payload.irrigation,
+    payload.Irrigation,
     payload.pumpStatus,
     payload.pump,
     payload.relay,
@@ -78,12 +79,13 @@ const hysteresisTemp = (temp, prev) => {
   return "Normal";
 };
 
-export default function useAgroSmartLiveData() {
+export default function useAgroSmartLiveData({ fastMode = false } = {}) {
   const [data, setData] = useState(DEFAULT_DATA); // smoothed
   const [raw, setRaw] = useState(DEFAULT_DATA);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [states, setStates] = useState({
     soil: "Optimal",
     light: "Normal",
@@ -127,33 +129,35 @@ export default function useAgroSmartLiveData() {
         const rawVal = {
           temperature: getFirstNumber(
             val,
-            ["temperature", "Temperature", "temp"],
+            ["Temperature", "temperature", "temp"],
             DEFAULT_DATA.temperature,
           ),
           humidity: getFirstNumber(
             val,
-            ["humidity", "Humidity"],
+            ["Humidity", "humidity"],
             DEFAULT_DATA.humidity,
           ),
           soilMoisture: getFirstNumber(
             val,
             [
+              "SoilMoisture (in air)",
               "soilMoisture",
               "SoilMoisture",
               "soil",
               "soil_moisture",
               "soilMoistureInAir",
-              "SoilMoisture (in air)",
             ],
             DEFAULT_DATA.soilMoisture,
           ),
           lightLevel: getFirstNumber(
             val,
-            ["lightLevel", "LightLevel", "light", "light_level"],
+            ["LightLevel", "lightLevel", "light", "light_level"],
             DEFAULT_DATA.lightLevel,
           ),
           irrigationStatus: parseIrrigationStatus(val),
         };
+
+        const parsed = { ...rawVal };
 
         const wetnessNorm = clamp01(
           (calibration.soil.dry - rawVal.soilMoisture) /
@@ -164,30 +168,34 @@ export default function useAgroSmartLiveData() {
             Math.max(calibration.light.dark - calibration.light.bright, 1),
         );
 
+        const wetAlpha = fastMode ? 1 : calibration.smoothing.wetnessAlpha;
+        const lightAlpha = fastMode ? 1 : calibration.smoothing.brightnessAlpha;
+        const tempAlpha = fastMode ? 1 : calibration.smoothing.tempAlpha;
+
         smoothRef.current.soilRaw = smoothValue(
           smoothRef.current.soilRaw,
           rawVal.soilMoisture,
-          calibration.smoothing.wetnessAlpha,
+          wetAlpha,
         );
         smoothRef.current.lightRaw = smoothValue(
           smoothRef.current.lightRaw,
           rawVal.lightLevel,
-          calibration.smoothing.brightnessAlpha,
+          lightAlpha,
         );
         smoothRef.current.temp = smoothValue(
           smoothRef.current.temp,
           rawVal.temperature,
-          calibration.smoothing.tempAlpha,
+          tempAlpha,
         );
         smoothRef.current.wetness = smoothValue(
           smoothRef.current.wetness,
           wetnessNorm,
-          calibration.smoothing.wetnessAlpha,
+          wetAlpha,
         );
         smoothRef.current.brightness = smoothValue(
           smoothRef.current.brightness,
           brightnessNorm,
-          calibration.smoothing.brightnessAlpha,
+          lightAlpha,
         );
 
         const soilState = hysteresisSoil(
@@ -218,8 +226,10 @@ export default function useAgroSmartLiveData() {
           irrigationStatus: irrigationOn,
         };
 
-        setData(smoothed);
-        setRaw(rawVal);
+        const stamp = Date.now();
+
+        setData({ ...smoothed, __ts: stamp });
+        setRaw({ ...parsed, __ts: stamp });
         setStates({
           soil: soilState,
           light: lightState,
@@ -231,10 +241,13 @@ export default function useAgroSmartLiveData() {
           light: smoothRef.current.brightness,
           wetness: smoothRef.current.wetness,
           brightness: smoothRef.current.brightness,
+          __ts: stamp,
         });
         setConnected(true);
         setError(null);
         setTick((t) => t + 1);
+        setLastUpdated(new Date().toISOString());
+        console.log("[SensorTwin] update", Date.now(), parsed);
         clearTimeout(fallbackTimer);
       },
       (error) => {
@@ -259,6 +272,7 @@ export default function useAgroSmartLiveData() {
     connected,
     error,
     tick,
+    lastUpdated,
     calibration,
   };
 }

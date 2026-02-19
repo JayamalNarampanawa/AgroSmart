@@ -30,6 +30,7 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
     const tempFactor = clamp01((temperature - 10) / 24)
     const humidityFactor = clamp01(humidity / 100)
     const lightFactor = Math.max(0.1, brightness)
+    const irrigationActive = irrigationOn || irrigationStatus === 1 || irrigationStatus === true || String(irrigationStatus).toLowerCase() === 'on'
     const targetBackground = useMemo(() => new Color('#05070d').lerp(new Color('#0a1628'), humidityFactor * 0.35), [humidityFactor])
     const targetFog = useMemo(() => new Color('#060910').lerp(new Color('#0b1420'), 0.4 + humidityFactor * 0.25), [humidityFactor])
     const targetAmbient = useMemo(() => new Color('#0f3450').lerp(new Color('#543322'), tempFactor), [tempFactor])
