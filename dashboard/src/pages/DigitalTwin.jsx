@@ -156,7 +156,7 @@ function toneForState(state) {
   }
 }
 
-function DebugRow({ label, value }){
+function DebugRow({ label, value }) {
   return (
     <div className="flex justify-between gap-2"><span className="text-slate-400">{label}</span><span className="font-semibold text-white">{value}</span></div>
   )

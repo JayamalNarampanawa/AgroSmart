@@ -42,38 +42,38 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
     const fogRef = useRef(targetFog.clone())
     const ambientColorRef = useRef(targetAmbient.clone())
 
-    useEffect(()=>{ pulseRef.current = 1 }, [tick])
+    useEffect(() => { pulseRef.current = 1 }, [tick])
 
-    useFrame((state, delta)=>{
-        const lerpColor = (from, to, alpha)=> from.lerp(to, alpha)
+    useFrame((state, delta) => {
+        const lerpColor = (from, to, alpha) => from.lerp(to, alpha)
 
         // smooth background & fog tint
         lerpColor(bgRef.current, targetBackground, 0.05)
         lerpColor(fogRef.current, targetFog, 0.05)
-        if(state.scene.background) state.scene.background.copy(bgRef.current)
-        if(state.scene.fog) state.scene.fog.color.copy(fogRef.current)
+        if (state.scene.background) state.scene.background.copy(bgRef.current)
+        if (state.scene.fog) state.scene.fog.color.copy(fogRef.current)
 
         // smooth ambient tint/intensity
         ambientColorRef.current.lerp(targetAmbient, 0.08)
         const targetHemiIntensity = 0.35 + lightFactor * 0.15
         const targetAmbientIntensity = 0.45 + lightFactor * 0.35
-        if(hemiRef.current){
+        if (hemiRef.current) {
             hemiRef.current.color.copy(ambientColorRef.current)
             hemiRef.current.intensity += (targetHemiIntensity - hemiRef.current.intensity) * 0.08
         }
-        if(ambientRef.current){
+        if (ambientRef.current) {
             ambientRef.current.color.copy(ambientColorRef.current)
             ambientRef.current.intensity += (targetAmbientIntensity - ambientRef.current.intensity) * 0.08
         }
 
         // decay pulse and apply to emissive and bloom
         pulseRef.current = Math.max(0, pulseRef.current - delta * 1.2)
-        if(cubeMatRef.current){
+        if (cubeMatRef.current) {
             const base = 0.35 + tempFactor * 0.5
             const targetEmissive = base + pulseRef.current * 0.5
             cubeMatRef.current.emissiveIntensity += (targetEmissive - cubeMatRef.current.emissiveIntensity) * 0.12
         }
-        if(bloomRef.current){
+        if (bloomRef.current) {
             const baseBloom = 0.95
             const targetBloom = baseBloom + pulseRef.current * 0.3
             bloomRef.current.intensity += (targetBloom - bloomRef.current.intensity) * 0.18
@@ -96,7 +96,7 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
             <Float speed={1.1} rotationIntensity={0.16} floatIntensity={0.32}>
                 <group position={[0, 0.05, 0]}>
                     <Soil soilMoisture={soilNorm * 100} />
-                    
+
 
                     <mesh position={[0, 0.8, 0]} scale={[3.6, 1.4, 3.6]}>
                         <boxGeometry args={[1, 1, 1]} />

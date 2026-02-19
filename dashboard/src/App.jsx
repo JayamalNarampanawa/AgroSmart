@@ -36,7 +36,7 @@ export default function App() {
       }
     }
   }, [])
-  if(isTwin){
+  if (isTwin) {
     return (
       <Routes location={location}>
         <Route path="/twin" element={<DigitalTwin />} />
