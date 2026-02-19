@@ -137,7 +137,9 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
         (snapshot) => {
           const root = snapshot.val() || {};
           const useCurrentData =
-            root && typeof root.currentData === "object" && root.currentData !== null;
+            root &&
+            typeof root.currentData === "object" &&
+            root.currentData !== null;
           const val = useCurrentData ? root.currentData : root;
           console.log(
             "[Twin] using node:",
