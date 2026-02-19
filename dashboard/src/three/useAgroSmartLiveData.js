@@ -4,10 +4,10 @@ import { database, authReady } from "../firebase";
 import { calibration } from "./calibration";
 
 const DEFAULT_DATA = {
-  temperature: 24,
-  humidity: 60,
-  soilMoisture: 48,
-  lightLevel: 40,
+  temperature: 25,
+  humidity: 70,
+  soilMoisture: 2600,
+  lightLevel: 4000,
   irrigationStatus: false,
 };
 
@@ -17,6 +17,7 @@ const toNumber = (v, fallback) => {
 };
 
 const getFirstNumber = (payload, keys, fallback) => {
+  if (!payload || typeof payload !== "object") return fallback;
   for (const key of keys) {
     if (payload[key] !== undefined && payload[key] !== null) {
       return toNumber(payload[key], fallback);
@@ -27,20 +28,23 @@ const getFirstNumber = (payload, keys, fallback) => {
 
 const parseIrrigationStatus = (payload = {}) => {
   const candidates = [
-    payload.irrigationStatus,
+    payload.Irrigation,        // "ON"/"OFF" (your screenshot)
+    payload.irrigationStatus,  // boolean
     payload.irrigation,
-    payload.Irrigation,
-    payload.pumpStatus,
+    payload.pumpStatus,        // boolean (your currentData payload)
     payload.pump,
     payload.relay,
     payload.motor,
   ];
+
   const val = candidates.find((v) => v !== undefined && v !== null);
+
   if (typeof val === "boolean") return val;
   if (typeof val === "number") return val === 1;
+
   if (typeof val === "string") {
     const s = val.trim().toLowerCase();
-    return s === "on" || s === "1" || s === "true";
+    return s === "on" || s === "1" || s === "true" || s === "yes";
   }
   return false;
 };
@@ -79,22 +83,58 @@ const hysteresisTemp = (temp, prev) => {
   return "Normal";
 };
 
+function smoothValue(current, target, alpha) {
+  if (current === undefined || current === null) return target;
+  return current + alpha * (target - current);
+}
+
+// ✅ decide which node to use: prefer /AgroSmart (uppercase keys) if present
+function pickLiveNode(root) {
+  const current =
+    root && typeof root.currentData === "object" && root.currentData !== null
+      ? root.currentData
+      : null;
+
+  const hasUpper =
+    root &&
+    (root.Temperature !== undefined ||
+      root.Humidity !== undefined ||
+      root.SoilMoisture !== undefined ||
+      root.LightLevel !== undefined ||
+      root.Irrigation !== undefined);
+
+  const hasLower =
+    current &&
+    (current.temperature !== undefined ||
+      current.humidity !== undefined ||
+      current.soilMoisture !== undefined ||
+      current.lightLevel !== undefined ||
+      current.pumpStatus !== undefined ||
+      current.irrigationStatus !== undefined);
+
+  if (hasUpper) return { val: root, source: "/AgroSmart" };
+  if (hasLower) return { val: current, source: "/AgroSmart/currentData" };
+
+  // fallback: if currentData exists use it, else root
+  return { val: current || root || {}, source: current ? "/AgroSmart/currentData (fallback)" : "/AgroSmart (fallback)" };
+}
+
 export default function useAgroSmartLiveData({ fastMode = false } = {}) {
-  const [data, setData] = useState(DEFAULT_DATA); // smoothed
+  const [data, setData] = useState(DEFAULT_DATA);
   const [raw, setRaw] = useState(DEFAULT_DATA);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(null);
+
   const [states, setStates] = useState({
     soil: "Optimal",
     light: "Normal",
     temp: "Normal",
     irrigation: false,
   });
+
   const [normalized, setNormalized] = useState({
-    soil: 0,
-    light: 0,
     wetness: 0,
     brightness: 0,
   });
@@ -105,13 +145,14 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
     temp: DEFAULT_DATA.temperature,
     wetness: clamp01(
       (calibration.soil.dry - DEFAULT_DATA.soilMoisture) /
-        Math.max(calibration.soil.dry - calibration.soil.wet, 1),
+        Math.max(calibration.soil.dry - calibration.soil.wet, 1)
     ),
     brightness: clamp01(
       (calibration.light.dark - DEFAULT_DATA.lightLevel) /
-        Math.max(calibration.light.dark - calibration.light.bright, 1),
+        Math.max(calibration.light.dark - calibration.light.bright, 1)
     ),
   });
+
   const prevStateRef = useRef({
     soil: "Optimal",
     light: "Normal",
@@ -131,113 +172,96 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
       }
       if (cancelled) return;
 
-      const dataRef = ref(database, "/AgroSmart");
+      const baseRef = ref(database, "/AgroSmart");
+
       unsubscribe = onValue(
-        dataRef,
+        baseRef,
         (snapshot) => {
           const root = snapshot.val() || {};
-          const useCurrentData =
-            root &&
-            typeof root.currentData === "object" &&
-            root.currentData !== null;
-          const val = useCurrentData ? root.currentData : root;
-          console.log(
-            "[Twin] using node:",
-            useCurrentData ? "/AgroSmart/currentData" : "/AgroSmart",
-          );
+          const { val, source } = pickLiveNode(root);
+
+          console.log("[Twin] source:", source);
+          console.log("[Twin SNAP val]", val);
+
           const rawVal = {
             temperature: getFirstNumber(
               val,
               ["Temperature", "temperature", "temp"],
-              DEFAULT_DATA.temperature,
+              DEFAULT_DATA.temperature
             ),
             humidity: getFirstNumber(
               val,
               ["Humidity", "humidity"],
-              DEFAULT_DATA.humidity,
+              DEFAULT_DATA.humidity
             ),
             soilMoisture: getFirstNumber(
               val,
-              [
-                "SoilMoisture",
-                "SoilMoisture (in air)",
-                "soilMoisture",
-                "soil",
-                "soil_moisture",
-                "soilMoistureInAir",
-              ],
-              DEFAULT_DATA.soilMoisture,
+              ["SoilMoisture", "soilMoisture", "SoilMoisture (in air)"],
+              DEFAULT_DATA.soilMoisture
             ),
             lightLevel: getFirstNumber(
               val,
-              ["LightLevel", "lightLevel", "light", "light_level"],
-              DEFAULT_DATA.lightLevel,
+              ["LightLevel", "lightLevel"],
+              DEFAULT_DATA.lightLevel
             ),
             irrigationStatus: parseIrrigationStatus(val),
           };
 
-          const parsed = { ...rawVal };
-
           const wetnessNorm = clamp01(
             (calibration.soil.dry - rawVal.soilMoisture) /
-              Math.max(calibration.soil.dry - calibration.soil.wet, 1),
+              Math.max(calibration.soil.dry - calibration.soil.wet, 1)
           );
           const brightnessNorm = clamp01(
             (calibration.light.dark - rawVal.lightLevel) /
-              Math.max(calibration.light.dark - calibration.light.bright, 1),
+              Math.max(calibration.light.dark - calibration.light.bright, 1)
           );
 
           const wetAlpha = fastMode ? 1 : calibration.smoothing.wetnessAlpha;
-          const lightAlpha = fastMode
-            ? 1
-            : calibration.smoothing.brightnessAlpha;
+          const lightAlpha = fastMode ? 1 : calibration.smoothing.brightnessAlpha;
           const tempAlpha = fastMode ? 1 : calibration.smoothing.tempAlpha;
 
           smoothRef.current.soilRaw = smoothValue(
             smoothRef.current.soilRaw,
             rawVal.soilMoisture,
-            wetAlpha,
+            wetAlpha
           );
           smoothRef.current.lightRaw = smoothValue(
             smoothRef.current.lightRaw,
             rawVal.lightLevel,
-            lightAlpha,
+            lightAlpha
           );
           smoothRef.current.temp = smoothValue(
             smoothRef.current.temp,
             rawVal.temperature,
-            tempAlpha,
+            tempAlpha
           );
           smoothRef.current.wetness = smoothValue(
             smoothRef.current.wetness,
             wetnessNorm,
-            wetAlpha,
+            wetAlpha
           );
           smoothRef.current.brightness = smoothValue(
             smoothRef.current.brightness,
             brightnessNorm,
-            lightAlpha,
+            lightAlpha
           );
 
           const soilState = hysteresisSoil(
             smoothRef.current.wetness,
-            prevStateRef.current.soil,
+            prevStateRef.current.soil
           );
           const lightState = hysteresisLight(
             smoothRef.current.brightness,
-            prevStateRef.current.light,
+            prevStateRef.current.light
           );
           const tempState = hysteresisTemp(
             rawVal.temperature,
-            prevStateRef.current.temp,
+            prevStateRef.current.temp
           );
+
           const irrigationOn = !!rawVal.irrigationStatus;
 
-          prevStateRef.current = {
-            soil: soilState,
-            light: lightState,
-            temp: tempState,
-          };
+          prevStateRef.current = { soil: soilState, light: lightState, temp: tempState };
 
           const smoothed = {
             temperature: smoothRef.current.temp,
@@ -250,7 +274,7 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
           const stamp = Date.now();
 
           setData({ ...smoothed, __ts: stamp });
-          setRaw({ ...parsed, __ts: stamp });
+          setRaw({ ...rawVal, __ts: stamp });
           setStates({
             soil: soilState,
             light: lightState,
@@ -258,31 +282,24 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
             irrigation: irrigationOn,
           });
           setNormalized({
-            soil: smoothRef.current.wetness,
-            light: smoothRef.current.brightness,
             wetness: smoothRef.current.wetness,
             brightness: smoothRef.current.brightness,
             __ts: stamp,
           });
+
           setConnected(true);
           setError(null);
           setTick((t) => t + 1);
           setLastUpdated(new Date().toISOString());
-          console.log("[SensorTwin] update", Date.now(), parsed);
+
+          console.log("[SensorTwin] parsed", rawVal);
           clearTimeout(fallbackTimer);
         },
         (listenerError) => {
-          if (listenerError?.code === "PERMISSION_DENIED") {
-            console.error(
-              "Digital Twin listener permission denied",
-              listenerError,
-            );
-          } else {
-            console.error("Digital Twin listener error", listenerError);
-          }
+          console.error("Digital Twin listener error", listenerError);
           setConnected(false);
           setError(listenerError);
-        },
+        }
       );
     })();
 
@@ -291,7 +308,7 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
       clearTimeout(fallbackTimer);
       if (unsubscribe) unsubscribe();
     };
-  }, []);
+  }, [fastMode]);
 
   return {
     data,
@@ -305,9 +322,4 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
     lastUpdated,
     calibration,
   };
-}
-
-function smoothValue(current, target, alpha) {
-  if (current === undefined || current === null) return target;
-  return current + alpha * (target - current);
 }
