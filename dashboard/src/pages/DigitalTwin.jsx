@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -15,6 +15,19 @@ export default function DigitalTwin() {
   const { data, raw, normalized, states, irrigationOn, connected, error, tick, calibration } = useAgroSmartLiveData()
   const navigate = useNavigate()
   const [params] = useSearchParams()
+
+  const debugMode = params.get('debug') === '1'
+  const labelsEnabled = params.get('labels') === '1'
+
+  const computeWetnessRaw = useMemo(() => {
+    const span = Math.max(calibration.soil.dry - calibration.soil.wet, 1)
+    return (val) => Math.max(0, Math.min(1, (calibration.soil.dry - val) / span))
+  }, [calibration])
+
+  const computeBrightnessRaw = useMemo(() => {
+    const span = Math.max(calibration.light.dark - calibration.light.bright, 1)
+    return (val) => Math.max(0, Math.min(1, (calibration.light.dark - val) / span))
+  }, [calibration])
 
   const statusTone = connected ? 'bg-emerald-500/30 border-emerald-400/50 text-emerald-100' : 'bg-amber-500/20 border-amber-400/40 text-amber-100'
   const irrigationLabel = irrigationOn ? 'ON' : 'OFF'
@@ -43,7 +56,7 @@ export default function DigitalTwin() {
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
         <Suspense fallback={null}>
-          <FarmScene data={data} normalized={normalized} irrigationOn={irrigationOn} tick={tick} />
+          <FarmScene data={data} normalized={normalized} irrigationOn={irrigationOn} tick={tick} debugMode={debugMode} labelsEnabled={labelsEnabled} />
         </Suspense>
       </Canvas>
 
@@ -105,21 +118,33 @@ export default function DigitalTwin() {
           </div>
         </motion.div>
 
-        {params.get('debug') === '1' && (
-          <div className="absolute bottom-4 right-4 z-20 w-full max-w-sm rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-slate-200 shadow-xl backdrop-blur">
-            <div className="font-semibold text-emerald-200 mb-2">Calibration Debug</div>
-            <div className="space-y-1">
-              <DebugRow label="Raw Temp" value={`${formatValue(raw.temperature, '°C')}`} />
-              <DebugRow label="Raw Soil" value={formatValue(raw.soilMoisture, '')} />
-              <DebugRow label="Raw Light" value={formatValue(raw.lightLevel, '')} />
-              <DebugRow label="Norm Soil" value={normalized.soil.toFixed(3)} />
-              <DebugRow label="Norm Light" value={normalized.light.toFixed(3)} />
-              <DebugRow label="State Soil" value={states.soil} />
-              <DebugRow label="State Light" value={states.light} />
-              <DebugRow label="State Temp" value={states.temp} />
-              <DebugRow label="Irrigation" value={irrigationOn ? 'ON' : 'OFF'} />
+        {debugMode && (
+          <div className="absolute bottom-4 right-4 z-20 w-full max-w-md rounded-2xl border border-white/10 bg-black/80 p-4 text-xs text-slate-100 shadow-2xl backdrop-blur-md space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-emerald-200">Debug Overlay</div>
+              <div className="text-[10px] text-slate-400">Local only · read-only</div>
             </div>
-            <div className="mt-3 text-[11px] text-slate-400">Soil thr: dry&lt;{calibration.soil.dryMax}, optimal&lt;{calibration.soil.optimalMax}, wet&gt;{calibration.soil.wetMin} | Pump~{calibration.soil.pumpThreshold}</div>
+            <div className="grid grid-cols-2 gap-2">
+              <DebugRow label="soilRaw" value={formatValue(raw.soilMoisture, '')} />
+              <DebugRow label="wetness" value={normalized.wetness?.toFixed(3)} />
+              <DebugRow label="soilState" value={states.soil} />
+              <DebugRow label="lightRaw" value={formatValue(raw.lightLevel, '')} />
+              <DebugRow label="brightness" value={normalized.brightness?.toFixed(3)} />
+              <DebugRow label="lightState" value={states.light} />
+              <DebugRow label="temp" value={formatValue(raw.temperature, '°C')} />
+              <DebugRow label="humidity" value={formatValue(raw.humidity, '%')} />
+              <DebugRow label="irrigationOn" value={irrigationOn ? 'true' : 'false'} />
+            </div>
+
+            <div className="space-y-2">
+              <Bar label="Wetness" value={normalized.wetness} raw={computeWetnessRaw(raw.soilMoisture)} />
+              <Bar label="Brightness" value={normalized.brightness} raw={computeBrightnessRaw(raw.lightLevel)} />
+            </div>
+
+            <div className="flex items-center justify-between text-lg font-bold">
+              <span className={`${states.soil === 'Wet' ? 'text-sky-200' : 'text-amber-200'}`}>{states.soil === 'Wet' ? 'WET' : 'DRY'}</span>
+              <span className={`${states.light === 'High' ? 'text-yellow-200' : 'text-slate-200'}`}>{states.light === 'High' ? 'BRIGHT' : 'DARK'}</span>
+            </div>
           </div>
         )}
       </div>
@@ -159,5 +184,22 @@ function toneForState(state) {
 function DebugRow({ label, value }) {
   return (
     <div className="flex justify-between gap-2"><span className="text-slate-400">{label}</span><span className="font-semibold text-white">{value}</span></div>
+  )
+}
+
+function Bar({ label, value = 0, raw = 0 }) {
+  const safeVal = Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0
+  const safeRaw = Number.isFinite(raw) ? Math.max(0, Math.min(1, raw)) : 0
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-[11px] text-slate-400">
+        <span>{label}</span>
+        <span className="text-slate-200">{safeVal.toFixed(3)} (smoothed) · raw {safeRaw.toFixed(3)}</span>
+      </div>
+      <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-800">
+        <div className="absolute inset-0 bg-slate-700" style={{ width: `${safeRaw * 100}%`, opacity: 0.4 }} />
+        <div className="absolute inset-0 bg-emerald-400" style={{ width: `${safeVal * 100}%` }} />
+      </div>
+    </div>
   )
 }

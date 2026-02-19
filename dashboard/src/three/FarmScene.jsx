@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react'
 import { Color, DoubleSide } from 'three'
 import { useFrame } from '@react-three/fiber'
-import { Environment, Float, Sparkles, Stars } from '@react-three/drei'
-import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing'
+import { ContactShadows, Environment, Float, Html, Sparkles, Stars } from '@react-three/drei'
+import { EffectComposer, Bloom, Vignette, Noise, Outline, Selection, Select } from '@react-three/postprocessing'
 import Soil from './Soil'
 import Sun from './Sun'
 import Irrigation from './Irrigation'
@@ -12,7 +12,7 @@ import { calibration } from './calibration'
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
 
-export default function FarmScene({ data = {}, normalized = {}, irrigationOn = false, tick = 0 }) {
+export default function FarmScene({ data = {}, normalized = {}, irrigationOn = false, tick = 0, debugMode = false, labelsEnabled = false }) {
     const {
         temperature = 24,
         humidity = 60,
@@ -21,16 +21,17 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
         irrigationStatus = false
     } = data
 
-    const soilNorm = normalized?.soil ?? clamp01((soilMoisture - calibration.soil.min) / (calibration.soil.max - calibration.soil.min))
-    const lightNorm = normalized?.light ?? clamp01((lightLevel - calibration.light.min) / (calibration.light.max - calibration.light.min))
+    const computeWetness = (value) => clamp01((calibration.soil.dry - value) / Math.max(calibration.soil.dry - calibration.soil.wet, 1))
+    const computeBrightness = (value) => clamp01((calibration.light.dark - value) / Math.max(calibration.light.dark - calibration.light.bright, 1))
+
+    const wetness = normalized?.wetness ?? normalized?.soil ?? computeWetness(soilMoisture)
+    const brightness = normalized?.brightness ?? normalized?.light ?? computeBrightness(lightLevel)
 
     const tempFactor = clamp01((temperature - 10) / 24)
     const humidityFactor = clamp01(humidity / 100)
-    const lightFactor = Math.max(0.1, lightNorm)
-    const irrigationActive = irrigationOn || irrigationStatus === 1 || irrigationStatus === true || String(irrigationStatus).toLowerCase() === 'on'
-
-    const targetBackground = useMemo(() => new Color('#03060d').lerp(new Color('#0e1728'), humidityFactor * 0.5), [humidityFactor])
-    const targetFog = useMemo(() => new Color('#05070c').lerp(new Color('#0b1422'), 0.5 + humidityFactor * 0.3), [humidityFactor])
+    const lightFactor = Math.max(0.1, brightness)
+    const targetBackground = useMemo(() => new Color('#05070d').lerp(new Color('#0a1628'), humidityFactor * 0.35), [humidityFactor])
+    const targetFog = useMemo(() => new Color('#060910').lerp(new Color('#0b1420'), 0.4 + humidityFactor * 0.25), [humidityFactor])
     const targetAmbient = useMemo(() => new Color('#0f3450').lerp(new Color('#543322'), tempFactor), [tempFactor])
 
     const ambientRef = useRef()
@@ -74,43 +75,49 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
             cubeMatRef.current.emissiveIntensity += (targetEmissive - cubeMatRef.current.emissiveIntensity) * 0.12
         }
         if (bloomRef.current) {
-            const baseBloom = 0.95
-            const targetBloom = baseBloom + pulseRef.current * 0.3
+            const baseBloom = 0.4 + brightness * 0.9
+            const targetBloom = baseBloom + pulseRef.current * 0.28
             bloomRef.current.intensity += (targetBloom - bloomRef.current.intensity) * 0.18
         }
     })
 
     return (
-        <>
-            <CinematicCamera focus={[0, 1.1, 0]} radius={7.2} height={3.1} sway={0.55} speed={0.18} tick={tick} />
+        <Selection>
+            <CinematicCamera focus={[0, 0.6, 0]} radius={6.5} height={2.4} sway={0.18} speed={0.05} tick={tick} />
 
             <color attach="background" args={[targetBackground]} />
-            <fog attach="fog" args={[targetFog, 6, 18]} />
+            {!debugMode && <fog attach="fog" args={[targetFog, 8, 20]} />}
 
             <hemisphereLight ref={hemiRef} args={[targetAmbient, new Color('#050505'), 0.35 + lightFactor * 0.15]} />
-            <ambientLight ref={ambientRef} intensity={0.45 + lightFactor * 0.35} color={targetAmbient} />
-            <Sun lightLevel={lightNorm * 100} />
+            <ambientLight ref={ambientRef} intensity={0.35 + lightFactor * 0.25} color={targetAmbient} />
+            <directionalLight position={[5, 6, 5]} intensity={1.2} color="#ffd9a1" castShadow />
+            <directionalLight position={[-6, 5, -6]} intensity={1.6} color="#67e8f9" />
+            <directionalLight position={[0, 6, 4]} intensity={0.6} color="#bcd3ff" />
+            <Sun lightLevel={brightness * 100} />
 
             <HologramGrid />
+            <ContactShadows position={[0, 0.01, 0]} opacity={0.35} scale={12} blur={2.8} far={6} resolution={1024} />
 
-            <Float speed={1.1} rotationIntensity={0.16} floatIntensity={0.32}>
+            <Float speed={0.9} rotationIntensity={0.12} floatIntensity={0.24}>
                 <group position={[0, 0.05, 0]}>
-                    <Soil soilMoisture={soilNorm * 100} />
+                    <Soil soilMoisture={wetness * 100} />
+                    <GridOverlay />
 
-
-                    <mesh position={[0, 0.8, 0]} scale={[3.6, 1.4, 3.6]}>
-                        <boxGeometry args={[1, 1, 1]} />
-                        <meshStandardMaterial
-                            ref={cubeMatRef}
-                            color="#1b2433"
-                            metalness={0.45}
-                            roughness={0.18}
-                            transparent
-                            opacity={0.52}
-                            emissive="#3ab8ff"
-                            emissiveIntensity={0.35 + tempFactor * 0.5}
-                        />
-                    </mesh>
+                    <Select enabled>
+                        <mesh position={[0, 0.8, 0]} scale={[3.6, 1.4, 3.6]}>
+                            <boxGeometry args={[1, 1, 1]} />
+                            <meshStandardMaterial
+                                ref={cubeMatRef}
+                                color="#00f5a0"
+                                metalness={0.35}
+                                roughness={0.22}
+                                transparent
+                                opacity={0.68}
+                                emissive="#00ffc6"
+                                emissiveIntensity={0.8 + tempFactor * 0.6}
+                            />
+                        </mesh>
+                    </Select>
 
                     <mesh position={[0, 0.02, 0]}>
                         <ringGeometry args={[5, 5.1, 64]} />
@@ -118,7 +125,11 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
                     </mesh>
 
                     <Scanlines />
-                    <Irrigation active={irrigationActive} />
+                    <Select enabled>
+                        <Irrigation active={irrigationActive} />
+                    </Select>
+
+                    {labelsEnabled && <Labels />}
                 </group>
             </Float>
 
@@ -128,11 +139,19 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
             <Environment preset="city" />
 
             <EffectComposer>
-                <Bloom ref={bloomRef} intensity={0.95} luminanceThreshold={0.2} luminanceSmoothing={0.4} radius={0.9} />
+                <Outline
+                    blur
+                    visibleEdgeColor={0x3bf5ff}
+                    hiddenEdgeColor={0x0}
+                    edgeStrength={3}
+                    width={0.0025}
+                    pulseSpeed={0.7}
+                />
+                <Bloom ref={bloomRef} intensity={0.8} luminanceThreshold={0.2} luminanceSmoothing={0.4} radius={0.9} />
                 <Noise premultiply opacity={0.06} />
                 <Vignette eskil offset={0.18} darkness={0.92} />
             </EffectComposer>
-        </>
+        </Selection>
     )
 }
 
@@ -180,4 +199,32 @@ function AnimatedBeam({ x, z, height, delay }) {
             <meshBasicMaterial color="#38bdf8" transparent opacity={0.12} side={DoubleSide} />
         </mesh>
     )
+}
+
+function Labels() {
+    return (
+        <>
+            <Html position={[0, 1.9, 0]} center style={labelStyle}>Crop</Html>
+            <Html position={[0, 0.15, 3.2]} center style={labelStyle}>Soil</Html>
+            <Html position={[0, 0.7, -1]} center style={labelStyle}>Irrigation</Html>
+            <Html position={[6, 7.2, -4]} center style={labelStyle}>Sun</Html>
+        </>
+    )
+}
+
+const labelStyle = {
+    padding: '4px 8px',
+    borderRadius: '9999px',
+    background: 'rgba(16, 185, 129, 0.14)',
+    border: '1px solid rgba(52, 211, 153, 0.6)',
+    color: '#d1fae5',
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    backdropFilter: 'blur(6px)',
+}
+
+function GridOverlay() {
+    return <gridHelper args={[12, 12, '#1e293b', '#1e293b']} position={[0, 0.02, 0]} />
 }

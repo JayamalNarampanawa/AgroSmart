@@ -16,6 +16,15 @@ const toNumber = (v, fallback) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const getFirstNumber = (payload, keys, fallback) => {
+  for (const key of keys) {
+    if (payload[key] !== undefined && payload[key] !== null) {
+      return toNumber(payload[key], fallback);
+    }
+  }
+  return fallback;
+};
+
 const parseIrrigationStatus = (payload = {}) => {
   const candidates = [
     payload.irrigationStatus,
@@ -37,25 +46,25 @@ const parseIrrigationStatus = (payload = {}) => {
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
-const hysteresisSoil = (value, prev) => {
-  const { dryMax, optimalMax, wetMin, min, max } = calibration.soil;
-  const margin = (max - min) * 0.05;
-  if (prev === "Dry" && value < dryMax + margin) return "Dry";
-  if (prev === "Wet" && value > wetMin - margin) return "Wet";
-  if (value < dryMax) return "Dry";
-  if (value > wetMin) return "Wet";
-  if (value >= dryMax - margin && value <= optimalMax + margin) return "Optimal";
-  return prev || "Optimal";
+const hysteresisSoil = (wetness, prev) => {
+  const margin = calibration.soil.hysteresis ?? 0.05;
+  const dryThresh = 0.35;
+  const wetThresh = 0.75;
+  if (prev === "Dry" && wetness < dryThresh + margin) return "Dry";
+  if (prev === "Wet" && wetness > wetThresh - margin) return "Wet";
+  if (wetness < dryThresh) return "Dry";
+  if (wetness > wetThresh) return "Wet";
+  return "Optimal";
 };
 
-const hysteresisLight = (norm, prev) => {
-  const low = 0.3;
-  const high = 0.75;
-  const margin = 0.05;
-  if (prev === "Low" && norm < low + margin) return "Low";
-  if (prev === "High" && norm > high - margin) return "High";
-  if (norm < low) return "Low";
-  if (norm > high) return "High";
+const hysteresisLight = (brightness, prev) => {
+  const low = 0.35;
+  const high = 0.8;
+  const margin = calibration.light.hysteresis ?? 0.05;
+  if (prev === "Low" && brightness < low + margin) return "Low";
+  if (prev === "High" && brightness > high - margin) return "High";
+  if (brightness < low) return "Low";
+  if (brightness > high) return "High";
   return "Normal";
 };
 
@@ -75,15 +84,37 @@ export default function useAgroSmartLiveData() {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
-  const [states, setStates] = useState({ soil: "Optimal", light: "Normal", temp: "Normal", irrigation: false });
-  const [normalized, setNormalized] = useState({ soil: 0, light: 0 });
+  const [states, setStates] = useState({
+    soil: "Optimal",
+    light: "Normal",
+    temp: "Normal",
+    irrigation: false,
+  });
+  const [normalized, setNormalized] = useState({
+    soil: 0,
+    light: 0,
+    wetness: 0,
+    brightness: 0,
+  });
 
   const smoothRef = useRef({
-    soil: DEFAULT_DATA.soilMoisture,
-    light: DEFAULT_DATA.lightLevel,
+    soilRaw: DEFAULT_DATA.soilMoisture,
+    lightRaw: DEFAULT_DATA.lightLevel,
     temp: DEFAULT_DATA.temperature,
+    wetness: clamp01(
+      (calibration.soil.dry - DEFAULT_DATA.soilMoisture) /
+        Math.max(calibration.soil.dry - calibration.soil.wet, 1),
+    ),
+    brightness: clamp01(
+      (calibration.light.dark - DEFAULT_DATA.lightLevel) /
+        Math.max(calibration.light.dark - calibration.light.bright, 1),
+    ),
   });
-  const prevStateRef = useRef({ soil: "Optimal", light: "Normal", temp: "Normal" });
+  const prevStateRef = useRef({
+    soil: "Optimal",
+    light: "Normal",
+    temp: "Normal",
+  });
 
   useEffect(() => {
     const dataRef = ref(database, "/AgroSmart/currentData");
@@ -94,40 +125,113 @@ export default function useAgroSmartLiveData() {
       (snapshot) => {
         const val = snapshot.val() || {};
         const rawVal = {
-          temperature: toNumber(val.temperature, DEFAULT_DATA.temperature),
-          humidity: toNumber(val.humidity, DEFAULT_DATA.humidity),
-          soilMoisture: toNumber(val.soilMoisture, DEFAULT_DATA.soilMoisture),
-          lightLevel: toNumber(val.lightLevel, DEFAULT_DATA.lightLevel),
+          temperature: getFirstNumber(
+            val,
+            ["temperature", "Temperature", "temp"],
+            DEFAULT_DATA.temperature,
+          ),
+          humidity: getFirstNumber(
+            val,
+            ["humidity", "Humidity"],
+            DEFAULT_DATA.humidity,
+          ),
+          soilMoisture: getFirstNumber(
+            val,
+            [
+              "soilMoisture",
+              "SoilMoisture",
+              "soil",
+              "soil_moisture",
+              "soilMoistureInAir",
+              "SoilMoisture (in air)",
+            ],
+            DEFAULT_DATA.soilMoisture,
+          ),
+          lightLevel: getFirstNumber(
+            val,
+            ["lightLevel", "LightLevel", "light", "light_level"],
+            DEFAULT_DATA.lightLevel,
+          ),
           irrigationStatus: parseIrrigationStatus(val),
         };
 
-        const soilNorm = clamp01((rawVal.soilMoisture - calibration.soil.min) / (calibration.soil.max - calibration.soil.min));
-        let lightNorm = clamp01((rawVal.lightLevel - calibration.light.min) / (calibration.light.max - calibration.light.min));
-        if (calibration.light.invert) lightNorm = 1 - lightNorm;
+        const wetnessNorm = clamp01(
+          (calibration.soil.dry - rawVal.soilMoisture) /
+            Math.max(calibration.soil.dry - calibration.soil.wet, 1),
+        );
+        const brightnessNorm = clamp01(
+          (calibration.light.dark - rawVal.lightLevel) /
+            Math.max(calibration.light.dark - calibration.light.bright, 1),
+        );
 
-        smoothRef.current.soil = smoothValue(smoothRef.current.soil, rawVal.soilMoisture, calibration.smoothing.soilAlpha);
-        smoothRef.current.light = smoothValue(smoothRef.current.light, rawVal.lightLevel, calibration.smoothing.lightAlpha);
-        smoothRef.current.temp = smoothValue(smoothRef.current.temp, rawVal.temperature, calibration.smoothing.tempAlpha);
+        smoothRef.current.soilRaw = smoothValue(
+          smoothRef.current.soilRaw,
+          rawVal.soilMoisture,
+          calibration.smoothing.wetnessAlpha,
+        );
+        smoothRef.current.lightRaw = smoothValue(
+          smoothRef.current.lightRaw,
+          rawVal.lightLevel,
+          calibration.smoothing.brightnessAlpha,
+        );
+        smoothRef.current.temp = smoothValue(
+          smoothRef.current.temp,
+          rawVal.temperature,
+          calibration.smoothing.tempAlpha,
+        );
+        smoothRef.current.wetness = smoothValue(
+          smoothRef.current.wetness,
+          wetnessNorm,
+          calibration.smoothing.wetnessAlpha,
+        );
+        smoothRef.current.brightness = smoothValue(
+          smoothRef.current.brightness,
+          brightnessNorm,
+          calibration.smoothing.brightnessAlpha,
+        );
 
-        const soilState = hysteresisSoil(rawVal.soilMoisture, prevStateRef.current.soil);
-        const lightState = hysteresisLight(lightNorm, prevStateRef.current.light);
-        const tempState = hysteresisTemp(rawVal.temperature, prevStateRef.current.temp);
+        const soilState = hysteresisSoil(
+          smoothRef.current.wetness,
+          prevStateRef.current.soil,
+        );
+        const lightState = hysteresisLight(
+          smoothRef.current.brightness,
+          prevStateRef.current.light,
+        );
+        const tempState = hysteresisTemp(
+          rawVal.temperature,
+          prevStateRef.current.temp,
+        );
         const irrigationOn = !!rawVal.irrigationStatus;
 
-        prevStateRef.current = { soil: soilState, light: lightState, temp: tempState };
+        prevStateRef.current = {
+          soil: soilState,
+          light: lightState,
+          temp: tempState,
+        };
 
         const smoothed = {
           temperature: smoothRef.current.temp,
           humidity: rawVal.humidity,
-          soilMoisture: smoothRef.current.soil,
-          lightLevel: smoothRef.current.light,
+          soilMoisture: smoothRef.current.soilRaw,
+          lightLevel: smoothRef.current.lightRaw,
           irrigationStatus: irrigationOn,
         };
 
         setData(smoothed);
         setRaw(rawVal);
-        setStates({ soil: soilState, light: lightState, temp: tempState, irrigation: irrigationOn });
-        setNormalized({ soil: soilNorm, light: lightNorm });
+        setStates({
+          soil: soilState,
+          light: lightState,
+          temp: tempState,
+          irrigation: irrigationOn,
+        });
+        setNormalized({
+          soil: smoothRef.current.wetness,
+          light: smoothRef.current.brightness,
+          wetness: smoothRef.current.wetness,
+          brightness: smoothRef.current.brightness,
+        });
         setConnected(true);
         setError(null);
         setTick((t) => t + 1);
@@ -159,7 +263,7 @@ export default function useAgroSmartLiveData() {
   };
 }
 
-function smoothValue(current, target, alpha){
-  if(current === undefined || current === null) return target
-  return current + alpha * (target - current)
+function smoothValue(current, target, alpha) {
+  if (current === undefined || current === null) return target;
+  return current + alpha * (target - current);
 }
