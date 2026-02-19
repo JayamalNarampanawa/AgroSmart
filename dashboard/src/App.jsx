@@ -6,6 +6,8 @@ import ensureFarmProfileDefaults from './utils/ensureFarmProfileDefaults'
 import ensureWeatherDefaults from './utils/ensureWeatherDefaults'
 import updateRainfallFromApi from './utils/updateRainfallFromApi'
 import useMotionPreferences from './hooks/useMotionPreferences.jsx'
+import DigitalTwin from "./pages/DigitalTwin";
+
 
 export default function App(){
   const location = useLocation()
@@ -43,8 +45,10 @@ export default function App(){
         transition={{ duration: 0.35, ease: 'easeOut' }}
       >
         <Routes location={location}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="/twin" element={<DigitalTwin />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/" element={<Navigate to="/twin" replace />} />
+          <Route path="*" element={<Navigate to="/twin" replace />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
