@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { onValue, ref } from "firebase/database";
-import { database } from "../firebase";
+import { database, authReady } from "../firebase";
 import { calibration } from "./calibration";
 
 const DEFAULT_DATA = {
@@ -119,147 +119,163 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
   });
 
   useEffect(() => {
-    const dataRef = ref(database, "/AgroSmart/currentData");
+    let unsubscribe = null;
+    let cancelled = false;
     const fallbackTimer = setTimeout(() => setConnected(false), 7000);
 
-    const unsubscribe = onValue(
-      dataRef,
-      (snapshot) => {
-        const val = snapshot.val() || {};
-        const rawVal = {
-          temperature: getFirstNumber(
-            val,
-            ["Temperature", "temperature", "temp"],
-            DEFAULT_DATA.temperature,
-          ),
-          humidity: getFirstNumber(
-            val,
-            ["Humidity", "humidity"],
-            DEFAULT_DATA.humidity,
-          ),
-          soilMoisture: getFirstNumber(
-            val,
-            [
-              "SoilMoisture (in air)",
-              "soilMoisture",
-              "SoilMoisture",
-              "soil",
-              "soil_moisture",
-              "soilMoistureInAir",
-            ],
-            DEFAULT_DATA.soilMoisture,
-          ),
-          lightLevel: getFirstNumber(
-            val,
-            ["LightLevel", "lightLevel", "light", "light_level"],
-            DEFAULT_DATA.lightLevel,
-          ),
-          irrigationStatus: parseIrrigationStatus(val),
-        };
+    (async () => {
+      try {
+        await authReady;
+      } catch (e) {
+        console.error("[SensorTwin] auth readiness failed", e);
+      }
+      if (cancelled) return;
 
-        const parsed = { ...rawVal };
+      const dataRef = ref(database, "/AgroSmart/currentData");
+      unsubscribe = onValue(
+        dataRef,
+        (snapshot) => {
+          const val = snapshot.val() || {};
+          const rawVal = {
+            temperature: getFirstNumber(
+              val,
+              ["Temperature", "temperature", "temp"],
+              DEFAULT_DATA.temperature,
+            ),
+            humidity: getFirstNumber(
+              val,
+              ["Humidity", "humidity"],
+              DEFAULT_DATA.humidity,
+            ),
+            soilMoisture: getFirstNumber(
+              val,
+              [
+                "SoilMoisture (in air)",
+                "soilMoisture",
+                "SoilMoisture",
+                "soil",
+                "soil_moisture",
+                "soilMoistureInAir",
+              ],
+              DEFAULT_DATA.soilMoisture,
+            ),
+            lightLevel: getFirstNumber(
+              val,
+              ["LightLevel", "lightLevel", "light", "light_level"],
+              DEFAULT_DATA.lightLevel,
+            ),
+            irrigationStatus: parseIrrigationStatus(val),
+          };
 
-        const wetnessNorm = clamp01(
-          (calibration.soil.dry - rawVal.soilMoisture) /
-            Math.max(calibration.soil.dry - calibration.soil.wet, 1),
-        );
-        const brightnessNorm = clamp01(
-          (calibration.light.dark - rawVal.lightLevel) /
-            Math.max(calibration.light.dark - calibration.light.bright, 1),
-        );
+          const parsed = { ...rawVal };
 
-        const wetAlpha = fastMode ? 1 : calibration.smoothing.wetnessAlpha;
-        const lightAlpha = fastMode ? 1 : calibration.smoothing.brightnessAlpha;
-        const tempAlpha = fastMode ? 1 : calibration.smoothing.tempAlpha;
+          const wetnessNorm = clamp01(
+            (calibration.soil.dry - rawVal.soilMoisture) /
+              Math.max(calibration.soil.dry - calibration.soil.wet, 1),
+          );
+          const brightnessNorm = clamp01(
+            (calibration.light.dark - rawVal.lightLevel) /
+              Math.max(calibration.light.dark - calibration.light.bright, 1),
+          );
 
-        smoothRef.current.soilRaw = smoothValue(
-          smoothRef.current.soilRaw,
-          rawVal.soilMoisture,
-          wetAlpha,
-        );
-        smoothRef.current.lightRaw = smoothValue(
-          smoothRef.current.lightRaw,
-          rawVal.lightLevel,
-          lightAlpha,
-        );
-        smoothRef.current.temp = smoothValue(
-          smoothRef.current.temp,
-          rawVal.temperature,
-          tempAlpha,
-        );
-        smoothRef.current.wetness = smoothValue(
-          smoothRef.current.wetness,
-          wetnessNorm,
-          wetAlpha,
-        );
-        smoothRef.current.brightness = smoothValue(
-          smoothRef.current.brightness,
-          brightnessNorm,
-          lightAlpha,
-        );
+          const wetAlpha = fastMode ? 1 : calibration.smoothing.wetnessAlpha;
+          const lightAlpha = fastMode ? 1 : calibration.smoothing.brightnessAlpha;
+          const tempAlpha = fastMode ? 1 : calibration.smoothing.tempAlpha;
 
-        const soilState = hysteresisSoil(
-          smoothRef.current.wetness,
-          prevStateRef.current.soil,
-        );
-        const lightState = hysteresisLight(
-          smoothRef.current.brightness,
-          prevStateRef.current.light,
-        );
-        const tempState = hysteresisTemp(
-          rawVal.temperature,
-          prevStateRef.current.temp,
-        );
-        const irrigationOn = !!rawVal.irrigationStatus;
+          smoothRef.current.soilRaw = smoothValue(
+            smoothRef.current.soilRaw,
+            rawVal.soilMoisture,
+            wetAlpha,
+          );
+          smoothRef.current.lightRaw = smoothValue(
+            smoothRef.current.lightRaw,
+            rawVal.lightLevel,
+            lightAlpha,
+          );
+          smoothRef.current.temp = smoothValue(
+            smoothRef.current.temp,
+            rawVal.temperature,
+            tempAlpha,
+          );
+          smoothRef.current.wetness = smoothValue(
+            smoothRef.current.wetness,
+            wetnessNorm,
+            wetAlpha,
+          );
+          smoothRef.current.brightness = smoothValue(
+            smoothRef.current.brightness,
+            brightnessNorm,
+            lightAlpha,
+          );
 
-        prevStateRef.current = {
-          soil: soilState,
-          light: lightState,
-          temp: tempState,
-        };
+          const soilState = hysteresisSoil(
+            smoothRef.current.wetness,
+            prevStateRef.current.soil,
+          );
+          const lightState = hysteresisLight(
+            smoothRef.current.brightness,
+            prevStateRef.current.light,
+          );
+          const tempState = hysteresisTemp(
+            rawVal.temperature,
+            prevStateRef.current.temp,
+          );
+          const irrigationOn = !!rawVal.irrigationStatus;
 
-        const smoothed = {
-          temperature: smoothRef.current.temp,
-          humidity: rawVal.humidity,
-          soilMoisture: smoothRef.current.soilRaw,
-          lightLevel: smoothRef.current.lightRaw,
-          irrigationStatus: irrigationOn,
-        };
+          prevStateRef.current = {
+            soil: soilState,
+            light: lightState,
+            temp: tempState,
+          };
 
-        const stamp = Date.now();
+          const smoothed = {
+            temperature: smoothRef.current.temp,
+            humidity: rawVal.humidity,
+            soilMoisture: smoothRef.current.soilRaw,
+            lightLevel: smoothRef.current.lightRaw,
+            irrigationStatus: irrigationOn,
+          };
 
-        setData({ ...smoothed, __ts: stamp });
-        setRaw({ ...parsed, __ts: stamp });
-        setStates({
-          soil: soilState,
-          light: lightState,
-          temp: tempState,
-          irrigation: irrigationOn,
-        });
-        setNormalized({
-          soil: smoothRef.current.wetness,
-          light: smoothRef.current.brightness,
-          wetness: smoothRef.current.wetness,
-          brightness: smoothRef.current.brightness,
-          __ts: stamp,
-        });
-        setConnected(true);
-        setError(null);
-        setTick((t) => t + 1);
-        setLastUpdated(new Date().toISOString());
-        console.log("[SensorTwin] update", Date.now(), parsed);
-        clearTimeout(fallbackTimer);
-      },
-      (error) => {
-        console.error("Digital Twin listener error", error);
-        setConnected(false);
-        setError(error);
-      },
-    );
+          const stamp = Date.now();
+
+          setData({ ...smoothed, __ts: stamp });
+          setRaw({ ...parsed, __ts: stamp });
+          setStates({
+            soil: soilState,
+            light: lightState,
+            temp: tempState,
+            irrigation: irrigationOn,
+          });
+          setNormalized({
+            soil: smoothRef.current.wetness,
+            light: smoothRef.current.brightness,
+            wetness: smoothRef.current.wetness,
+            brightness: smoothRef.current.brightness,
+            __ts: stamp,
+          });
+          setConnected(true);
+          setError(null);
+          setTick((t) => t + 1);
+          setLastUpdated(new Date().toISOString());
+          console.log("[SensorTwin] update", Date.now(), parsed);
+          clearTimeout(fallbackTimer);
+        },
+        (listenerError) => {
+          if (listenerError?.code === "PERMISSION_DENIED") {
+            console.error("Digital Twin listener permission denied", listenerError);
+          } else {
+            console.error("Digital Twin listener error", listenerError);
+          }
+          setConnected(false);
+          setError(listenerError);
+        },
+      );
+    })();
 
     return () => {
+      cancelled = true;
       clearTimeout(fallbackTimer);
-      unsubscribe();
+      if (unsubscribe) unsubscribe();
     };
   }, []);
 
