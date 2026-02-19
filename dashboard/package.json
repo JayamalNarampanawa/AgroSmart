@@ -8,11 +8,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "twin": "vite --open /twin"
+
+
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
+    "@react-three/postprocessing": "^2.19.1",
     "firebase": "^10.0.0",
     "framer-motion": "^11.0.0",
     "papaparse": "^5.5.3",
