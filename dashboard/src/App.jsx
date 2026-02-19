@@ -9,28 +9,28 @@ import useMotionPreferences from './hooks/useMotionPreferences.jsx'
 import DigitalTwin from "./pages/DigitalTwin";
 
 
-export default function App(){
+export default function App() {
   const location = useLocation()
   const { enabled, reducedMotion } = useMotionPreferences()
   const allowMotion = enabled && !reducedMotion
 
-  useEffect(()=>{
+  useEffect(() => {
     // Ensure both farm profile and weather defaults exist on startup
     let rainfallIntervalId = null
-    ;(async ()=>{
-      try{
-        await ensureFarmProfileDefaults()
-      }catch(e){ console.error(e) }
-      try{
-        await ensureWeatherDefaults()
-      }catch(e){ console.error(e) }
-      try{
-        await updateRainfallFromApi()
-        rainfallIntervalId = setInterval(updateRainfallFromApi, 30 * 60 * 1000)
-      }catch(e){ console.error(e) }
-    })()
-    return ()=>{
-      if(rainfallIntervalId){
+      ; (async () => {
+        try {
+          await ensureFarmProfileDefaults()
+        } catch (e) { console.error(e) }
+        try {
+          await ensureWeatherDefaults()
+        } catch (e) { console.error(e) }
+        try {
+          await updateRainfallFromApi()
+          rainfallIntervalId = setInterval(updateRainfallFromApi, 30 * 60 * 1000)
+        } catch (e) { console.error(e) }
+      })()
+    return () => {
+      if (rainfallIntervalId) {
         clearInterval(rainfallIntervalId)
       }
     }
