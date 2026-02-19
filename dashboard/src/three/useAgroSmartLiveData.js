@@ -131,11 +131,18 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
       }
       if (cancelled) return;
 
-      const dataRef = ref(database, "/AgroSmart/currentData");
+      const dataRef = ref(database, "/AgroSmart");
       unsubscribe = onValue(
         dataRef,
         (snapshot) => {
-          const val = snapshot.val() || {};
+          const root = snapshot.val() || {};
+          const useCurrentData =
+            root && typeof root.currentData === "object" && root.currentData !== null;
+          const val = useCurrentData ? root.currentData : root;
+          console.log(
+            "[Twin] using node:",
+            useCurrentData ? "/AgroSmart/currentData" : "/AgroSmart",
+          );
           const rawVal = {
             temperature: getFirstNumber(
               val,
@@ -150,9 +157,9 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
             soilMoisture: getFirstNumber(
               val,
               [
+                "SoilMoisture",
                 "SoilMoisture (in air)",
                 "soilMoisture",
-                "SoilMoisture",
                 "soil",
                 "soil_moisture",
                 "soilMoistureInAir",
@@ -179,7 +186,9 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
           );
 
           const wetAlpha = fastMode ? 1 : calibration.smoothing.wetnessAlpha;
-          const lightAlpha = fastMode ? 1 : calibration.smoothing.brightnessAlpha;
+          const lightAlpha = fastMode
+            ? 1
+            : calibration.smoothing.brightnessAlpha;
           const tempAlpha = fastMode ? 1 : calibration.smoothing.tempAlpha;
 
           smoothRef.current.soilRaw = smoothValue(
@@ -262,7 +271,10 @@ export default function useAgroSmartLiveData({ fastMode = false } = {}) {
         },
         (listenerError) => {
           if (listenerError?.code === "PERMISSION_DENIED") {
-            console.error("Digital Twin listener permission denied", listenerError);
+            console.error(
+              "Digital Twin listener permission denied",
+              listenerError,
+            );
           } else {
             console.error("Digital Twin listener error", listenerError);
           }
