@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body, #root{
+  height: 100%;
+}
+
 .root-transition{ transition: background-color 300ms ease, color 300ms ease }
 
 /* Light & Dark variables - Tailwind will handle most utilities, but we keep a few CSS vars */

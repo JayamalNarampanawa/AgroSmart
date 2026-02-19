@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { Color, DoubleSide } from 'three'
 import { useFrame } from '@react-three/fiber'
 import { Environment, Float, Sparkles, Stars } from '@react-three/drei'
@@ -8,10 +8,11 @@ import Sun from './Sun'
 import Irrigation from './Irrigation'
 import CinematicCamera from './CinematicCamera'
 import HologramGrid from './HologramGrid'
+import { calibration } from './calibration'
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
 
-export default function FarmScene({ data = {} }) {
+export default function FarmScene({ data = {}, normalized = {}, irrigationOn = false, tick = 0 }) {
     const {
         temperature = 24,
         humidity = 60,
@@ -20,35 +21,87 @@ export default function FarmScene({ data = {} }) {
         irrigationStatus = false
     } = data
 
+    const soilNorm = normalized?.soil ?? clamp01((soilMoisture - calibration.soil.min) / (calibration.soil.max - calibration.soil.min))
+    const lightNorm = normalized?.light ?? clamp01((lightLevel - calibration.light.min) / (calibration.light.max - calibration.light.min))
+
     const tempFactor = clamp01((temperature - 10) / 24)
     const humidityFactor = clamp01(humidity / 100)
-    const lightFactor = clamp01(lightLevel / 100)
-    const irrigationActive = irrigationStatus === 1 || irrigationStatus === true || String(irrigationStatus).toLowerCase() === 'on'
+    const lightFactor = Math.max(0.1, lightNorm)
+    const irrigationActive = irrigationOn || irrigationStatus === 1 || irrigationStatus === true || String(irrigationStatus).toLowerCase() === 'on'
 
-    const backgroundColor = useMemo(() => new Color('#03060d').lerp(new Color('#0e1728'), humidityFactor * 0.5), [humidityFactor])
-    const fogColor = useMemo(() => new Color('#05070c').lerp(new Color('#0b1422'), 0.5 + humidityFactor * 0.3), [humidityFactor])
-    const ambientColor = useMemo(() => new Color('#0f3450').lerp(new Color('#543322'), tempFactor), [tempFactor])
+    const targetBackground = useMemo(() => new Color('#03060d').lerp(new Color('#0e1728'), humidityFactor * 0.5), [humidityFactor])
+    const targetFog = useMemo(() => new Color('#05070c').lerp(new Color('#0b1422'), 0.5 + humidityFactor * 0.3), [humidityFactor])
+    const targetAmbient = useMemo(() => new Color('#0f3450').lerp(new Color('#543322'), tempFactor), [tempFactor])
+
+    const ambientRef = useRef()
+    const hemiRef = useRef()
+    const cubeMatRef = useRef()
+    const bloomRef = useRef()
+    const pulseRef = useRef(0)
+    const bgRef = useRef(targetBackground.clone())
+    const fogRef = useRef(targetFog.clone())
+    const ambientColorRef = useRef(targetAmbient.clone())
+
+    useEffect(()=>{ pulseRef.current = 1 }, [tick])
+
+    useFrame((state, delta)=>{
+        const lerpColor = (from, to, alpha)=> from.lerp(to, alpha)
+
+        // smooth background & fog tint
+        lerpColor(bgRef.current, targetBackground, 0.05)
+        lerpColor(fogRef.current, targetFog, 0.05)
+        if(state.scene.background) state.scene.background.copy(bgRef.current)
+        if(state.scene.fog) state.scene.fog.color.copy(fogRef.current)
+
+        // smooth ambient tint/intensity
+        ambientColorRef.current.lerp(targetAmbient, 0.08)
+        const targetHemiIntensity = 0.35 + lightFactor * 0.15
+        const targetAmbientIntensity = 0.45 + lightFactor * 0.35
+        if(hemiRef.current){
+            hemiRef.current.color.copy(ambientColorRef.current)
+            hemiRef.current.intensity += (targetHemiIntensity - hemiRef.current.intensity) * 0.08
+        }
+        if(ambientRef.current){
+            ambientRef.current.color.copy(ambientColorRef.current)
+            ambientRef.current.intensity += (targetAmbientIntensity - ambientRef.current.intensity) * 0.08
+        }
+
+        // decay pulse and apply to emissive and bloom
+        pulseRef.current = Math.max(0, pulseRef.current - delta * 1.2)
+        if(cubeMatRef.current){
+            const base = 0.35 + tempFactor * 0.5
+            const targetEmissive = base + pulseRef.current * 0.5
+            cubeMatRef.current.emissiveIntensity += (targetEmissive - cubeMatRef.current.emissiveIntensity) * 0.12
+        }
+        if(bloomRef.current){
+            const baseBloom = 0.95
+            const targetBloom = baseBloom + pulseRef.current * 0.3
+            bloomRef.current.intensity += (targetBloom - bloomRef.current.intensity) * 0.18
+        }
+    })
 
     return (
         <>
-            <CinematicCamera focus={[0, 1.1, 0]} radius={7.2} height={3.1} sway={0.55} speed={0.18} />
+            <CinematicCamera focus={[0, 1.1, 0]} radius={7.2} height={3.1} sway={0.55} speed={0.18} tick={tick} />
 
-            <color attach="background" args={[backgroundColor]} />
-            <fog attach="fog" args={[fogColor, 6, 18]} />
+            <color attach="background" args={[targetBackground]} />
+            <fog attach="fog" args={[targetFog, 6, 18]} />
 
-            <hemisphereLight args={[ambientColor, new Color('#050505'), 0.35 + lightFactor * 0.15]} />
-            <ambientLight intensity={0.45 + lightFactor * 0.35} color={ambientColor} />
-            <Sun lightLevel={lightLevel} />
+            <hemisphereLight ref={hemiRef} args={[targetAmbient, new Color('#050505'), 0.35 + lightFactor * 0.15]} />
+            <ambientLight ref={ambientRef} intensity={0.45 + lightFactor * 0.35} color={targetAmbient} />
+            <Sun lightLevel={lightNorm * 100} />
 
             <HologramGrid />
 
             <Float speed={1.1} rotationIntensity={0.16} floatIntensity={0.32}>
                 <group position={[0, 0.05, 0]}>
-                    <Soil soilMoisture={soilMoisture} />
+                    <Soil soilMoisture={soilNorm * 100} />
+                    
 
                     <mesh position={[0, 0.8, 0]} scale={[3.6, 1.4, 3.6]}>
                         <boxGeometry args={[1, 1, 1]} />
                         <meshStandardMaterial
+                            ref={cubeMatRef}
                             color="#1b2433"
                             metalness={0.45}
                             roughness={0.18}
@@ -75,7 +128,7 @@ export default function FarmScene({ data = {} }) {
             <Environment preset="city" />
 
             <EffectComposer>
-                <Bloom intensity={0.95} luminanceThreshold={0.2} luminanceSmoothing={0.4} radius={0.9} />
+                <Bloom ref={bloomRef} intensity={0.95} luminanceThreshold={0.2} luminanceSmoothing={0.4} radius={0.9} />
                 <Noise premultiply opacity={0.06} />
                 <Vignette eskil offset={0.18} darkness={0.92} />
             </EffectComposer>

@@ -6,6 +6,9 @@ const PARTICLES = 120
 
 export default function Irrigation({ active = false }) {
     const pointsRef = useRef()
+    const pumpMatRef = useRef()
+    const pointsMatRef = useRef()
+    const alphaRef = useRef(active ? 0.9 : 0)
     const speeds = useRef(new Float32Array(PARTICLES).map(() => 0.9 + Math.random() * 1.2))
 
     const positions = useMemo(() => {
@@ -25,7 +28,21 @@ export default function Irrigation({ active = false }) {
     }
 
     useFrame((state, delta) => {
-        if (!active || !pointsRef.current) return
+        const targetAlpha = active ? 0.9 : 0
+        alphaRef.current += (targetAlpha - alphaRef.current) * 0.08
+
+        if (pointsMatRef.current) {
+            pointsMatRef.current.opacity = alphaRef.current
+            pointsMatRef.current.visible = alphaRef.current > 0.02
+        }
+        if (pumpMatRef.current) {
+            const targetEmissive = active ? 0.8 : 0.15
+            pumpMatRef.current.emissiveIntensity += (targetEmissive - pumpMatRef.current.emissiveIntensity) * 0.12
+            pumpMatRef.current.color.lerpColors(new Color('#1f2937'), new Color('#59d6ff'), alphaRef.current)
+            pumpMatRef.current.emissive.lerpColors(new Color('#111827'), new Color('#0ca7ff'), alphaRef.current)
+        }
+
+        if (!pointsRef.current || alphaRef.current < 0.02) return
         const arr = pointsRef.current.geometry.attributes.position.array
         for (let i = 0; i < PARTICLES; i++) {
             arr[i * 3 + 1] -= speeds.current[i] * delta * 2.4
@@ -41,16 +58,14 @@ export default function Irrigation({ active = false }) {
         <group position={[0, 0.1, -1]}>
             <mesh position={[0, 0.1, 0]} scale={[1.4, 0.2, 1.4]}>
                 <cylinderGeometry args={[0.1, 0.1, 0.2, 16]} />
-                <meshStandardMaterial color={active ? '#59d6ff' : '#1f2937'} emissive={active ? '#0ca7ff' : '#111827'} emissiveIntensity={active ? 0.8 : 0.15} roughness={0.4} metalness={0.2} />
+                <meshStandardMaterial ref={pumpMatRef} color={active ? '#59d6ff' : '#1f2937'} emissive={active ? '#0ca7ff' : '#111827'} emissiveIntensity={active ? 0.8 : 0.15} roughness={0.4} metalness={0.2} />
             </mesh>
-            {active && (
-                <points ref={pointsRef}>
-                    <bufferGeometry>
-                        <bufferAttribute attach="attributes-position" count={positions.length / 3} array={positions} itemSize={3} />
-                    </bufferGeometry>
-                    <pointsMaterial size={0.08} color={new Color('#8ddcff')} transparent opacity={0.9} depthWrite={false} />
-                </points>
-            )}
+            <points ref={pointsRef}>
+                <bufferGeometry>
+                    <bufferAttribute attach="attributes-position" count={positions.length / 3} array={positions} itemSize={3} />
+                </bufferGeometry>
+                <pointsMaterial ref={pointsMatRef} size={0.08} color={new Color('#8ddcff')} transparent opacity={alphaRef.current} depthWrite={false} />
+            </points>
         </group>
     )
 }

@@ -13,6 +13,7 @@ export default function App() {
   const location = useLocation()
   const { enabled, reducedMotion } = useMotionPreferences()
   const allowMotion = enabled && !reducedMotion
+  const isTwin = location.pathname.startsWith('/twin')
 
   useEffect(() => {
     // Ensure both farm profile and weather defaults exist on startup
@@ -35,6 +36,15 @@ export default function App() {
       }
     }
   }, [])
+  if(isTwin){
+    return (
+      <Routes location={location}>
+        <Route path="/twin" element={<DigitalTwin />} />
+        <Route path="*" element={<Navigate to="/twin" replace />} />
+      </Routes>
+    )
+  }
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
