@@ -10,8 +10,6 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "twin": "vite --open /twin"
-
-
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

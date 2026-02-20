@@ -4,6 +4,9 @@ import { useSearchParams } from "react-router-dom";
 
 import SensorBarsScene, { SensorDebugOverlay } from "../three/SensorBarsScene";
 import useAgroSmartLiveData from "../three/useAgroSmartLiveData";
+import useRecommendationData from "../hooks/useRecommendationData";
+import useMlValidation from "../hooks/useMlValidation";
+import HologramCard from "../components/ui/HologramCard";
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
@@ -24,12 +27,16 @@ export default function SensorTwinTest() {
     const { data, raw, connected, tick, lastUpdated, normalized, error } =
         useAgroSmartLiveData({ fastMode: true });
 
+    const recommendation = useRecommendationData();
+    const { mlResult } = useMlValidation(recommendation);
+
     const wetness = useMemo(() => computeWetness(raw.soilMoisture), [raw.soilMoisture]);
     const brightness = useMemo(() => computeBrightness(raw.lightLevel), [raw.lightLevel]);
 
     return (
         <div className="fixed inset-0 bg-[#05070a] text-slate-100">
             <LiveBadge connected={connected} tick={tick} lastUpdated={lastUpdated} />
+            <IntelligenceOverlay recommendation={recommendation} mlResult={mlResult} />
             <HookProbe raw={raw} tick={tick} lastUpdated={lastUpdated} error={error} />
 
             {debug && (
@@ -59,6 +66,55 @@ export default function SensorTwinTest() {
                     />
                 </Suspense>
             </motion.div>
+        </div>
+    );
+}
+
+function IntelligenceOverlay({ recommendation, mlResult }) {
+    const primaryCrop = recommendation?.recommendedCrop || recommendation?.bestCrop || "—";
+    const matchLevel = recommendation?.matchLevel || "Unknown";
+    const bestScore = typeof recommendation?.bestScore === "number" && !Number.isNaN(recommendation.bestScore)
+        ? recommendation.bestScore.toFixed(2)
+        : "--";
+    const reasons = Array.isArray(recommendation?.reasons) ? recommendation.reasons.filter(Boolean) : [];
+    const reason1 = reasons[0] || "No explanation yet";
+    const reason2 = reasons[1] || (reasons[0] ? "Collecting more data..." : "Waiting for AI input...");
+
+    const mlCrop = mlResult?.predictedCrop || mlResult?.crop || null;
+    const mlConfRaw = typeof mlResult?.confidence === "number" && !Number.isNaN(mlResult.confidence) ? mlResult.confidence : null;
+    const mlConf = mlConfRaw == null ? null : (mlConfRaw > 1 ? Math.min(mlConfRaw, 100) : Math.min(mlConfRaw * 100, 100));
+    const mlAvailable = !!(mlCrop && mlConf !== null);
+    const agrees = mlAvailable && primaryCrop !== "—" ? mlCrop?.toLowerCase?.() === primaryCrop.toLowerCase() : null;
+    const agreementLabel = !mlAvailable ? "ML: offline / not available" : agrees ? "agrees ✅" : "differs ⚠️";
+
+    return (
+        <div className="absolute left-4 top-16 z-30 w-[360px] max-w-[92vw]">
+            <HologramCard title="Intelligence" className="p-4">
+                <div className="space-y-1 text-sm text-slate-100">
+                    <div className="text-xs uppercase tracking-[0.18em] text-cyan-200">Primary Recommendation</div>
+                    <div className="text-lg font-semibold capitalize">{primaryCrop}</div>
+                    <div className="text-xs text-slate-300">Match: {matchLevel} · Score {bestScore}</div>
+                </div>
+                <div className="mt-3 space-y-1 text-sm text-slate-200">
+                    <div>1) {reason1}</div>
+                    <div>2) {reason2}</div>
+                </div>
+                <div className="mt-4 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-3 text-sm text-slate-100">
+                    <div className="flex items-center justify-between">
+                        <span className="font-semibold">ML validation</span>
+                        <span className="text-xs uppercase tracking-wide">{agreementLabel}</span>
+                    </div>
+                    {mlAvailable && (
+                        <div className="mt-1 text-xs text-slate-200">
+                            <div>Predicted: <span className="font-semibold capitalize">{mlCrop}</span></div>
+                            <div>Confidence: <span className="font-semibold">{Math.round(mlConf)}%</span></div>
+                        </div>
+                    )}
+                    {!mlAvailable && (
+                        <div className="mt-1 text-xs text-slate-300">ML: offline / not available</div>
+                    )}
+                </div>
+            </HologramCard>
         </div>
     );
 }

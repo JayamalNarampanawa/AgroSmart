@@ -40,8 +40,9 @@ export default function App() {
   if (isTwin) {
     return (
       <Routes location={location}>
-        <Route path="/twin" element={<DigitalTwin />} />
+        <Route path="/twin" element={<SensorTwinTest />} />
         <Route path="/twin-test" element={<SensorTwinTest />} />
+        <Route path="/twin-holo" element={<DigitalTwin />} />
         <Route path="*" element={<Navigate to="/twin" replace />} />
       </Routes>
     )
@@ -57,8 +58,9 @@ export default function App() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
       >
         <Routes location={location}>
-          <Route path="/twin" element={<DigitalTwin />} />
+          <Route path="/twin" element={<SensorTwinTest />} />
           <Route path="/twin-test" element={<SensorTwinTest />} />
+          <Route path="/twin-holo" element={<DigitalTwin />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/" element={<Navigate to="/twin" replace />} />
           <Route path="*" element={<Navigate to="/twin" replace />} />

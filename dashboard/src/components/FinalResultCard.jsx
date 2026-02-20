@@ -2,6 +2,7 @@ import React from 'react'
 import { soilWetnessPercent } from '../utils/soilMoisture'
 import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
 import { buildTips, simplifyReason } from '../utils/farmerText'
+import HologramCard from './ui/HologramCard'
 
 function computeRainTrend(history){
   if(!history || history.length < 4) return 'steady'
@@ -49,7 +50,7 @@ export default function FinalResultCard({ rec, mlResult, mlError, current, weath
   })
 
   return (
-    <div className="holo-panel rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
+    <HologramCard className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Final Result</div>

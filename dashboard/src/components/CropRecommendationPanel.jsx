@@ -1,5 +1,6 @@
 import React from 'react'
 import useRecommendationData from '../hooks/useRecommendationData'
+import HologramCard from './ui/HologramCard'
 
 export default function CropRecommendationPanel({ mlResult, mlError }){
   const rec = useRecommendationData()
@@ -30,7 +31,7 @@ export default function CropRecommendationPanel({ mlResult, mlError }){
   )
 
   return (
-    <div className="holo-panel rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
+    <HologramCard className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Recommendation</div>
@@ -95,6 +96,6 @@ export default function CropRecommendationPanel({ mlResult, mlError }){
         <div className="font-semibold">Inputs used</div>
         <pre className="text-xs bg-slate-950/70 border border-white/8 p-3 rounded-xl mt-2 overflow-auto">{JSON.stringify(rec.inputUsed, null, 2)}</pre>
       </div>
-    </div>
+    </HologramCard>
   )
 }

@@ -3,6 +3,7 @@ import WeatherTrendChart from './WeatherTrendChart'
 import WeatherForecastPanel from './WeatherForecastPanel'
 import { soilWetnessPercent } from '../utils/soilMoisture'
 import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
+import HologramCard from './ui/HologramCard'
 
 function formatUpdatedAt(ts){
   if(!ts) return 'Unknown'
@@ -42,7 +43,7 @@ export default function WeatherPanel({ weather, history, forecast, current }){
   }
 
   return (
-    <div className="holo-panel rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
+    <HologramCard className="p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Weather</div>
@@ -81,6 +82,6 @@ export default function WeatherPanel({ weather, history, forecast, current }){
       <div className="mt-4 text-sm text-slate-300">
         <span className="font-semibold">Action hint:</span> {actionHint}
       </div>
-    </div>
+    </HologramCard>
   )
 }

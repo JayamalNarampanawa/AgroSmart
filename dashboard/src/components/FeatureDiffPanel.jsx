@@ -1,10 +1,11 @@
 import React from 'react'
+import HologramCard from './ui/HologramCard'
 
 export default function FeatureDiffPanel({ diffs = {}, crop }){
   if(!diffs || Object.keys(diffs).length === 0) return null
 
   return (
-    <div className="holo-panel">
+    <HologramCard className="p-4">
       <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Comparison</div>
       <div className="font-semibold mb-3">Compared to Kaggle historical mean for <span className="capitalize">{crop}</span></div>
       <div className="grid gap-2 text-sm text-slate-200">
@@ -15,6 +16,6 @@ export default function FeatureDiffPanel({ diffs = {}, crop }){
           </div>
         ))}
       </div>
-    </div>
+    </HologramCard>
   )
 }
