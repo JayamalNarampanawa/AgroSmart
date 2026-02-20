@@ -258,6 +258,25 @@ export default function Dashboard(){
               </Card>
             </section>
           </AnimatedSection>
+
+          <AnimatedSection>
+            <section className="mt-12 flex justify-center">
+              <div className="glass-panel w-full max-w-4xl rounded-2xl border border-cyan-400/20 bg-black/40 px-6 py-8 text-center shadow-[0_0_20px_rgba(34,211,238,0.25)]">
+                <h2 className="text-2xl md:text-3xl font-semibold text-white">Explore AgroSmart 2.0</h2>
+                <p className="mt-3 text-sm md:text-base text-slate-300">
+                  Experience the next-generation AR-enhanced Digital Twin with advanced visualization and hybrid AI validation.
+                </p>
+                <div className="mt-6">
+                  <a
+                    href="https://agrosmart-dashboard.onrender.com/ar"
+                    className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-100 font-semibold shadow-[0_0_20px_rgba(34,211,238,0.25)] transition-all duration-300 hover:scale-[1.02] hover:border-cyan-400/70 hover:bg-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 focus:ring-offset-0"
+                  >
+                    Launch AgroSmart 2.0 AR
+                  </a>
+                </div>
+              </div>
+            </section>
+          </AnimatedSection>
           </main>
         </Scroll3D>
         <AnimatedSection>
