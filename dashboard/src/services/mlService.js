@@ -5,7 +5,10 @@ import { envConfig } from "../config/env";
 const BASE_URL = "https://agrosmart-ml-api.onrender.com";
 
 console.log("[AgroSmart] ML BASE (envConfig):", BASE_URL);
-console.log("[AgroSmart] ML BASE (vite):", import.meta.env.VITE_ML_API_BASE_URL);
+console.log(
+  "[AgroSmart] ML BASE (vite):",
+  import.meta.env.VITE_ML_API_BASE_URL,
+);
 
 export async function getMlPrediction(payload) {
   const url = `${BASE_URL.replace(/\/$/, "")}/predict`;
@@ -20,9 +23,12 @@ export async function getMlPrediction(payload) {
     let details = "";
     try {
       const err = await res.json();
-      if (err?.detail) details = `: ${typeof err.detail === "string" ? err.detail : JSON.stringify(err.detail)}`;
+      if (err?.detail)
+        details = `: ${typeof err.detail === "string" ? err.detail : JSON.stringify(err.detail)}`;
     } catch (e) {}
-    throw new Error(`ML API request failed with status ${res.status}${details}`);
+    throw new Error(
+      `ML API request failed with status ${res.status}${details}`,
+    );
   }
 
   const data = await res.json();
