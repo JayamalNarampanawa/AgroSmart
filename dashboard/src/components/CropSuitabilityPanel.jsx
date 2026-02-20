@@ -26,7 +26,7 @@ export default function CropSuitabilityPanel({ suitability }) {
     <HologramCard className="p-6">
       <div className="flex items-center justify-between">
         <div>
-      </HologramCard>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Suitability</div>
           <div className="text-lg font-semibold">Crop Suitability</div>
         </div>
         <div className="text-xs text-slate-400">Rule-based v1</div>
@@ -48,6 +48,6 @@ export default function CropSuitabilityPanel({ suitability }) {
         ))}
       </div>
       <div className="mt-4 text-xs text-slate-400">Scores are computed from historical patterns vs live sensor data (rule-based v1).</div>
-    </div >
+    </HologramCard>
   )
 }

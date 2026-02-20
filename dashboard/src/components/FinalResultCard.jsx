@@ -2,26 +2,25 @@ import React from 'react'
 import { soilWetnessPercent } from '../utils/soilMoisture'
 import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
 import { buildTips, simplifyReason } from '../utils/farmerText'
-import HologramCard from './ui/HologramCard'
 
-function computeRainTrend(history) {
-  if (!history || history.length < 4) return 'steady'
-  const last = history.slice(-3).reduce((a, b) => a + (b.rainfall || 0), 0) / 3
-  const prev = history.slice(-6, -3).reduce((a, b) => a + (b.rainfall || 0), 0) / 3
-  if (last - prev > 0.2) return 'rising'
-  if (prev - last > 0.2) return 'falling'
+function computeRainTrend(history){
+  if(!history || history.length < 4) return 'steady'
+  const last = history.slice(-3).reduce((a,b)=>a + (b.rainfall || 0), 0) / 3
+  const prev = history.slice(-6, -3).reduce((a,b)=>a + (b.rainfall || 0), 0) / 3
+  if(last - prev > 0.2) return 'rising'
+  if(prev - last > 0.2) return 'falling'
   return 'steady'
 }
 
-function badgeClass(matchLevel) {
-  if (matchLevel === 'Good') return 'bg-emerald-600 text-white'
-  if (matchLevel === 'Moderate') return 'bg-amber-500 text-white'
-  if (matchLevel === 'Poor') return 'bg-red-600 text-white'
+function badgeClass(matchLevel){
+  if(matchLevel === 'Good') return 'bg-emerald-600 text-white'
+  if(matchLevel === 'Moderate') return 'bg-amber-500 text-white'
+  if(matchLevel === 'Poor') return 'bg-red-600 text-white'
   return 'bg-slate-500 text-white'
 }
 
-export default function FinalResultCard({ rec, mlResult, mlError, current, weather, weatherHistory }) {
-  if (!rec) return null
+export default function FinalResultCard({ rec, mlResult, mlError, current, weather, weatherHistory }){
+  if(!rec) return null
   const soilConfig = useSoilMoistureSettings()
   const wetnessPercent = soilWetnessPercent(current?.soilMoisture, soilConfig.wetMin, soilConfig.dryMax)
   const rainTrend = computeRainTrend(weatherHistory)
@@ -34,11 +33,11 @@ export default function FinalResultCard({ rec, mlResult, mlError, current, weath
   const agreement = mlAvailable ? (mlPredicted === primaryCrop ? 'Agrees' : 'Differs') : 'Unavailable'
 
   let decisionStatus = 'Primary Preferred'
-  if (!mlAvailable) decisionStatus = 'Primary Only'
-  else if (mlPredicted === primaryCrop) decisionStatus = 'Confirmed'
+  if(!mlAvailable) decisionStatus = 'Primary Only'
+  else if(mlPredicted === primaryCrop) decisionStatus = 'Confirmed'
 
   const reasons = (Array.isArray(rec?.reasons) ? rec.reasons : [])
-    .map(r => simplifyReason(r, primaryCrop))
+    .map(r=>simplifyReason(r, primaryCrop))
     .filter(Boolean)
 
   const tips = buildTips({
@@ -50,7 +49,7 @@ export default function FinalResultCard({ rec, mlResult, mlError, current, weath
   })
 
   return (
-    <HologramCard className="p-6">
+    <div className="holo-panel rounded-2xl border border-white/8 bg-gradient-to-br from-slate-950/70 via-slate-950/40 to-slate-900/50 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Final Result</div>
@@ -79,7 +78,7 @@ export default function FinalResultCard({ rec, mlResult, mlError, current, weath
             <div className="mt-2 text-xs text-slate-400">No explanation available.</div>
           ) : (
             <ul className="mt-3 space-y-2 text-sm text-slate-200">
-              {reasons.map((r, i) => (
+              {reasons.map((r,i)=>(
                 <li key={i} className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                   <span>{r}</span>
@@ -95,7 +94,7 @@ export default function FinalResultCard({ rec, mlResult, mlError, current, weath
             <div className="mt-2 text-xs text-slate-400">No tips available.</div>
           ) : (
             <ul className="mt-3 space-y-2 text-sm text-slate-200">
-              {tips.map((t, i) => (
+              {tips.map((t,i)=>(
                 <li key={i} className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-sky-400"></span>
                   <span>{t}</span>
