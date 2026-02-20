@@ -43,7 +43,7 @@ export default function App() {
         <Route path="/twin" element={<SensorTwinTest />} />
         <Route path="/twin-test" element={<SensorTwinTest />} />
         <Route path="/twin-holo" element={<DigitalTwin />} />
-        <Route path="*" element={<Navigate to="/twin" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     )
   }
@@ -62,8 +62,8 @@ export default function App() {
           <Route path="/twin-test" element={<SensorTwinTest />} />
           <Route path="/twin-holo" element={<DigitalTwin />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/" element={<Navigate to="/twin" replace />} />
-          <Route path="*" element={<Navigate to="/twin" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
