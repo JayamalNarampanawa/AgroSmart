@@ -9,10 +9,11 @@ import Irrigation from './Irrigation'
 import CinematicCamera from './CinematicCamera'
 import HologramGrid from './HologramGrid'
 import { calibration } from './calibration'
+import TwinInsightPanel from './TwinInsightPanel'
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
 
-export default function FarmScene({ data = {}, normalized = {}, irrigationOn = false, tick = 0, debugMode = false, labelsEnabled = false }) {
+export default function FarmScene({ data = {}, normalized = {}, irrigationOn = false, tick = 0, debugMode = false, labelsEnabled = false, recommendation = null, mlResult = null }) {
     const {
         temperature = 24,
         humidity = 60,
@@ -30,6 +31,7 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
     const tempFactor = clamp01((temperature - 10) / 24)
     const humidityFactor = clamp01(humidity / 100)
     const lightFactor = Math.max(0.1, brightness)
+    const irrigationActive = irrigationOn || irrigationStatus === 1 || irrigationStatus === true || String(irrigationStatus).toLowerCase() === 'on'
     const targetBackground = useMemo(() => new Color('#05070d').lerp(new Color('#0a1628'), humidityFactor * 0.35), [humidityFactor])
     const targetFog = useMemo(() => new Color('#060910').lerp(new Color('#0b1420'), 0.4 + humidityFactor * 0.25), [humidityFactor])
     const targetAmbient = useMemo(() => new Color('#0f3450').lerp(new Color('#543322'), tempFactor), [tempFactor])
@@ -137,6 +139,10 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
             <Sparkles count={140} speed={0.65} opacity={0.55} color="#67e8f9" size={2.8} scale={[16, 6, 16]} />
             <Stars radius={60} depth={20} count={1600} factor={3} fade />
             <Environment preset="city" />
+
+            <Float speed={0.6} rotationIntensity={0.02} floatIntensity={0.14}>
+                <TwinInsightPanel recommendation={recommendation} ml={mlResult} position={[0, 2.6, 0]} />
+            </Float>
 
             <EffectComposer>
                 <Outline

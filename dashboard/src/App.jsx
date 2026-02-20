@@ -6,7 +6,8 @@ import ensureFarmProfileDefaults from './utils/ensureFarmProfileDefaults'
 import ensureWeatherDefaults from './utils/ensureWeatherDefaults'
 import updateRainfallFromApi from './utils/updateRainfallFromApi'
 import useMotionPreferences from './hooks/useMotionPreferences.jsx'
-import DigitalTwin from "./pages/DigitalTwin";
+import DigitalTwin from './pages/DigitalTwin'
+import SensorTwinTest from './pages/SensorTwinTest'
 
 
 export default function App() {
@@ -39,7 +40,9 @@ export default function App() {
   if (isTwin) {
     return (
       <Routes location={location}>
-        <Route path="/twin" element={<DigitalTwin />} />
+        <Route path="/twin" element={<SensorTwinTest />} />
+        <Route path="/twin-test" element={<SensorTwinTest />} />
+        <Route path="/twin-holo" element={<DigitalTwin />} />
         <Route path="*" element={<Navigate to="/twin" replace />} />
       </Routes>
     )
@@ -55,7 +58,9 @@ export default function App() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
       >
         <Routes location={location}>
-          <Route path="/twin" element={<DigitalTwin />} />
+          <Route path="/twin" element={<SensorTwinTest />} />
+          <Route path="/twin-test" element={<SensorTwinTest />} />
+          <Route path="/twin-holo" element={<DigitalTwin />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/" element={<Navigate to="/twin" replace />} />
           <Route path="*" element={<Navigate to="/twin" replace />} />

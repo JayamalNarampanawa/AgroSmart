@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import FarmScene from '../three/FarmScene'
 import useAgroSmartLiveData from '../three/useAgroSmartLiveData'
+import useRecommendationData from '../hooks/useRecommendationData'
+import useMlValidation from '../hooks/useMlValidation'
 
 const formatValue = (v, suffix = '') => {
   if (v === undefined || v === null || Number.isNaN(Number(v))) return '--'
@@ -13,6 +15,8 @@ const formatValue = (v, suffix = '') => {
 
 export default function DigitalTwin() {
   const { data, raw, normalized, states, irrigationOn, connected, error, tick, calibration } = useAgroSmartLiveData()
+  const recommendation = useRecommendationData()
+  const { mlResult } = useMlValidation(recommendation)
   const navigate = useNavigate()
   const [params] = useSearchParams()
 
@@ -56,7 +60,16 @@ export default function DigitalTwin() {
         gl={{ antialias: true, powerPreference: 'high-performance' }}
       >
         <Suspense fallback={null}>
-          <FarmScene data={data} normalized={normalized} irrigationOn={irrigationOn} tick={tick} debugMode={debugMode} labelsEnabled={labelsEnabled} />
+          <FarmScene
+            data={data}
+            normalized={normalized}
+            irrigationOn={irrigationOn}
+            tick={tick}
+            debugMode={debugMode}
+            labelsEnabled={labelsEnabled}
+            recommendation={recommendation}
+            mlResult={mlResult}
+          />
         </Suspense>
       </Canvas>
 

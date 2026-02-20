@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 import { getAnalytics } from "firebase/analytics";
 
@@ -10,16 +10,16 @@ import { getAnalytics } from "firebase/analytics";
  * - Keep .env ONLY for Weather API / ML API base URL
  */
 const firebaseConfig = {
-   apiKey: "AIzaSyDTFHx8jKrkeXCwtGeBDQV29phYd2e_UdM",
+  apiKey: "AIzaSyDTFHx8jKrkeXCwtGeBDQV29phYd2e_UdM",
   authDomain: "agro-smart-2026.firebaseapp.com",
   databaseURL: "https://agro-smart-2026-default-rtdb.firebaseio.com",
   projectId: "agro-smart-2026",
   storageBucket: "agro-smart-2026.firebasestorage.app",
   messagingSenderId: "668916133955",
-  appId: "1:668916133955:web:2157ff3b8604a36e6e24f6"
+  appId: "1:668916133955:web:2157ff3b8604a36e6e24f6",
 };
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
 // Analytics only works in browser contexts (won't crash on SSR/build)
 let analytics = null;
@@ -31,10 +31,29 @@ try {
 
 // Debug
 try {
-  console.log("[AgroSmart] Firebase initialized. databaseURL=", firebaseConfig.databaseURL);
+  console.log(
+    "[AgroSmart] Firebase initialized. databaseURL=",
+    firebaseConfig.databaseURL,
+  );
 } catch (e) {}
 
 export const auth = getAuth(app);
 export const database = getDatabase(app);
+
+export const authReady = new Promise((resolve) => {
+  const unsub = onAuthStateChanged(auth, async (user) => {
+    try {
+      if (!user) {
+        await signInAnonymously(auth);
+      }
+    } catch (e) {
+      console.error("[Auth] anonymous sign-in failed:", e);
+    } finally {
+      unsub();
+      resolve(true);
+    }
+  });
+});
+
 export { app, analytics };
 export default app;
