@@ -7,6 +7,9 @@ import useAgroSmartLiveData from "../three/useAgroSmartLiveData";
 import useRecommendationData from "../hooks/useRecommendationData";
 import useMlValidation from "../hooks/useMlValidation";
 import HologramCard from "../components/ui/HologramCard";
+import { cropIdeals } from "../data/cropIdeals";
+import { extractKeyFeatures } from "../utils/reasonToFeature";
+import { generateSuggestions } from "../utils/generateSuggestions";
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
@@ -29,6 +32,7 @@ export default function SensorTwinTest() {
 
     const recommendation = useRecommendationData();
     const { mlResult } = useMlValidation(recommendation);
+    const keyFeatures = useMemo(() => extractKeyFeatures(recommendation?.reasons || []), [recommendation?.reasons]);
 
     const wetness = useMemo(() => computeWetness(raw.soilMoisture), [raw.soilMoisture]);
     const brightness = useMemo(() => computeBrightness(raw.lightLevel), [raw.lightLevel]);
@@ -36,7 +40,7 @@ export default function SensorTwinTest() {
     return (
         <div className="fixed inset-0 bg-[#05070a] text-slate-100">
             <LiveBadge connected={connected} tick={tick} lastUpdated={lastUpdated} />
-            <IntelligenceOverlay recommendation={recommendation} mlResult={mlResult} />
+            <IntelligenceOverlay recommendation={recommendation} mlResult={mlResult} current={raw} keyFeatures={keyFeatures} />
             <HookProbe raw={raw} tick={tick} lastUpdated={lastUpdated} error={error} />
 
             {debug && (
@@ -63,6 +67,7 @@ export default function SensorTwinTest() {
                         raw={raw}
                         connected={connected}
                         tick={tick}
+                        recommendation={recommendation}
                     />
                 </Suspense>
             </motion.div>
@@ -70,7 +75,7 @@ export default function SensorTwinTest() {
     );
 }
 
-function IntelligenceOverlay({ recommendation, mlResult }) {
+function IntelligenceOverlay({ recommendation, mlResult, current, keyFeatures }) {
     const primaryCrop = recommendation?.recommendedCrop || recommendation?.bestCrop || "—";
     const matchLevel = recommendation?.matchLevel || "Unknown";
     const bestScore = typeof recommendation?.bestScore === "number" && !Number.isNaN(recommendation.bestScore)
@@ -86,6 +91,19 @@ function IntelligenceOverlay({ recommendation, mlResult }) {
     const mlAvailable = !!(mlCrop && mlConf !== null);
     const agrees = mlAvailable && primaryCrop !== "—" ? mlCrop?.toLowerCase?.() === primaryCrop.toLowerCase() : null;
     const agreementLabel = !mlAvailable ? "ML: offline / not available" : agrees ? "agrees ✅" : "differs ⚠️";
+
+    const cropKey = primaryCrop?.toLowerCase?.() || '';
+    const ideal = cropIdeals[cropKey] || null;
+    const currentForSuggestions = {
+        temperature: current?.temperature,
+        humidity: current?.humidity,
+        rainfall: recommendation?.inputUsed?.rainfall ?? null,
+        ph: recommendation?.inputUsed?.ph ?? null,
+    };
+    const suggestions = useMemo(
+        () => generateSuggestions({ current: currentForSuggestions, ideal: ideal || {}, keyFeatures }),
+        [currentForSuggestions.temperature, currentForSuggestions.humidity, currentForSuggestions.rainfall, currentForSuggestions.ph, ideal, keyFeatures]
+    );
 
     return (
         <div className="absolute left-4 top-16 z-30 w-[360px] max-w-[92vw]">
@@ -113,6 +131,15 @@ function IntelligenceOverlay({ recommendation, mlResult }) {
                     {!mlAvailable && (
                         <div className="mt-1 text-xs text-slate-300">ML: offline / not available</div>
                     )}
+                </div>
+
+                <div className="mt-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-cyan-200">Recommended Actions</div>
+                    <ul className="mt-2 space-y-1 text-sm text-slate-100">
+                        {Array.isArray(suggestions) && suggestions.length > 0 ? suggestions.map((s, idx) => (
+                            <li key={idx} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2">{s}</li>
+                        )) : <li className="text-xs text-slate-400">No actions available yet.</li>}
+                    </ul>
                 </div>
             </HologramCard>
         </div>

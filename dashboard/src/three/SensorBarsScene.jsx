@@ -5,6 +5,8 @@ import { ContactShadows, Environment, Float, Html, OrbitControls, Sparkles } fro
 import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing'
 import HoloBar from './HoloBar'
 import HologramGrid from './HologramGrid'
+import { cropIdeals } from '../data/cropIdeals'
+import { extractKeyFeatures } from '../utils/reasonToFeature'
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
 
@@ -16,10 +18,14 @@ function computeBrightness(raw) {
     return 1 - clamp01((raw - 10) / (4095 - 10))
 }
 
-export default function SensorBarsScene({ data, raw, connected, tick }) {
+export default function SensorBarsScene({ data, raw, connected, tick, recommendation }) {
     const wetness = computeWetness(raw.soilMoisture)
     const brightness = computeBrightness(raw.lightLevel)
     const irrigationOn = !!raw.irrigationStatus
+
+    const keyFeatures = useMemo(() => extractKeyFeatures(recommendation?.reasons || []), [recommendation?.reasons])
+    const cropKey = (recommendation?.recommendedCrop || recommendation?.bestCrop || recommendation?.crop || '').toLowerCase()
+    const ideal = cropIdeals[cropKey] || null
 
     const bars = useMemo(() => ([
         {
@@ -29,6 +35,10 @@ export default function SensorBarsScene({ data, raw, connected, tick }) {
             normalizedValue: clamp01((raw.temperature ?? 0) / 50),
             color: '#f97316',
             position: [-4, 0, 0],
+            feature: 'temperature',
+            idealValue: ideal?.temperature ?? null,
+            rangeMin: 0,
+            rangeMax: 50,
         },
         {
             key: 'humidity',
@@ -37,6 +47,10 @@ export default function SensorBarsScene({ data, raw, connected, tick }) {
             normalizedValue: clamp01((raw.humidity ?? 0) / 100),
             color: '#38bdf8',
             position: [-2, 0, 0],
+            feature: 'humidity',
+            idealValue: ideal?.humidity ?? null,
+            rangeMin: 0,
+            rangeMax: 100,
         },
         {
             key: 'soil',
@@ -45,6 +59,7 @@ export default function SensorBarsScene({ data, raw, connected, tick }) {
             normalizedValue: wetness,
             color: '#22c55e',
             position: [0, 0, 0],
+            feature: 'soilMoisture',
         },
         {
             key: 'light',
@@ -53,6 +68,7 @@ export default function SensorBarsScene({ data, raw, connected, tick }) {
             normalizedValue: brightness,
             color: '#a5f3fc',
             position: [2, 0, 0],
+            feature: 'lightLevel',
         },
         {
             key: 'irrigation',
@@ -61,8 +77,9 @@ export default function SensorBarsScene({ data, raw, connected, tick }) {
             normalizedValue: irrigationOn ? 1 : 0.15,
             color: irrigationOn ? '#22d3ee' : '#ef4444',
             position: [4, 0, 0],
+            feature: 'irrigation',
         },
-    ]), [data.temperature, data.humidity, raw.soilMoisture, wetness, raw.lightLevel, brightness, irrigationOn, tick])
+    ]), [data.temperature, data.humidity, raw.soilMoisture, wetness, raw.lightLevel, brightness, irrigationOn, tick, ideal])
 
     useEffect(() => {
         // Trace incoming values to ensure the scene re-renders with new data each tick.
@@ -94,8 +111,16 @@ export default function SensorBarsScene({ data, raw, connected, tick }) {
             <ContactShadows position={[0, 0, 0]} opacity={0.35} scale={16} blur={2.6} far={8} resolution={1024} />
 
             <Float speed={0.6} rotationIntensity={0.08} floatIntensity={0.18}>
-                {bars.map(({ key: barKey, ...rest }) => (
-                    <HoloBar key={`${barKey}-${tick}`} tick={tick} {...rest} />
+                {bars.map(({ key: barKey, feature, idealValue, rangeMin, rangeMax, ...rest }) => (
+                    <HoloBar
+                        key={`${barKey}-${tick}`}
+                        tick={tick}
+                        isKey={keyFeatures.includes(feature)}
+                        idealValue={idealValue}
+                        rangeMin={rangeMin}
+                        rangeMax={rangeMax}
+                        {...rest}
+                    />
                 ))}
             </Float>
 
