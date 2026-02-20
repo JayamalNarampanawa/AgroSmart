@@ -32,8 +32,8 @@ export default function CropSuitabilityPanel({ suitability }) {
         <div className="text-xs text-slate-400">Rule-based v1</div>
       </div>
       <div className="mt-5 space-y-3">
-        {entries.map(e=> (
-          <div key={e.key} className={`p-4 rounded-xl border ${top.key===e.key ? 'border-emerald-400/40 bg-emerald-500/10' : 'border-white/8 bg-white/3'}`}>
+        {entries.map(e => (
+          <div key={e.key} className={`p-4 rounded-xl border ${top.key === e.key ? 'border-emerald-400/40 bg-emerald-500/10' : 'border-white/8 bg-white/3'}`}>
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-medium capitalize">{e.key}</div>
               <div className="text-sm font-semibold">{e.score ?? 0}%</div>
