@@ -9,6 +9,13 @@ import useMotionPreferences from './hooks/useMotionPreferences.jsx'
 import DigitalTwin from './pages/DigitalTwin'
 import SensorTwinTest from './pages/SensorTwinTest'
 
+const ExternalRedirect = ({ to }) => {
+  useEffect(() => {
+    if (to) window.location.href = to
+  }, [to])
+  return null
+}
+
 
 export default function App() {
   const location = useLocation()
@@ -43,6 +50,7 @@ export default function App() {
         <Route path="/twin" element={<SensorTwinTest />} />
         <Route path="/twin-test" element={<SensorTwinTest />} />
         <Route path="/twin-holo" element={<DigitalTwin />} />
+        <Route path="/ar" element={<ExternalRedirect to="https://agrosmart-dashboard.onrender.com/ar" />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     )
@@ -62,6 +70,7 @@ export default function App() {
           <Route path="/twin-test" element={<SensorTwinTest />} />
           <Route path="/twin-holo" element={<DigitalTwin />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/ar" element={<ExternalRedirect to="https://agrosmart-dashboard.onrender.com/ar" />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
