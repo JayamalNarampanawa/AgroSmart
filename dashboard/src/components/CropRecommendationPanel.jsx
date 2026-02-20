@@ -2,13 +2,13 @@ import React from 'react'
 import useRecommendationData from '../hooks/useRecommendationData'
 import HologramCard from './ui/HologramCard'
 
-export default function CropRecommendationPanel({ mlResult, mlError }){
+export default function CropRecommendationPanel({ mlResult, mlError }) {
   const rec = useRecommendationData()
 
   const best = rec?.recommendedCrop
   const top3 = Array.isArray(rec?.top3)
     ? rec.top3
-    : Object.entries(rec?.scores||{}).map(([c,s])=>({crop:c,score:s})).sort((a,b)=>a.score-b.score).slice(0,3)
+    : Object.entries(rec?.scores || {}).map(([c, s]) => ({ crop: c, score: s })).sort((a, b) => a.score - b.score).slice(0, 3)
   const matchLevel = rec?.matchLevel || "Unknown"
   const reasons = Array.isArray(rec?.reasons) ? rec.reasons : []
   const badgeText = matchLevel === "Unknown" ? "Unknown" : `${matchLevel} Match`
@@ -26,7 +26,7 @@ export default function CropRecommendationPanel({ mlResult, mlError }){
   const mlBadgeText = mlValidated ? "Validated by ML" : "ML result differs - review recommended"
   const confidencePct = mlReady ? (mlResult.confidence * 100).toFixed(2) : null
 
-  if(!rec) return (
+  if (!rec) return (
     <div className="text-slate-400">No recommendation yet</div>
   )
 
@@ -51,7 +51,7 @@ export default function CropRecommendationPanel({ mlResult, mlError }){
             <div className="mt-2 text-sm text-slate-400">No explanation available.</div>
           ) : (
             <ul className="mt-3 space-y-2 text-sm text-slate-200">
-              {reasons.map((r,i)=>(
+              {reasons.map((r, i) => (
                 <li key={i} className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                   <span>{r}</span>
@@ -63,10 +63,10 @@ export default function CropRecommendationPanel({ mlResult, mlError }){
         <div className="rounded-xl border border-white/8 bg-white/3 p-4">
           <div className="text-xs uppercase tracking-widest text-slate-400">Top 3</div>
           <ul className="mt-3 space-y-2 text-sm">
-            {top3.map((t,i)=>(
+            {top3.map((t, i) => (
               <li key={i} className="flex items-center justify-between capitalize">
-                <span>{i+1}. {t.crop}</span>
-                <span className="text-slate-300">{t.score === null ? 'N/A' : String(Math.round(t.score * 100)/100)}</span>
+                <span>{i + 1}. {t.crop}</span>
+                <span className="text-slate-300">{t.score === null ? 'N/A' : String(Math.round(t.score * 100) / 100)}</span>
               </li>
             ))}
           </ul>

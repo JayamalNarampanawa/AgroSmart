@@ -1,25 +1,25 @@
 import React from 'react'
 import HologramCard from './ui/HologramCard'
 
-function Progress({value}){
+function Progress({ value }) {
   return (
     <div className="holo-progress w-full rounded-full h-2 overflow-hidden">
-      <div style={{width: `${value}%`}} className="holo-progress-bar" />
+      <div style={{ width: `${value}%` }} className="holo-progress-bar" />
     </div>
   )
 }
 
-export default function CropSuitabilityPanel({ suitability }){
-  if(!suitability) return (
+export default function CropSuitabilityPanel({ suitability }) {
+  if (!suitability) return (
     <HologramCard className="p-4">Waiting for AI suitability results...</HologramCard>
   )
 
   const breakdown = suitability?.breakdown ?? null
   const totals = suitability?.totals ?? (suitability || null)
 
-  const cropKeys = ['kidneybeans','mungbean','chickpea']
-  const entries = cropKeys.map(k=>({ key:k, score: totals?.[k] ?? 0, detail: breakdown?.[k] ?? null }))
-  entries.sort((a,b)=>b.score - a.score)
+  const cropKeys = ['kidneybeans', 'mungbean', 'chickpea']
+  const entries = cropKeys.map(k => ({ key: k, score: totals?.[k] ?? 0, detail: breakdown?.[k] ?? null }))
+  entries.sort((a, b) => b.score - a.score)
   const top = entries[0]
 
   return (
@@ -48,6 +48,6 @@ export default function CropSuitabilityPanel({ suitability }){
         ))}
       </div>
       <div className="mt-4 text-xs text-slate-400">Scores are computed from historical patterns vs live sensor data (rule-based v1).</div>
-    </div>
+    </div >
   )
 }
