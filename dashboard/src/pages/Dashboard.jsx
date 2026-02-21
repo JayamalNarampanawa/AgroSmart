@@ -68,20 +68,6 @@ export default function Dashboard() {
             {showLoading && <LoadingScreen message={'Connecting to sensors...'} />}
           </AnimatePresence>
           <Navbar />
-          <div className="fixed right-4 top-20 z-40 flex items-center gap-3">
-            <Link
-              to="/twin"
-              className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-all duration-200 hover:scale-[1.02] hover:border-cyan-300/80 hover:bg-cyan-500/20"
-            >
-              Go to Twin
-            </Link>
-            <Link
-              to="/ar"
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.25)] transition-all duration-200 hover:scale-[1.02] hover:border-emerald-300/80 hover:bg-emerald-500/20"
-            >
-              Enter AR
-            </Link>
-          </div>
           <Scroll3D>
             <main className="mt-4 space-y-8">
               <NavSectionBar
@@ -93,6 +79,50 @@ export default function Dashboard() {
                   { id: 'analytics', label: 'Analytics' }
                 ]}
               />
+              <AnimatedSection>
+                <section className="relative overflow-hidden rounded-2xl border border-cyan-400/25 bg-slate-950/70 p-6 shadow-[0_0_28px_rgba(34,211,238,0.25)]">
+                  <div className="pointer-events-none absolute inset-0 opacity-70" style={{ background: 'radial-gradient(120% 120% at 20% 20%, rgba(34,211,238,0.15), transparent), radial-gradient(120% 120% at 80% 0%, rgba(52,211,153,0.12), transparent)' }}></div>
+                  <div className="relative grid gap-6 md:grid-cols-[1.5fr_auto] md:items-center">
+                    <div className="space-y-3 max-w-3xl">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.25)]">
+                        Next-Gen Twin
+                        <span className="h-1 w-6 rounded-full bg-cyan-300/70"></span>
+                      </div>
+                      <h2 className="text-3xl md:text-4xl font-bold text-white drop-shadow-[0_4px_12px_rgba(34,211,238,0.35)]">
+                        AgroSmart 2.0 Digital Twin & AR
+                      </h2>
+                      <p className="text-sm md:text-base text-slate-200/90 leading-relaxed">
+                        Launch the immersive warehouse twin with embedded AR preview. Navigate live sensors, pump status, and field overlays—all in one flow.
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-[11px] text-cyan-100/80">
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Live IoT stream</span>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Pump + soil overlays</span>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">AR warehouse preview</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-3">
+                      <div className="flex flex-wrap gap-3">
+                        <Link
+                          to="/twin"
+                          className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/70 bg-cyan-500/20 px-5 py-3 text-sm font-semibold text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.35)] transition-all duration-200 hover:scale-[1.03] hover:border-cyan-200/80 hover:bg-cyan-400/25"
+                        >
+                          Launch AgroSmart 2.0
+                        </Link>
+                        <Link
+                          to="/ar"
+                          className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/60 bg-emerald-500/15 px-5 py-3 text-sm font-semibold text-emerald-50 shadow-[0_0_20px_rgba(52,211,153,0.3)] transition-all duration-200 hover:scale-[1.03] hover:border-emerald-200/80 hover:bg-emerald-400/20"
+                        >
+                          Enter AR Mode
+                        </Link>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-cyan-100/70">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Seamless flow: Dashboard → Twin → AR</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </AnimatedSection>
               {current?.timestamp && (Date.now() - current.timestamp > 10 * 60 * 1000) && (
                 <AnimatedSection>
                   <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-400/20 text-amber-100">
@@ -271,25 +301,6 @@ export default function Dashboard() {
                       </div>
                     </details>
                   </Card>
-                </section>
-              </AnimatedSection>
-
-              <AnimatedSection>
-                <section className="mt-12 flex justify-center">
-                  <div className="glass-panel w-full max-w-4xl rounded-2xl border border-cyan-400/20 bg-black/40 px-6 py-8 text-center shadow-[0_0_20px_rgba(34,211,238,0.25)]">
-                    <h2 className="text-2xl md:text-3xl font-semibold text-white">Explore AgroSmart 2.0</h2>
-                    <p className="mt-3 text-sm md:text-base text-slate-300">
-                      Experience the next-generation AR-enhanced Digital Twin with advanced visualization and hybrid AI validation.
-                    </p>
-                    <div className="mt-6">
-                      <a
-                        href="https://agrosmart-dashboard.onrender.com/ar"
-                        className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-100 font-semibold shadow-[0_0_20px_rgba(34,211,238,0.25)] transition-all duration-300 hover:scale-[1.02] hover:border-cyan-400/70 hover:bg-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-400/60 focus:ring-offset-0"
-                      >
-                        Launch AgroSmart 2.0 AR
-                      </a>
-                    </div>
-                  </div>
                 </section>
               </AnimatedSection>
             </main>
