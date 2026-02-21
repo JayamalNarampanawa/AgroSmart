@@ -6,7 +6,7 @@ import StatusPill from './ui/StatusPill'
 import AgroOrb3D from './hero/AgroOrb3D'
 // Navbar no longer uses Firebase Auth (public dashboard)
 
-export default function Navbar(){
+export default function Navbar() {
   return (
     <motion.header
       className="sticky top-4 z-40"

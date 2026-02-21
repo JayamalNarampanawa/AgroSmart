@@ -108,12 +108,6 @@ export default function Dashboard() {
                         >
                           Launch AgroSmart 2.0
                         </Link>
-                        <Link
-                          to="/ar"
-                          className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/60 bg-emerald-500/15 px-5 py-3 text-sm font-semibold text-emerald-50 shadow-[0_0_20px_rgba(52,211,153,0.3)] transition-all duration-200 hover:scale-[1.03] hover:border-emerald-200/80 hover:bg-emerald-400/20"
-                        >
-                          Enter AR Mode
-                        </Link>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-cyan-100/70">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
