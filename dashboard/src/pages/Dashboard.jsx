@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
+import { Link } from 'react-router-dom'
 import SensorCard from '../components/SensorCard'
 import ChartsPanel from '../components/ChartsPanel'
 import InsightsPanel from '../components/InsightsPanel'
@@ -67,6 +68,14 @@ export default function Dashboard() {
             {showLoading && <LoadingScreen message={'Connecting to sensors...'} />}
           </AnimatePresence>
           <Navbar />
+          <div className="fixed right-4 top-20 z-40">
+            <Link
+              to="/twin"
+              className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-all duration-200 hover:scale-[1.02] hover:border-cyan-300/80 hover:bg-cyan-500/20"
+            >
+              Go to Twin
+            </Link>
+          </div>
           <Scroll3D>
             <main className="mt-4 space-y-8">
               <NavSectionBar

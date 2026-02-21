@@ -6,12 +6,20 @@ import ensureFarmProfileDefaults from './utils/ensureFarmProfileDefaults'
 import ensureWeatherDefaults from './utils/ensureWeatherDefaults'
 import updateRainfallFromApi from './utils/updateRainfallFromApi'
 import useMotionPreferences from './hooks/useMotionPreferences.jsx'
-import DigitalTwin from './pages/DigitalTwin'
 import SensorTwinTest from './pages/SensorTwinTest'
+import ArView from './pages/ArView'
 
 const ExternalRedirect = ({ to }) => {
   useEffect(() => {
-    if (to) window.location.href = to
+    if (!to) return
+    const normalize = (url) => url.replace(/\/+$/, '')
+    if (typeof window !== 'undefined') {
+      const current = normalize(window.location.href)
+      const target = normalize(to)
+      // Avoid redirect loop when already at target (with or without trailing slash)
+      if (current === target) return
+      window.location.replace(to)
+    }
   }, [to])
   return null
 }
@@ -19,6 +27,7 @@ const ExternalRedirect = ({ to }) => {
 
 export default function App() {
   const location = useLocation()
+  const defaultHome = '/dashboard'
   const { enabled, reducedMotion } = useMotionPreferences()
   const allowMotion = enabled && !reducedMotion
   const isTwin = location.pathname.startsWith('/twin')
@@ -49,9 +58,8 @@ export default function App() {
       <Routes location={location}>
         <Route path="/twin" element={<SensorTwinTest />} />
         <Route path="/twin-test" element={<SensorTwinTest />} />
-        <Route path="/twin-holo" element={<DigitalTwin />} />
-        <Route path="/ar" element={<ExternalRedirect to="https://agrosmart-dashboard.onrender.com/ar" />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/ar" element={<ArView />} />
+        <Route path="*" element={<Navigate to="/twin" replace />} />
       </Routes>
     )
   }
@@ -68,11 +76,10 @@ export default function App() {
         <Routes location={location}>
           <Route path="/twin" element={<SensorTwinTest />} />
           <Route path="/twin-test" element={<SensorTwinTest />} />
-          <Route path="/twin-holo" element={<DigitalTwin />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/ar" element={<ExternalRedirect to="https://agrosmart-dashboard.onrender.com/ar" />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/ar" element={<ArView />} />
+          <Route path="/" element={<Navigate to={defaultHome} replace />} />
+          <Route path="*" element={<Navigate to={defaultHome} replace />} />
         </Routes>
       </motion.div>
     </AnimatePresence>

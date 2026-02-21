@@ -1,12 +1,15 @@
 import React, { Suspense, useMemo } from "react";
 import { motion } from "framer-motion";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 
 import SensorBarsScene, { SensorDebugOverlay } from "../three/SensorBarsScene";
 import useAgroSmartLiveData from "../three/useAgroSmartLiveData";
 import useRecommendationData from "../hooks/useRecommendationData";
 import useMlValidation from "../hooks/useMlValidation";
 import HologramCard from "../components/ui/HologramCard";
+import WarehouseScene from "../components/warehouse/WarehouseScene";
 import { cropIdeals } from "../data/cropIdeals";
 import { extractKeyFeatures } from "../utils/reasonToFeature";
 import { generateSuggestions } from "../utils/generateSuggestions";
@@ -41,8 +44,6 @@ export default function SensorTwinTest() {
         <div className="fixed inset-0 bg-[#05070a] text-slate-100">
             <LiveBadge connected={connected} tick={tick} lastUpdated={lastUpdated} />
             <IntelligenceOverlay recommendation={recommendation} mlResult={mlResult} current={raw} keyFeatures={keyFeatures} />
-            <HookProbe raw={raw} tick={tick} lastUpdated={lastUpdated} error={error} />
-
             {debug && (
                 <SensorDebugOverlay
                     connected={connected}
@@ -71,6 +72,46 @@ export default function SensorTwinTest() {
                     />
                 </Suspense>
             </motion.div>
+
+            {/* Embedded AR prototype preview */}
+            <div className="absolute right-4 top-16 z-30 w-[420px] max-w-[40vw] rounded-2xl border border-cyan-400/30 bg-slate-900/70 p-3 shadow-[0_0_24px_rgba(34,211,238,0.18)] backdrop-blur">
+                <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-cyan-200/80 px-1 pb-2">
+                    <span>AR Preview</span>
+                    <span className="text-[10px] text-slate-300">live</span>
+                </div>
+                <div className="h-[280px] w-full overflow-hidden rounded-xl border border-cyan-400/20 bg-slate-900/80">
+                    <Canvas shadows camera={{ position: [0.8, 0.55, 1.2], fov: 55 }} gl={{ antialias: true }}>
+                        <Suspense fallback={null}>
+                            <OrbitControls
+                                enableDamping
+                                dampingFactor={0.08}
+                                maxDistance={2.5}
+                                minDistance={0.6}
+                                autoRotate
+                                autoRotateSpeed={0.4}
+                            />
+                            <WarehouseScene live={data} />
+                        </Suspense>
+                    </Canvas>
+                </div>
+            </div>
+
+            <div className="absolute bottom-5 left-1/2 z-30 -translate-x-1/2">
+                <div className="flex items-center gap-3">
+                    <Link
+                        to="/dashboard"
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-400/40 bg-slate-700/40 px-4 py-3 text-sm font-semibold text-slate-100 shadow-[0_0_14px_rgba(148,163,184,0.25)] transition-all duration-300 hover:scale-[1.02] hover:border-slate-300/70 hover:bg-slate-600/50 focus:outline-none focus:ring-2 focus:ring-slate-300/60"
+                    >
+                        Back to Dashboard
+                    </Link>
+                    <Link
+                        to="/ar"
+                        className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-all duration-300 hover:scale-[1.02] hover:border-cyan-400/70 hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+                    >
+                        Enter AR Mode
+                    </Link>
+                </div>
+            </div>
         </div>
     );
 }
@@ -146,22 +187,6 @@ function IntelligenceOverlay({ recommendation, mlResult, current, keyFeatures })
     );
 }
 
-function HookProbe({ raw, tick, lastUpdated, error }) {
-    return (
-        <div className="fixed top-3 right-3 z-50 w-[420px] max-h-[70vh] overflow-auto rounded-xl border border-cyan-400/30 bg-black/70 p-3 text-xs text-cyan-200">
-            <div className="flex items-center justify-between">
-                <div className="font-semibold">HOOK tick: {tick}</div>
-                <div className="opacity-70">{lastUpdated || "—"}</div>
-            </div>
-            {error && (
-                <div className="mt-2 rounded-md border border-rose-400/50 bg-rose-900/60 px-2 py-1 text-[11px] text-rose-100">
-                    Error: {error.message || error.code || "Unknown error"}
-                </div>
-            )}
-            <pre className="mt-2 whitespace-pre-wrap">{JSON.stringify(raw, null, 2)}</pre>
-        </div>
-    );
-}
 
 function LiveBadge({ connected, tick, lastUpdated }) {
     return (
