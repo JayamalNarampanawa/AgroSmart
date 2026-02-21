@@ -30,7 +30,6 @@ export default function App() {
   const defaultHome = '/dashboard'
   const { enabled, reducedMotion } = useMotionPreferences()
   const allowMotion = enabled && !reducedMotion
-  const isTwin = location.pathname.startsWith('/twin')
 
   useEffect(() => {
     // Ensure both farm profile and weather defaults exist on startup
@@ -53,17 +52,6 @@ export default function App() {
       }
     }
   }, [])
-  if (isTwin) {
-    return (
-      <Routes location={location}>
-        <Route path="/twin" element={<SensorTwinTest />} />
-        <Route path="/twin-test" element={<SensorTwinTest />} />
-        <Route path="/ar" element={<ArView />} />
-        <Route path="*" element={<Navigate to="/twin" replace />} />
-      </Routes>
-    )
-  }
-
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -74,9 +62,9 @@ export default function App() {
         transition={{ duration: 0.35, ease: 'easeOut' }}
       >
         <Routes location={location}>
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/twin" element={<SensorTwinTest />} />
           <Route path="/twin-test" element={<SensorTwinTest />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ar" element={<ArView />} />
           <Route path="/" element={<Navigate to={defaultHome} replace />} />
           <Route path="*" element={<Navigate to={defaultHome} replace />} />

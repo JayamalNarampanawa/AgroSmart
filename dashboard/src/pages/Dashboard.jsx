@@ -68,12 +68,18 @@ export default function Dashboard() {
             {showLoading && <LoadingScreen message={'Connecting to sensors...'} />}
           </AnimatePresence>
           <Navbar />
-          <div className="fixed right-4 top-20 z-40">
+          <div className="fixed right-4 top-20 z-40 flex items-center gap-3">
             <Link
               to="/twin"
               className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-all duration-200 hover:scale-[1.02] hover:border-cyan-300/80 hover:bg-cyan-500/20"
             >
               Go to Twin
+            </Link>
+            <Link
+              to="/ar"
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.25)] transition-all duration-200 hover:scale-[1.02] hover:border-emerald-300/80 hover:bg-emerald-500/20"
+            >
+              Enter AR
             </Link>
           </div>
           <Scroll3D>

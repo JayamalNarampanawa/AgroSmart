@@ -1,8 +1,8 @@
 // Unified prototype cube with carved recess (tweakable cut area)
 export const PROTOTYPE = {
-  width: 0.44,   // 44cm
-  depth: 0.57,   // 57cm
-  height: 0.09,  // 9cm top level
+  width: 0.44, // 44cm
+  depth: 0.57, // 57cm
+  height: 0.09, // 9cm top level
   layer2Drop: 0.02,
   layer3Drop: 0.01,
   soilDrop: 0.02,
@@ -28,13 +28,21 @@ export const POLE = {
 export const COMPONENTS = [
   // Pole mounted (positions relative to world origin)
   { id: "dht11", label: "DHT11", position: { x: POLE.x, y: 0.14, z: POLE.z } },
-  { id: "ldr", label: "LDR", position: { x: POLE.x, y: 0.10, z: POLE.z } },
+  { id: "ldr", label: "LDR", position: { x: POLE.x, y: 0.1, z: POLE.z } },
 
   // Soil sensor in recess
-  { id: "soil", label: "Soil Moisture", position: { x: -0.02, y: 0.045, z: -0.12 } },
+  {
+    id: "soil",
+    label: "Soil Moisture",
+    position: { x: -0.02, y: 0.045, z: -0.12 },
+  },
 
   // Electronics cluster on grass region
-  { id: "breadboard", label: "Breadboard", position: { x: 0.08, y: 0.065, z: 0.20 } },
+  {
+    id: "breadboard",
+    label: "Breadboard",
+    position: { x: 0.08, y: 0.065, z: 0.2 },
+  },
   { id: "relay", label: "Relay", position: { x: 0.14, y: 0.065, z: 0.22 } },
   { id: "esp32", label: "ESP32", position: { x: 0.18, y: 0.065, z: 0.24 } },
 ];
