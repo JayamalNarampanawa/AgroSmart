@@ -1,7 +1,7 @@
-﻿import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-import 'screens/login_screen.dart';
+import 'screens/loading_screen.dart';
 import 'services/alert_service.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_service.dart';
@@ -39,10 +39,11 @@ class AgriBot extends StatelessWidget {
           themeMode: mode,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          home: const LoginScreen(),
+          home: const LoadingScreen(),
           debugShowCheckedModeBanner: false,
         );
       },
     );
   }
 }
+
