@@ -1,0 +1,28 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+
+# Build outputs
+build/
+coverage/
+
+# Android/IDE
+local.properties
+.gradle/
+*.iml
+
+# iOS/Xcode
+ios/Flutter/Generated.xcconfig
+ios/Flutter/Flutter.podspec
+
+# Generated plugin registrants
+**/GeneratedPluginRegistrant.*
+
+# Flutter plugin dependencies
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# FVM
+.fvm/

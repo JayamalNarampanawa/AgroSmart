@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification_model.dart';
 import '../models/sensor_data.dart';
 import 'firebase_service.dart';
+import 'settings_service.dart';
 
 class NotificationService {
   NotificationService._();
@@ -77,6 +78,13 @@ class NotificationService {
     required NotificationType type,
     required NotificationPriority priority,
   }) {
+    if (!SettingsService.instance.alertsEnabled.value) return;
+    if (SettingsService.instance.highPriorityOnly.value &&
+        (priority == NotificationPriority.low ||
+            priority == NotificationPriority.normal)) {
+      return;
+    }
+
     // Check if similar notification exists in last 5 minutes
     final now = DateTime.now();
     final recentNotifications = notifications.value.where((n) {
@@ -98,6 +106,15 @@ class NotificationService {
     notifications.value = updated;
     _updateUnreadCount();
     _saveNotifications();
+  }
+
+  void addTestNotification() {
+    _addNotification(
+      title: 'Test Notification',
+      message: 'Notification settings are working correctly.',
+      type: NotificationType.success,
+      priority: NotificationPriority.normal,
+    );
   }
 
   void markAsRead(String id) {

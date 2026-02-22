@@ -15,7 +15,7 @@ class AppTheme {
       onSurface: Color(0xFFE0F7FA),
       error: Color(0xFFFF5252),
     ),
-    textTheme: GoogleFonts.outfitTextTheme().apply(
+    textTheme: GoogleFonts.interTextTheme().apply(
       bodyColor: const Color(0xFFE0F7FA),
       displayColor: const Color(0xFFFFFFFF),
     ),
@@ -89,7 +89,7 @@ class AppTheme {
       onPrimary: Colors.white,
       onSurface: Color(0xFF102027),
     ),
-    textTheme: GoogleFonts.outfitTextTheme(),
+    textTheme: GoogleFonts.interTextTheme(),
     useMaterial3: true,
   );
 }

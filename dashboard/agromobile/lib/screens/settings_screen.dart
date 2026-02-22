@@ -206,27 +206,80 @@ class SettingsScreen extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            if (count > 0) ...[
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    NotificationService.instance
-                                        .markAllAsRead();
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Theme.of(context).colorScheme.secondary,
-                                    foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
+                            const SizedBox(height: 12),
+                            ValueListenableBuilder<bool>(
+                              valueListenable:
+                                  SettingsService.instance.alertsEnabled,
+                              builder: (context, alertsEnabled, __) {
+                                return SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  activeThumbColor:
+                                      Theme.of(context).colorScheme.primary,
+                                  title: const Text(
+                                    'Enable Alerts',
+                                    style: TextStyle(color: Colors.white),
                                   ),
-                                  icon: const Icon(Icons.done_all, size: 18),
-                                  label: const Text('Mark All as Read'),
+                                  subtitle: const Text(
+                                    'Generate notifications from live sensor changes',
+                                    style: TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  value: alertsEnabled,
+                                  onChanged:
+                                      SettingsService.instance.setAlertsEnabled,
+                                );
+                              },
+                            ),
+                            ValueListenableBuilder<bool>(
+                              valueListenable:
+                                  SettingsService.instance.highPriorityOnly,
+                              builder: (context, highPriorityOnly, __) {
+                                return SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  activeThumbColor:
+                                      Theme.of(context).colorScheme.primary,
+                                  title: const Text(
+                                    'High Priority Only',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  subtitle: const Text(
+                                    'Only alert on high/critical severity events',
+                                    style: TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  value: highPriorityOnly,
+                                  onChanged: SettingsService.instance
+                                      .setHighPriorityOnly,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: NotificationService
+                                        .instance.markAllAsRead,
+                                    icon: const Icon(Icons.done_all, size: 16),
+                                    label: const Text('Read All'),
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        NotificationService.instance.addTestNotification,
+                                    icon:
+                                        const Icon(Icons.add_alert, size: 16),
+                                    label: const Text('Test Alert'),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         );
                       },
