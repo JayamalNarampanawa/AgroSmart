@@ -79,10 +79,10 @@ void loop() {
 
   String irrigationStatus;
   if (soil > 2200) {
-    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(RELAY_PIN, HIGH);
     irrigationStatus = "ON";
   } else {
-    digitalWrite(RELAY_PIN, HIGH);
+    digitalWrite(RELAY_PIN, LOW);
     irrigationStatus = "OFF";
   }
 
