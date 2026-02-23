@@ -5,8 +5,8 @@ import 'screens/loading_screen.dart';
 import 'services/alert_service.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_service.dart';
-import 'services/settings_service.dart';
 import 'services/notification_service.dart';
+import 'services/settings_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -31,19 +31,13 @@ class AgriBot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: SettingsService.instance.themeMode,
-      builder: (context, mode, _) {
-        return MaterialApp(
-          title: 'AgroSmart',
-          themeMode: mode,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          home: const LoadingScreen(),
-          debugShowCheckedModeBanner: false,
-        );
-      },
+    return MaterialApp(
+      title: 'AgroSmart',
+      themeMode: ThemeMode.dark,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      home: const LoadingScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
-

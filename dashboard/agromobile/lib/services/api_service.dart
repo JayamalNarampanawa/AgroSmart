@@ -5,12 +5,12 @@ class ApiService {
   // For APK build, use your computer's IP address or deployed API
   // Replace 'localhost' with your computer's IP address (e.g., '192.168.1.100')
   // or use a deployed API URL (e.g., 'https://your-api.herokuapp.com/api')
-  static const String baseUrl = 'http://10.0.2.2:3000/api'; // Android emulator
-  // static const String baseUrl = 'http://192.168.1.100:3000/api'; // Replace with your IP
-  // static const String baseUrl = 'https://your-deployed-api.com/api'; // Production API
-  
+  // Point to deployed backend so mobile matches the web dashboard
+  static const String baseUrl = 'https://agrosmart-dashboard.onrender.com/api';
   // Mock data mode - set to true to use mock data instead of API
-  static const bool useMockData = true;
+  static const bool useMockData = false;
+  // If the live API fails, fall back to mock data to keep the UI usable
+  static const bool fallbackToMockOnError = true;
   static const Duration timeout = Duration(seconds: 10);
 
   // Singleton pattern
@@ -23,9 +23,9 @@ class ApiService {
 
   // Headers
   Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
 
   // Generic GET request
   Future<Map<String, dynamic>> _get(String endpoint) async {
@@ -48,7 +48,8 @@ class ApiService {
   }
 
   // Generic POST request
-  Future<Map<String, dynamic>> _post(String endpoint, [Map<String, dynamic>? body]) async {
+  Future<Map<String, dynamic>> _post(String endpoint,
+      [Map<String, dynamic>? body]) async {
     try {
       final response = await _client
           .post(
@@ -72,14 +73,15 @@ class ApiService {
   Future<AuthResponse> login(String username, String password) async {
     if (useMockData) {
       // Mock authentication - always successful
-      await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
+      await Future.delayed(
+          const Duration(seconds: 1)); // Simulate network delay
       return AuthResponse(
         success: true,
         token: 'mock-jwt-token-${DateTime.now().millisecondsSinceEpoch}',
         user: User(id: 1, username: username, role: 'admin'),
       );
     }
-    
+
     final response = await _post('/auth/login', {
       'username': username,
       'password': password,
@@ -93,9 +95,15 @@ class ApiService {
       await Future.delayed(const Duration(milliseconds: 500));
       return _generateMockSensorData();
     }
-    
-    final response = await _get('/sensors/all');
-    return SensorData.fromJson(response);
+    try {
+      final response = await _get('/sensors/all');
+      return SensorData.fromJson(response);
+    } catch (e) {
+      if (fallbackToMockOnError) {
+        return _generateMockSensorData();
+      }
+      rethrow;
+    }
   }
 
   Future<SoilMoistureData> getSoilMoistureData() async {
@@ -104,9 +112,16 @@ class ApiService {
       final mockData = _generateMockSensorData();
       return mockData.soilMoisture;
     }
-    
-    final response = await _get('/sensors/soil-moisture');
-    return SoilMoistureData.fromJson(response);
+    try {
+      final response = await _get('/sensors/soil-moisture');
+      return SoilMoistureData.fromJson(response);
+    } catch (e) {
+      if (fallbackToMockOnError) {
+        final mockData = _generateMockSensorData();
+        return mockData.soilMoisture;
+      }
+      rethrow;
+    }
   }
 
   Future<WaterLevelData> getWaterLevelData() async {
@@ -115,9 +130,16 @@ class ApiService {
       final mockData = _generateMockSensorData();
       return mockData.waterLevel;
     }
-    
-    final response = await _get('/sensors/water-level');
-    return WaterLevelData.fromJson(response);
+    try {
+      final response = await _get('/sensors/water-level');
+      return WaterLevelData.fromJson(response);
+    } catch (e) {
+      if (fallbackToMockOnError) {
+        final mockData = _generateMockSensorData();
+        return mockData.waterLevel;
+      }
+      rethrow;
+    }
   }
 
   Future<LightIntensityData> getLightIntensityData() async {
@@ -126,9 +148,16 @@ class ApiService {
       final mockData = _generateMockSensorData();
       return mockData.lightIntensity;
     }
-    
-    final response = await _get('/sensors/light-intensity');
-    return LightIntensityData.fromJson(response);
+    try {
+      final response = await _get('/sensors/light-intensity');
+      return LightIntensityData.fromJson(response);
+    } catch (e) {
+      if (fallbackToMockOnError) {
+        final mockData = _generateMockSensorData();
+        return mockData.lightIntensity;
+      }
+      rethrow;
+    }
   }
 
   Future<WeatherData> getWeatherData() async {
@@ -137,9 +166,16 @@ class ApiService {
       final mockData = _generateMockSensorData();
       return mockData.weather;
     }
-    
-    final response = await _get('/weather');
-    return WeatherData.fromJson(response);
+    try {
+      final response = await _get('/weather');
+      return WeatherData.fromJson(response);
+    } catch (e) {
+      if (fallbackToMockOnError) {
+        final mockData = _generateMockSensorData();
+        return mockData.weather;
+      }
+      rethrow;
+    }
   }
 
   Future<AnalyticsData> getAnalyticsData() async {
@@ -148,9 +184,16 @@ class ApiService {
       final mockData = _generateMockSensorData();
       return mockData.analytics;
     }
-    
-    final response = await _get('/analytics');
-    return AnalyticsData.fromJson(response);
+    try {
+      final response = await _get('/analytics');
+      return AnalyticsData.fromJson(response);
+    } catch (e) {
+      if (fallbackToMockOnError) {
+        final mockData = _generateMockSensorData();
+        return mockData.analytics;
+      }
+      rethrow;
+    }
   }
 
   // Control actions
@@ -159,7 +202,7 @@ class ApiService {
       await Future.delayed(const Duration(milliseconds: 200));
       return true; // Always successful in mock mode
     }
-    
+
     final response = await _post('/irrigation/toggle');
     return response['success'] ?? false;
   }
@@ -169,7 +212,7 @@ class ApiService {
       await Future.delayed(const Duration(milliseconds: 200));
       return true; // Always successful in mock mode
     }
-    
+
     final response = await _post('/security/toggle');
     return response['success'] ?? false;
   }
@@ -179,7 +222,7 @@ class ApiService {
       await Future.delayed(const Duration(milliseconds: 200));
       return true; // Always successful in mock mode
     }
-    
+
     final response = await _post('/camera/record');
     return response['success'] ?? false;
   }
@@ -190,13 +233,78 @@ class ApiService {
       await Future.delayed(const Duration(milliseconds: 100));
       return true; // Always healthy in mock mode
     }
-    
+
     try {
       await _get('/health');
       return true;
     } catch (e) {
       return false;
     }
+  }
+
+  // Crop recommendation
+  Future<Map<String, dynamic>> getCropRecommendation({
+    required double n,
+    required double p,
+    required double k,
+    required double ph,
+  }) async {
+    if (useMockData) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      return _mockCropRecommendation();
+    }
+    try {
+      return await _post('/recommend-crop', {
+        'N': n,
+        'P': p,
+        'K': k,
+        'ph': ph,
+      });
+    } catch (e) {
+      if (fallbackToMockOnError) {
+        return _mockCropRecommendation();
+      }
+      rethrow;
+    }
+  }
+
+  Map<String, dynamic> _mockCropRecommendation() {
+    return {
+      'recommendations': [
+        {
+          'cropName': 'Rice',
+          'fitScore': 0.92,
+          'confidence': 'High',
+          'reason': 'Excellent NPK and pH match',
+          'idealRange': {
+            'nMin': 80,
+            'nMax': 120,
+            'pMin': 20,
+            'pMax': 40,
+            'kMin': 40,
+            'kMax': 80,
+            'phMin': 5.0,
+            'phMax': 7.0,
+          },
+        },
+        {
+          'cropName': 'Maize',
+          'fitScore': 0.85,
+          'confidence': 'High',
+          'reason': 'Good NPK levels for maize cultivation',
+          'idealRange': {
+            'nMin': 80,
+            'nMax': 120,
+            'pMin': 30,
+            'pMax': 60,
+            'kMin': 20,
+            'kMax': 60,
+            'phMin': 5.5,
+            'phMax': 7.5,
+          },
+        },
+      ],
+    };
   }
 
   void dispose() {
@@ -207,7 +315,7 @@ class ApiService {
   SensorData _generateMockSensorData() {
     final now = DateTime.now();
     final random = DateTime.now().millisecond / 1000;
-    
+
     return SensorData(
       soilMoisture: SoilMoistureData(
         current: 65.0 + (random * 20 - 10),
@@ -243,10 +351,14 @@ class ApiService {
         active: true,
         triggered: random > 0.9,
         zones: [
-          SecurityZone(name: 'Field Perimeter', active: true, type: 'Motion Sensors'),
-          SecurityZone(name: 'Equipment Shed', active: true, type: 'Door Sensor'),
-          SecurityZone(name: 'Water Tank Area', active: true, type: 'Camera + Motion'),
-          SecurityZone(name: 'Main Gate', active: random > 0.8, type: 'Access Control'),
+          SecurityZone(
+              name: 'Field Perimeter', active: true, type: 'Motion Sensors'),
+          SecurityZone(
+              name: 'Equipment Shed', active: true, type: 'Door Sensor'),
+          SecurityZone(
+              name: 'Water Tank Area', active: true, type: 'Camera + Motion'),
+          SecurityZone(
+              name: 'Main Gate', active: random > 0.8, type: 'Access Control'),
         ],
         alerts: [],
       ),
@@ -254,9 +366,18 @@ class ApiService {
         online: random > 0.1,
         recording: random > 0.8,
         recordings: [
-          Recording(name: 'Morning_Inspection_2024.mp4', time: '2 hours ago', size: '45 MB'),
-          Recording(name: 'Irrigation_Session_2024.mp4', time: '1 day ago', size: '128 MB'),
-          Recording(name: 'Weekly_Growth_2024.mp4', time: '3 days ago', size: '256 MB'),
+          Recording(
+              name: 'Morning_Inspection_2024.mp4',
+              time: '2 hours ago',
+              size: '45 MB'),
+          Recording(
+              name: 'Irrigation_Session_2024.mp4',
+              time: '1 day ago',
+              size: '128 MB'),
+          Recording(
+              name: 'Weekly_Growth_2024.mp4',
+              time: '3 days ago',
+              size: '256 MB'),
         ],
       ),
       weather: WeatherData(
@@ -278,7 +399,7 @@ class ApiService {
   List<DataPoint> _generateMockHistory(int hours) {
     final now = DateTime.now();
     final random = DateTime.now().millisecond / 1000;
-    
+
     return List.generate(hours, (index) {
       final timestamp = now.subtract(Duration(hours: hours - index));
       final value = 50 + (random * 40) + (index * 2);
@@ -295,11 +416,11 @@ class ApiService {
   List<WeatherForecast> _generateMockForecast() {
     final now = DateTime.now();
     final conditions = ['sunny', 'cloudy', 'rainy'];
-    
+
     return List.generate(5, (index) {
       final date = now.add(Duration(days: index));
       final random = (DateTime.now().millisecond + index * 100) / 1000;
-      
+
       return WeatherForecast(
         date: date.toIso8601String().split('T')[0],
         temperature: 20.0 + (random * 15),
@@ -311,11 +432,11 @@ class ApiService {
 
   List<UsageData> _generateMockUsageData() {
     final now = DateTime.now();
-    
+
     return List.generate(7, (index) {
       final date = now.subtract(Duration(days: 6 - index));
       final random = (DateTime.now().millisecond + index * 50) / 1000;
-      
+
       return UsageData(
         date: date.toIso8601String().split('T')[0],
         usage: 80.0 + (random * 60),
@@ -325,11 +446,11 @@ class ApiService {
 
   List<GrowthData> _generateMockGrowthData() {
     final now = DateTime.now();
-    
+
     return List.generate(7, (index) {
       final date = now.subtract(Duration(days: 6 - index));
       final random = (DateTime.now().millisecond + index * 75) / 1000;
-      
+
       return GrowthData(
         date: date.toIso8601String().split('T')[0],
         growth: random * 5,
@@ -434,8 +555,9 @@ class SoilMoistureData {
     return SoilMoistureData(
       current: (json['current'] ?? 0).toDouble(),
       history: (json['history'] as List?)
-          ?.map((e) => DataPoint.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => DataPoint.fromJson(e))
+              .toList() ??
+          [],
       status: json['status'] ?? '',
       lastUpdate: DateTime.parse(json['lastUpdate']),
     );
@@ -463,8 +585,9 @@ class WaterLevelData {
       capacity: (json['capacity'] ?? 0).toDouble(),
       volume: (json['volume'] ?? 0).toDouble(),
       history: (json['history'] as List?)
-          ?.map((e) => DataPoint.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => DataPoint.fromJson(e))
+              .toList() ??
+          [],
       lastUpdate: DateTime.parse(json['lastUpdate']),
     );
   }
@@ -488,8 +611,9 @@ class LightIntensityData {
       current: (json['current'] ?? 0).toDouble(),
       level: json['level'] ?? '',
       history: (json['history'] as List?)
-          ?.map((e) => DataPoint.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => DataPoint.fromJson(e))
+              .toList() ??
+          [],
       lastUpdate: DateTime.parse(json['lastUpdate']),
     );
   }
@@ -517,8 +641,9 @@ class IrrigationData {
       duration: json['duration'] ?? 0,
       autoMode: json['autoMode'] ?? false,
       schedule: (json['schedule'] as List?)
-          ?.map((e) => Schedule.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => Schedule.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }
@@ -541,11 +666,13 @@ class SecurityData {
       active: json['active'] ?? false,
       triggered: json['triggered'] ?? false,
       zones: (json['zones'] as List?)
-          ?.map((e) => SecurityZone.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => SecurityZone.fromJson(e))
+              .toList() ??
+          [],
       alerts: (json['alerts'] as List?)
-          ?.map((e) => SecurityAlert.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => SecurityAlert.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }
@@ -566,8 +693,9 @@ class CameraData {
       online: json['online'] ?? false,
       recording: json['recording'] ?? false,
       recordings: (json['recordings'] as List?)
-          ?.map((e) => Recording.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => Recording.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }
@@ -594,8 +722,9 @@ class WeatherData {
       windSpeed: (json['windSpeed'] ?? 0).toDouble(),
       pressure: (json['pressure'] ?? 0).toDouble(),
       forecast: (json['forecast'] as List?)
-          ?.map((e) => WeatherForecast.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => WeatherForecast.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }
@@ -616,14 +745,17 @@ class AnalyticsData {
   factory AnalyticsData.fromJson(Map<String, dynamic> json) {
     return AnalyticsData(
       dailyWaterUsage: (json['dailyWaterUsage'] as List?)
-          ?.map((e) => UsageData.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => UsageData.fromJson(e))
+              .toList() ??
+          [],
       weeklyGrowth: (json['weeklyGrowth'] as List?)
-          ?.map((e) => GrowthData.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => GrowthData.fromJson(e))
+              .toList() ??
+          [],
       monthlyYield: (json['monthlyYield'] as List?)
-          ?.map((e) => YieldData.fromJson(e))
-          .toList() ?? [],
+              ?.map((e) => YieldData.fromJson(e))
+              .toList() ??
+          [],
       efficiency: (json['efficiency'] ?? 0).toDouble(),
     );
   }

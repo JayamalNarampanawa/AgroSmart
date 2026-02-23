@@ -66,9 +66,7 @@ class _LoginScreenState extends State<LoginScreen>
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: const NetworkImage(
-              'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1920&q=80',
-            ),
+            image: const AssetImage('assets/images/login_bg.jpg'),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
               Colors.black.withOpacity(0.5),

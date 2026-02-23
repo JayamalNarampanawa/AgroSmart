@@ -61,7 +61,8 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
     if (mounted) {
       setState(() {
         isAlarmTriggered = true;
-        lastAlert = 'Motion detected - ${DateTime.now().toString().substring(11, 19)}';
+        lastAlert =
+            'Motion detected - ${DateTime.now().toString().substring(11, 19)}';
       });
 
       // Auto-resolve after 10 seconds
@@ -86,7 +87,9 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          isAlarmActive ? 'Security system activated' : 'Security system deactivated',
+          isAlarmActive
+              ? 'Security system activated'
+              : 'Security system deactivated',
         ),
         backgroundColor: isAlarmActive ? Colors.green : Colors.red,
       ),
@@ -132,17 +135,18 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
             // Security Status Display
             Card(
               elevation: 8,
-              color: isAlarmTriggered ? Colors.red.withValues(alpha: 0.1) : null,
+              color:
+                  isAlarmTriggered ? Colors.red.withValues(alpha: 0.1) : null,
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
                     Icon(
-                      isAlarmTriggered 
-                        ? Icons.warning 
-                        : isAlarmActive 
-                          ? Icons.security 
-                          : Icons.security_outlined,
+                      isAlarmTriggered
+                          ? Icons.warning
+                          : isAlarmActive
+                              ? Icons.security
+                              : Icons.security_outlined,
                       size: 64,
                       color: _getStatusColor(),
                     ),
@@ -157,11 +161,11 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      isAlarmTriggered 
-                        ? 'SECURITY BREACH DETECTED'
-                        : isAlarmActive 
-                          ? 'System monitoring active'
-                          : 'System disabled',
+                      isAlarmTriggered
+                          ? 'SECURITY BREACH DETECTED'
+                          : isAlarmActive
+                              ? 'System monitoring active'
+                              : 'System disabled',
                       style: TextStyle(
                         fontSize: 14,
                         color: _getStatusColor(),
@@ -195,7 +199,8 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
                   children: [
                     const Text(
                       'Security Control',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -203,12 +208,17 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
                       height: 48,
                       child: ElevatedButton.icon(
                         onPressed: _toggleAlarmSystem,
-                        icon: Icon(isAlarmActive ? Icons.security_outlined : Icons.security),
+                        icon: Icon(isAlarmActive
+                            ? Icons.security_outlined
+                            : Icons.security),
                         label: Text(
-                          isAlarmActive ? 'Disable Security' : 'Enable Security',
+                          isAlarmActive
+                              ? 'Disable Security'
+                              : 'Enable Security',
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isAlarmActive ? Colors.red : Colors.green,
+                          backgroundColor:
+                              isAlarmActive ? Colors.red : Colors.green,
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -229,12 +239,15 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
                   children: [
                     const Text(
                       'Security Zones',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    _buildSecurityZone('Field Perimeter', true, 'Motion Sensors'),
+                    _buildSecurityZone(
+                        'Field Perimeter', true, 'Motion Sensors'),
                     _buildSecurityZone('Equipment Shed', true, 'Door Sensor'),
-                    _buildSecurityZone('Water Tank Area', true, 'Camera + Motion'),
+                    _buildSecurityZone(
+                        'Water Tank Area', true, 'Camera + Motion'),
                     _buildSecurityZone('Main Gate', false, 'Access Control'),
                   ],
                 ),
@@ -252,7 +265,8 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
                   children: [
                     const Text(
                       'Recent Alerts',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     if (alertHistory.isEmpty)
@@ -280,10 +294,11 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
                   children: [
                     const Text(
                       'System Information',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    _buildInfoRow('System Status', _getStatusText(), 
+                    _buildInfoRow('System Status', _getStatusText(),
                         color: _getStatusColor()),
                     _buildInfoRow('Active Sensors', '8 of 8'),
                     _buildInfoRow('Last System Check', '5 minutes ago'),
@@ -342,11 +357,11 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
   }
 
   Widget _buildAlertItem(Map<String, dynamic> alert) {
-    Color severityColor = alert['severity'] == 'High' 
-        ? Colors.red 
-        : alert['severity'] == 'Medium' 
-          ? Colors.orange 
-          : Colors.yellow;
+    Color severityColor = alert['severity'] == 'High'
+        ? Colors.red
+        : alert['severity'] == 'Medium'
+            ? Colors.orange
+            : Colors.yellow;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -370,7 +385,7 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 Text(
-                  '${alert['location']} â€¢ ${alert['time']}',
+                  '${alert['location']} \u2022 ${alert['time']}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[400],

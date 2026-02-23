@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class SettingsService {
@@ -10,11 +10,19 @@ class SettingsService {
   static const _themeKey = 'theme_mode';
   static const _alertsEnabledKey = 'alerts_enabled';
   static const _highPriorityOnlyKey = 'high_priority_only';
+  static const _soilMoistureThresholdKey = 'soil_moisture_threshold';
+  static const _highTempThresholdKey = 'high_temp_threshold';
 
   late Box _box;
-  final ValueNotifier<ThemeMode> themeMode = ValueNotifier<ThemeMode>(ThemeMode.dark);
+  final ValueNotifier<ThemeMode> themeMode =
+      ValueNotifier<ThemeMode>(ThemeMode.dark);
   final ValueNotifier<bool> alertsEnabled = ValueNotifier<bool>(true);
   final ValueNotifier<bool> highPriorityOnly = ValueNotifier<bool>(false);
+
+  // Alert thresholds
+  final ValueNotifier<double> soilMoistureDryThreshold =
+      ValueNotifier<double>(3500.0);
+  final ValueNotifier<double> highTempThreshold = ValueNotifier<double>(35.0);
 
   Future<void> initialize() async {
     _box = await Hive.openBox(_boxName);
@@ -26,9 +34,16 @@ class SettingsService {
     } else {
       themeMode.value = ThemeMode.dark;
     }
-    alertsEnabled.value = _box.get(_alertsEnabledKey, defaultValue: true) as bool;
+    alertsEnabled.value =
+        _box.get(_alertsEnabledKey, defaultValue: true) as bool;
     highPriorityOnly.value =
         _box.get(_highPriorityOnlyKey, defaultValue: false) as bool;
+
+    soilMoistureDryThreshold.value =
+        (_box.get(_soilMoistureThresholdKey, defaultValue: 3500.0) as num)
+            .toDouble();
+    highTempThreshold.value =
+        (_box.get(_highTempThresholdKey, defaultValue: 35.0) as num).toDouble();
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -50,5 +65,14 @@ class SettingsService {
     highPriorityOnly.value = value;
     await _box.put(_highPriorityOnlyKey, value);
   }
-}
 
+  Future<void> setSoilMoistureDryThreshold(double value) async {
+    soilMoistureDryThreshold.value = value;
+    await _box.put(_soilMoistureThresholdKey, value);
+  }
+
+  Future<void> setHighTempThreshold(double value) async {
+    highTempThreshold.value = value;
+    await _box.put(_highTempThresholdKey, value);
+  }
+}

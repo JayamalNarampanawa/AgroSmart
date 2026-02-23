@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import '../models/sensor_data.dart';
+import '../services/firebase_service.dart';
+
 class IrrigationControlScreen extends StatefulWidget {
   const IrrigationControlScreen({super.key});
 
   @override
-  State<IrrigationControlScreen> createState() => _IrrigationControlScreenState();
+  State<IrrigationControlScreen> createState() =>
+      _IrrigationControlScreenState();
 }
 
 class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
@@ -15,10 +19,27 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
   int duration = 0; // minutes
   Timer? _irrigationTimer;
   Timer? _updateTimer;
+  StreamSubscription<SensorData?>? _sensorSubscription;
 
   @override
   void initState() {
     super.initState();
+    // Read initial state from Firebase
+    final cached = FirebaseService.instance.latestSensorData;
+    if (cached != null) {
+      isIrrigationActive = cached.pumpStatus;
+      if (isIrrigationActive) flowRate = 2.5;
+    }
+    // Listen for real-time pump status changes
+    _sensorSubscription =
+        FirebaseService.instance.currentDataStream().listen((data) {
+      if (data != null && mounted) {
+        setState(() {
+          isIrrigationActive = data.pumpStatus;
+          if (!isIrrigationActive) flowRate = 0.0;
+        });
+      }
+    });
     _startDataUpdate();
   }
 
@@ -26,6 +47,7 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
   void dispose() {
     _irrigationTimer?.cancel();
     _updateTimer?.cancel();
+    _sensorSubscription?.cancel();
     super.dispose();
   }
 
@@ -41,6 +63,8 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
   }
 
   void _toggleIrrigation() {
+    FirebaseService.instance.togglePump();
+    // Optimistic local update — stream listener will confirm
     setState(() {
       isIrrigationActive = !isIrrigationActive;
       if (isIrrigationActive) {
@@ -91,9 +115,13 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
                         Column(
                           children: [
                             Icon(
-                              isIrrigationActive ? Icons.water : Icons.water_drop_outlined,
+                              isIrrigationActive
+                                  ? Icons.water
+                                  : Icons.water_drop_outlined,
                               size: 48,
-                              color: isIrrigationActive ? Colors.blue : Colors.grey,
+                              color: isIrrigationActive
+                                  ? Colors.blue
+                                  : Colors.grey,
                             ),
                             const SizedBox(height: 8),
                             Text(
@@ -101,7 +129,9 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: isIrrigationActive ? Colors.blue : Colors.grey,
+                                color: isIrrigationActive
+                                    ? Colors.blue
+                                    : Colors.grey,
                               ),
                             ),
                           ],
@@ -138,12 +168,16 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
                       height: 48,
                       child: ElevatedButton.icon(
                         onPressed: _toggleIrrigation,
-                        icon: Icon(isIrrigationActive ? Icons.stop : Icons.play_arrow),
+                        icon: Icon(
+                            isIrrigationActive ? Icons.stop : Icons.play_arrow),
                         label: Text(
-                          isIrrigationActive ? 'Stop Irrigation' : 'Start Irrigation',
+                          isIrrigationActive
+                              ? 'Stop Irrigation'
+                              : 'Start Irrigation',
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isIrrigationActive ? Colors.red : Colors.green,
+                          backgroundColor:
+                              isIrrigationActive ? Colors.red : Colors.green,
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -164,15 +198,16 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
                   children: [
                     const Text(
                       'Operation Mode',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     SwitchListTile(
                       title: const Text('Auto Mode'),
                       subtitle: Text(
-                        isAutoMode 
-                          ? 'System controls irrigation based on soil moisture'
-                          : 'Manual control enabled',
+                        isAutoMode
+                            ? 'System controls irrigation based on soil moisture'
+                            : 'Manual control enabled',
                       ),
                       value: isAutoMode,
                       onChanged: (value) => _toggleAutoMode(),
@@ -194,7 +229,8 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
                   children: [
                     const Text(
                       'Schedule Settings',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     _buildScheduleItem('Morning', '06:00 AM', true),
@@ -216,10 +252,12 @@ class _IrrigationControlScreenState extends State<IrrigationControlScreen> {
                   children: [
                     const Text(
                       'System Information',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    _buildInfoRow('Pump Status', isIrrigationActive ? 'Running' : 'Stopped',
+                    _buildInfoRow('Pump Status',
+                        isIrrigationActive ? 'Running' : 'Stopped',
                         color: isIrrigationActive ? Colors.green : Colors.grey),
                     _buildInfoRow('Pressure', '2.3 Bar'),
                     _buildInfoRow('Total Runtime Today', '45 minutes'),

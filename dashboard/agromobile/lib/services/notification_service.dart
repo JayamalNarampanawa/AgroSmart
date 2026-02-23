@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/notification_model.dart';
 import '../models/sensor_data.dart';
+import 'alert_service.dart';
 import 'firebase_service.dart';
 import 'settings_service.dart';
 
@@ -21,10 +22,7 @@ class NotificationService {
   StreamSubscription<SensorData?>? _sensorSubscription;
   SharedPreferences? _prefs;
 
-  // Thresholds for alerts
-  static const double lowMoistureThreshold = 30.0;
-  static const double highTempThreshold = 35.0;
-  static const double lowWaterLevelThreshold = 20.0;
+  bool _previousPumpStatus = false;
 
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
@@ -34,42 +32,65 @@ class NotificationService {
 
   void _startMonitoring() {
     _sensorSubscription =
-        FirebaseService.instance.currentDataStream().listen((data) {
-      if (data == null) return;
+        FirebaseService.instance.currentDataStream().listen(_processSensorData);
 
-      // Check soil moisture
-      if (data.soilMoisture != null &&
-          data.soilMoisture! < lowMoistureThreshold) {
-        _addNotification(
-          title: 'Low Soil Moisture',
-          message:
-              'Soil moisture is ${data.soilMoisture!.toStringAsFixed(1)}%. Consider irrigation.',
-          type: NotificationType.warning,
-          priority: NotificationPriority.high,
-        );
-      }
+    // Process any already-cached data so the first reading is never missed
+    final cached = FirebaseService.instance.latestSensorData;
+    if (cached != null) _processSensorData(cached);
+  }
 
-      // Check temperature
-      if (data.temperature != null && data.temperature! > highTempThreshold) {
-        _addNotification(
-          title: 'High Temperature Alert',
-          message:
-              'Temperature is ${data.temperature!.toStringAsFixed(1)}°C. Monitor crops closely.',
-          type: NotificationType.alert,
-          priority: NotificationPriority.high,
-        );
-      }
+  void _processSensorData(SensorData? data) {
+    if (data == null) return;
 
-      // Irrigation status change
-      if (data.pumpStatus == true) {
-        _addNotification(
-          title: 'Irrigation Started',
-          message: 'Water pump is now active.',
-          type: NotificationType.info,
-          priority: NotificationPriority.low,
-        );
-      }
-    });
+    final settings = SettingsService.instance;
+
+    // Also trigger OS push notifications
+    AlertService.instance.checkAndNotify(data);
+
+    // Check soil moisture (higher raw ADC value = drier soil)
+    if (data.soilMoisture != null &&
+        data.soilMoisture! > settings.soilMoistureDryThreshold.value) {
+      _addNotification(
+        title: 'Low Soil Moisture',
+        message:
+            'Soil moisture reading is ${data.soilMoisture!.toStringAsFixed(0)} '
+            '(dry threshold: ${settings.soilMoistureDryThreshold.value.toStringAsFixed(0)}). '
+            'Consider irrigation.',
+        type: NotificationType.warning,
+        priority: NotificationPriority.high,
+      );
+    }
+
+    // Check temperature
+    if (data.temperature != null &&
+        data.temperature! > settings.highTempThreshold.value) {
+      _addNotification(
+        title: 'High Temperature Alert',
+        message:
+            'Temperature is ${data.temperature!.toStringAsFixed(1)}\u00B0C. '
+            'Monitor crops closely.',
+        type: NotificationType.alert,
+        priority: NotificationPriority.high,
+      );
+    }
+
+    // Irrigation status change (only notify on transitions)
+    if (data.pumpStatus && !_previousPumpStatus) {
+      _addNotification(
+        title: 'Irrigation Started',
+        message: 'Water pump is now active.',
+        type: NotificationType.info,
+        priority: NotificationPriority.low,
+      );
+    } else if (!data.pumpStatus && _previousPumpStatus) {
+      _addNotification(
+        title: 'Irrigation Stopped',
+        message: 'Water pump has been turned off.',
+        type: NotificationType.info,
+        priority: NotificationPriority.low,
+      );
+    }
+    _previousPumpStatus = data.pumpStatus;
   }
 
   void _addNotification({
@@ -106,15 +127,6 @@ class NotificationService {
     notifications.value = updated;
     _updateUnreadCount();
     _saveNotifications();
-  }
-
-  void addTestNotification() {
-    _addNotification(
-      title: 'Test Notification',
-      message: 'Notification settings are working correctly.',
-      type: NotificationType.success,
-      priority: NotificationPriority.normal,
-    );
   }
 
   void markAsRead(String id) {

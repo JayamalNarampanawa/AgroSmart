@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'dart:async';
-import 'dart:math';
+
+import '../models/sensor_data.dart';
+import '../services/firebase_service.dart';
+import '../widgets/glass_card.dart';
 
 class LightDetectorScreen extends StatefulWidget {
   const LightDetectorScreen({super.key});
@@ -11,290 +13,311 @@ class LightDetectorScreen extends StatefulWidget {
 }
 
 class _LightDetectorScreenState extends State<LightDetectorScreen> {
-  double lightIntensity = 750.0; // Lux
-  String lightLevel = 'Medium';
-  Timer? _timer;
-  final Random _random = Random();
-  List<FlSpot> lightData = [];
+  final List<FlSpot> _lightData = [];
+  int _x = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeData();
-    _startMockDataUpdate();
+  void _pushPoint(double? value) {
+    if (value == null) return;
+    if (_lightData.length >= 30) _lightData.removeAt(0);
+    _lightData.add(FlSpot(_x.toDouble(), value));
+    _x++;
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Color _getLevelColor(double? light) {
+    if (light == null) return Colors.grey;
+    if (light < 200) return const Color(0xFF64B5F6);
+    if (light < 800) return const Color(0xFFFFA726);
+    return const Color(0xFFFFC107);
   }
 
-  void _initializeData() {
-    // Initialize with some sample data points
-    for (int i = 0; i < 10; i++) {
-      lightData.add(FlSpot(i.toDouble(), 500 + _random.nextDouble() * 500));
-    }
+  String _getLevelText(double? light) {
+    if (light == null) return 'No data';
+    if (light < 200) return 'Low';
+    if (light < 800) return 'Medium';
+    return 'High';
   }
 
-  void _startMockDataUpdate() {
-    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      setState(() {
-        // Simulate light intensity changes
-        lightIntensity += (_random.nextDouble() - 0.5) * 200;
-        lightIntensity = lightIntensity.clamp(0.0, 1500.0);
-        
-        _updateLightLevel();
-        _updateChart();
-      });
-    });
-  }
-
-  void _updateLightLevel() {
-    if (lightIntensity < 200) {
-      lightLevel = 'Low';
-    } else if (lightIntensity < 800) {
-      lightLevel = 'Medium';
-    } else {
-      lightLevel = 'High';
-    }
-  }
-
-  void _updateChart() {
-    if (lightData.length >= 20) {
-      lightData.removeAt(0);
-    }
-    
-    // Shift x values
-    for (int i = 0; i < lightData.length; i++) {
-      lightData[i] = FlSpot(i.toDouble(), lightData[i].y);
-    }
-    
-    lightData.add(FlSpot(lightData.length.toDouble(), lightIntensity));
-  }
-
-  Color _getLightColor() {
-    if (lightIntensity < 200) return Colors.blue;
-    if (lightIntensity < 800) return Colors.orange;
-    return Colors.yellow;
-  }
-
-  IconData _getLightIcon() {
-    if (lightIntensity < 200) return Icons.nightlight;
-    if (lightIntensity < 800) return Icons.wb_cloudy;
+  IconData _getLevelIcon(double? light) {
+    if (light == null) return Icons.wb_sunny_outlined;
+    if (light < 200) return Icons.nightlight_round;
+    if (light < 800) return Icons.wb_cloudy;
     return Icons.wb_sunny;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Light Detector'),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Current Light Level Display
-            Card(
-              elevation: 8,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    Icon(
-                      _getLightIcon(),
-                      size: 64,
-                      color: _getLightColor(),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '${lightIntensity.toInt()} Lux',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: _getLightColor(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      lightLevel,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                        color: _getLightColor(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Light Intensity Chart
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF050A14),
+              Color(0xFF0B1221),
+              Color(0xFF050A14),
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: StreamBuilder<SensorData?>(
+            stream: FirebaseService.instance.currentDataStream(),
+            initialData: FirebaseService.instance.latestSensorData,
+            builder: (context, snapshot) {
+              final light = snapshot.data?.lightLevel;
+              _pushPoint(light);
+
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  snapshot.data == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final color = _getLevelColor(light);
+              final levelText = _getLevelText(light);
+              final levelIcon = _getLevelIcon(light);
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Light Intensity Over Time',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 200,
-                      child: LineChart(
-                        LineChartData(
-                          gridData: const FlGridData(show: true),
-                          titlesData: FlTitlesData(
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 40,
-                                getTitlesWidget: (value, meta) {
-                                  return Text('${value.toInt()}');
-                                },
-                              ),
+                    // Current Light Level Card
+                    GlassCard(
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: color.withOpacity(0.15),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: color.withOpacity(0.4),
+                                  blurRadius: 30,
+                                  spreadRadius: 5,
+                                ),
+                              ],
                             ),
-                            bottomTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
+                            child: Icon(levelIcon, size: 44, color: color),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Current Light Level',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          borderData: FlBorderData(show: true),
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: lightData,
-                              isCurved: true,
-                              color: Colors.orange,
-                              barWidth: 3,
-                              dotData: const FlDotData(show: false),
+                          const SizedBox(height: 8),
+                          Text(
+                            light != null
+                                ? '${light.toStringAsFixed(0)} lux'
+                                : '--',
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                              letterSpacing: 1,
                             ),
-                          ],
-                          minY: 0,
-                          maxY: 1500,
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: color.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Text(
+                              levelText,
+                              style: TextStyle(
+                                color: color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    Text(
+                      'Live Trend',
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    GlassCard(
+                      child: SizedBox(
+                        height: 200,
+                        child: LineChart(
+                          LineChartData(
+                            titlesData: FlTitlesData(
+                              topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false)),
+                              rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false)),
+                              bottomTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false)),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 44,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      value.toInt().toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 10,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            gridData: FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              horizontalInterval: 1000,
+                              getDrawingHorizontalLine: (value) => FlLine(
+                                color: Colors.white.withOpacity(0.05),
+                                strokeWidth: 1,
+                              ),
+                            ),
+                            borderData: FlBorderData(show: false),
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: _lightData.isEmpty
+                                    ? [const FlSpot(0, 0)]
+                                    : _lightData,
+                                isCurved: true,
+                                color: const Color(0xFFFFC107),
+                                barWidth: 2.5,
+                                dotData: const FlDotData(show: false),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      const Color(0xFFFFC107).withOpacity(0.3),
+                                      const Color(0xFFFFC107).withOpacity(0.0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Light Level Guide
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Light Level Guide',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+
+                    const SizedBox(height: 24),
+
+                    Text(
+                      'Light Guide',
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildLightRange('0-200 Lux', 'Low Light - Night/Indoor', Colors.blue),
-                    _buildLightRange('200-800 Lux', 'Medium Light - Cloudy Day', Colors.orange),
-                    _buildLightRange('800+ Lux', 'High Light - Sunny Day', Colors.yellow),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Sensor Information
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Sensor Information',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    const SizedBox(height: 12),
+
+                    GlassCard(
+                      child: Column(
+                        children: [
+                          _buildInfoRow(
+                            Icons.nightlight_round,
+                            'Low (<200 lux)',
+                            'Shade or indoor conditions',
+                            const Color(0xFF64B5F6),
+                          ),
+                          const Divider(height: 24, color: Colors.white12),
+                          _buildInfoRow(
+                            Icons.wb_cloudy,
+                            'Medium (200\u2013800 lux)',
+                            'Cloudy day or partial shade',
+                            const Color(0xFFFFA726),
+                          ),
+                          const Divider(height: 24, color: Colors.white12),
+                          _buildInfoRow(
+                            Icons.wb_sunny,
+                            'High (>800 lux)',
+                            'Direct sunlight \u2014 ideal for most crops',
+                            const Color(0xFFFFC107),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildInfoRow('Sensor Type', 'BH1750 Light Sensor'),
-                    _buildInfoRow('Range', '0-65535 Lux'),
-                    _buildInfoRow('Accuracy', '±20%'),
-                    _buildInfoRow('Location', 'Field Center'),
-                    _buildInfoRow('Last Update', 'Just now'),
-                    _buildInfoRow('Status', 'Active', color: Colors.green),
+                    const SizedBox(height: 20),
                   ],
                 ),
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildLightRange(String range, String description, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Container(
-            width: 16,
-            height: 16,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(8),
-            ),
+  Widget _buildInfoRow(
+      IconData icon, String label, String description, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  range,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[400],
-                  ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.white54,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, {Color? color}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: color,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

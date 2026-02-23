@@ -252,8 +252,8 @@ class SettingsScreen extends StatelessWidget {
                                     ),
                                   ),
                                   value: highPriorityOnly,
-                                  onChanged: SettingsService.instance
-                                      .setHighPriorityOnly,
+                                  onChanged: SettingsService
+                                      .instance.setHighPriorityOnly,
                                 );
                               },
                             ),
@@ -268,16 +268,6 @@ class SettingsScreen extends StatelessWidget {
                                     label: const Text('Read All'),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed:
-                                        NotificationService.instance.addTestNotification,
-                                    icon:
-                                        const Icon(Icons.add_alert, size: 16),
-                                    label: const Text('Test Alert'),
-                                  ),
-                                ),
                               ],
                             ),
                           ],
@@ -290,9 +280,9 @@ class SettingsScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Preferences
+              // Alert Thresholds
               Text(
-                'Preferences',
+                'Alert Thresholds',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -301,108 +291,169 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               GlassCard(
-                child: ValueListenableBuilder<ThemeMode>(
-                  valueListenable: SettingsService.instance.themeMode,
-                  builder: (context, mode, _) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.palette,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Theme',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFC107).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.tune,
+                            color: Color(0xFFFFC107),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Sensor Thresholds',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 12,
-                          children: [
-                            ChoiceChip(
-                              label: const Text('Dark'),
-                              selected: mode == ThemeMode.dark,
-                              onSelected: (_) => SettingsService.instance
-                                  .setThemeMode(ThemeMode.dark),
-                              selectedColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.3),
-                              backgroundColor: Colors.white.withOpacity(0.05),
-                              labelStyle: TextStyle(
-                                color: mode == ThemeMode.dark
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.white70,
-                                fontWeight: mode == ThemeMode.dark
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                            ChoiceChip(
-                              label: const Text('Light'),
-                              selected: mode == ThemeMode.light,
-                              onSelected: (_) => SettingsService.instance
-                                  .setThemeMode(ThemeMode.light),
-                              selectedColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.3),
-                              backgroundColor: Colors.white.withOpacity(0.05),
-                              labelStyle: TextStyle(
-                                color: mode == ThemeMode.light
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.white70,
-                                fontWeight: mode == ThemeMode.light
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                            ChoiceChip(
-                              label: const Text('System'),
-                              selected: mode == ThemeMode.system,
-                              onSelected: (_) => SettingsService.instance
-                                  .setThemeMode(ThemeMode.system),
-                              selectedColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.3),
-                              backgroundColor: Colors.white.withOpacity(0.05),
-                              labelStyle: TextStyle(
-                                color: mode == ThemeMode.system
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Colors.white70,
-                                fontWeight: mode == ThemeMode.system
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ],
                         ),
                       ],
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Soil Moisture Threshold
+                    ValueListenableBuilder<double>(
+                      valueListenable:
+                          SettingsService.instance.soilMoistureDryThreshold,
+                      builder: (context, value, _) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Soil Moisture (Dry Alert)',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFC107)
+                                        .withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    value.toStringAsFixed(0),
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFC107),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Alert when raw sensor value exceeds this (higher = drier)',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 11,
+                              ),
+                            ),
+                            Slider(
+                              value: value,
+                              min: 1000,
+                              max: 4095,
+                              divisions: 61,
+                              activeColor: const Color(0xFFFFC107),
+                              inactiveColor:
+                                  const Color(0xFFFFC107).withOpacity(0.2),
+                              onChanged: (v) {
+                                SettingsService.instance
+                                    .setSoilMoistureDryThreshold(v);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+
+                    const Divider(color: Colors.white12),
+                    const SizedBox(height: 8),
+
+                    // Temperature Threshold
+                    ValueListenableBuilder<double>(
+                      valueListenable:
+                          SettingsService.instance.highTempThreshold,
+                      builder: (context, value, _) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Temperature (High Alert)',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF5252)
+                                        .withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${value.toStringAsFixed(1)}\u00B0C',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFF5252),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Alert when temperature exceeds this value',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 11,
+                              ),
+                            ),
+                            Slider(
+                              value: value,
+                              min: 20,
+                              max: 50,
+                              divisions: 60,
+                              activeColor: const Color(0xFFFF5252),
+                              inactiveColor:
+                                  const Color(0xFFFF5252).withOpacity(0.2),
+                              onChanged: (v) {
+                                SettingsService.instance
+                                    .setHighTempThreshold(v);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
 

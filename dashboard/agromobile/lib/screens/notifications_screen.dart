@@ -28,8 +28,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: const Icon(Icons.done_all),
           ),
           IconButton(
-            tooltip: 'Clear read',
-            onPressed: NotificationService.instance.clearRead,
+            tooltip: 'Clear all',
+            onPressed: NotificationService.instance.clearAll,
             icon: const Icon(Icons.delete_sweep),
           ),
         ],
@@ -78,7 +78,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -105,11 +108,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ],
                   ),
                   const Spacer(),
-                  FilledButton.tonalIcon(
-                    onPressed: NotificationService.instance.addTestNotification,
-                    icon: const Icon(Icons.add_alert),
-                    label: const Text('Test'),
-                  ),
                 ],
               ),
             );
@@ -203,8 +201,9 @@ class _NotificationTile extends StatelessWidget {
                         notification.title,
                         style: TextStyle(
                           color: Colors.white,
-                          fontWeight:
-                              notification.isRead ? FontWeight.w500 : FontWeight.w700,
+                          fontWeight: notification.isRead
+                              ? FontWeight.w500
+                              : FontWeight.w700,
                         ),
                       ),
                     ),
