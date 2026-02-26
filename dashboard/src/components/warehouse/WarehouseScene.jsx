@@ -1,11 +1,19 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Text } from '@react-three/drei'
+import { Html, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { PROTOTYPE, CUT, POLE, COMPONENTS } from '../../twin/warehouseLayout'
 import HoloBar from '../../three/HoloBar'
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
+const normalize = (v, min, max) => (v - min) / (max - min)
+
+const RANGES = {
+    soilMoisture: { min: 1500, max: 3500 },
+    lightLevel: { min: 0, max: 4095 },
+    humidity: { min: 0, max: 100 },
+    temperature: { min: 0, max: 50 },
+}
 
 function lerpColor(a, b, t) {
     const c = a.clone()
@@ -13,7 +21,7 @@ function lerpColor(a, b, t) {
     return c
 }
 
-export default function WarehouseScene({ live }) {
+export default function WarehouseScene({ live, envState, alerts = [] }) {
     const {
         soilMoisture = 0,
         lightLevel = 0,
@@ -21,19 +29,31 @@ export default function WarehouseScene({ live }) {
         irrigationStatus = false
     } = live || {}
 
+    const featureState = envState?.features || {}
+    const extraState = envState?.extraFeatures || {}
+
+    const humidityState = featureState.humidity || null
+    const lightState = extraState.lightLevel || null
+    const soilState = extraState.soilMoisture || null
+
     const [showPoleData, setShowPoleData] = useState(false)
     const [showSoil, setShowSoil] = useState(false)
     const [showPump, setShowPump] = useState(false)
+    const [activeSensor, setActiveSensor] = useState(null)
 
-    const soilT = useMemo(() => clamp01((soilMoisture - 1500) / (3500 - 1500)), [soilMoisture])
-    const lightT = useMemo(() => clamp01(lightLevel / 4095), [lightLevel])
-    const humidityT = useMemo(() => clamp01(humidity / 100), [humidity])
+    const hasSoilAlert = useMemo(() => alerts?.some((a) => a.type === 'soil'), [alerts])
+    const hasTempAlert = useMemo(() => alerts?.some((a) => a.type === 'temperature'), [alerts])
 
+    const soilT = useMemo(() => clamp01(normalize(soilMoisture, RANGES.soilMoisture.min, RANGES.soilMoisture.max)), [soilMoisture])
+    const lightT = useMemo(() => clamp01(normalize(lightLevel, RANGES.lightLevel.min, RANGES.lightLevel.max)), [lightLevel])
+    const humidityT = useMemo(() => clamp01(normalize(humidity, RANGES.humidity.min, RANGES.humidity.max)), [humidity])
+
+    const wetMix = useMemo(() => 1 - soilT, [soilT])
     const soilColor = useMemo(() => {
-        const wet = new THREE.Color('#2d5f3a')
-        const dry = new THREE.Color('#4b2f1b')
-        return lerpColor(wet, dry, soilT)
-    }, [soilT])
+        const dry = new THREE.Color('#5c3b27')
+        const wet = new THREE.Color('#2f5f42')
+        return lerpColor(dry, wet, wetMix)
+    }, [wetMix])
 
     const bgColor = useMemo(() => {
         const dark = new THREE.Color('#050913')
@@ -53,12 +73,23 @@ export default function WarehouseScene({ live }) {
         return lerpColor(dark, bright, lightT)
     }, [lightT])
 
-    const ambientIntensity = useMemo(() => 0.2 + lightT * 0.9, [lightT])
-    const dirIntensity = useMemo(() => 0.5 + lightT * 1.5, [lightT])
-    const mistOpacity = useMemo(() => 0.03 + humidityT * 0.22, [humidityT])
+    const ambientIntensity = useMemo(() => 0.25 + lightT * 0.25, [lightT])
+    const dirIntensity = useMemo(() => 0.6 + lightT * 1.8, [lightT])
+    const humidityAlert = humidityState && (humidityState.severity === 'warn' || humidityState.severity === 'critical')
+    const humidityBoost = humidityAlert ? (humidityState.severity === 'critical' ? 0.08 : 0.04) : 0
+    const mistOpacity = useMemo(() => 0.03 + humidityT * 0.22 + humidityBoost, [humidityT, humidityBoost])
 
     const { camera } = useThree()
     const sprayRef = useRef()
+    const soilMatRef = useRef()
+    const mistMatRef = useRef()
+    const sunLightRef = useRef()
+    const sunOrbMatRef = useRef()
+    const ambientRef = useRef()
+    const shimmerMatRef = useRef()
+    const shimmerRef = useRef()
+    const soilHighlightRef = useRef()
+    const sunOrbRef = useRef()
     const ldrBarRef = useRef()
     const humBarRef = useRef()
     const soilTextRef = useRef()
@@ -77,6 +108,63 @@ export default function WarehouseScene({ live }) {
             const o = 0.35 + Math.sin(clock.elapsedTime * 4) * 0.25
             sprayRef.current.scale.set(0.6 * s, 1.05 * s, 0.6 * s)
             sprayRef.current.material.opacity = clamp01(o)
+        }
+
+        const soilAlert = soilState && (soilState.severity === 'warn' || soilState.severity === 'critical')
+        if (soilHighlightRef.current) {
+            const base = soilAlert ? 0.08 : 0
+            const pulse = soilAlert ? 0.05 * Math.sin(clock.elapsedTime * 2.4) : 0
+            soilHighlightRef.current.material.opacity = clamp01(base + pulse)
+        }
+
+        const lightAlert = lightState && (lightState.severity === 'warn' || lightState.severity === 'critical')
+        if (sunOrbMatRef.current) {
+            const pulse = lightAlert ? 0.05 * Math.sin(clock.elapsedTime * 3.2) : 0
+            const baseIntensity = Math.min(2.4, 0.3 + lightT * 2.2)
+            const alertBoost = lightState?.severity === 'critical' ? 0.6 : lightAlert ? 0.3 : 0
+            sunOrbMatRef.current.emissiveIntensity = baseIntensity + alertBoost + pulse
+            if (lightState?.status === 'LOW') sunOrbMatRef.current.color.set('#60a5fa')
+            else if (lightState?.status === 'HIGH') sunOrbMatRef.current.color.set('#fbbf24')
+            else sunOrbMatRef.current.color.set('#fde68a')
+        }
+
+        if (sunLightRef.current) {
+            const target = Math.min(2.4, dirIntensity)
+            sunLightRef.current.intensity += (target - sunLightRef.current.intensity) * 0.08
+        }
+
+        if (ambientRef.current) {
+            const target = ambientIntensity
+            ambientRef.current.intensity += (target - ambientRef.current.intensity) * 0.08
+        }
+
+        if (soilMatRef.current) {
+            const { r, g, b } = soilColor
+            soilMatRef.current.color.setRGB(r, g, b)
+            soilMatRef.current.roughness = 0.65 + (1 - wetMix) * 0.25
+            soilMatRef.current.metalness = 0.03 + wetMix * 0.05
+        }
+
+        if (mistMatRef.current) {
+            const targetOpacity = clamp01(0.04 + humidityT * 0.28)
+            mistMatRef.current.opacity = targetOpacity
+            mistMatRef.current.transparent = true
+            mistMatRef.current.depthWrite = false
+            mistMatRef.current.emissiveIntensity = humidityT > 0.8 ? 0.05 * humidityT : 0
+            mistMatRef.current.color.set('#9ad8ff')
+        }
+
+        if (shimmerMatRef.current && shimmerRef.current) {
+            if (irrigationStatus) {
+                const shimmerOpacity = 0.06 + 0.04 * Math.sin(clock.elapsedTime * 3)
+                const shimmerScale = 1 + 0.008 * Math.sin(clock.elapsedTime * 2)
+                shimmerMatRef.current.opacity = clamp01(shimmerOpacity)
+                shimmerRef.current.scale.set(shimmerScale, shimmerScale, shimmerScale)
+                shimmerRef.current.visible = true
+            } else {
+                shimmerMatRef.current.opacity = 0
+                shimmerRef.current.visible = false
+            }
         }
 
         // Visibility easing for holograms
@@ -141,12 +229,93 @@ export default function WarehouseScene({ live }) {
     const backLdrX = -halfW + 0.08
     const backHumX = halfW - 0.08
     const pumpOn = Boolean(irrigationStatus)
+    const lightAlert = lightState && (lightState.severity === 'warn' || lightState.severity === 'critical')
+    const soilAlert = soilState && (soilState.severity === 'warn' || soilState.severity === 'critical')
+
+    const popupPositions = {
+        ldr: [backLdrX, barY + 0.08, backBarZ + 0.04],
+        humidity: [backHumX, barY + 0.05, backBarZ + 0.04],
+        soil: [cutCenterX, soilY + 0.05, cutCenterZ + 0.04],
+        pump: [0, pumpPanelY + 0.02, pumpButtonZ - 0.02],
+    }
+
+    const popupData = {
+        ldr: {
+            title: 'Light Level',
+            value: `${ldrValueText}`,
+            status: lightState?.status || null,
+            ideal: null,
+            message: lightState?.message,
+        },
+        humidity: {
+            title: 'Humidity',
+            value: `${humidityValueText} %`,
+            status: humidityState?.status || null,
+            ideal: humidityState?.ideal ? `${humidityState.ideal} %` : null,
+            message: humidityState?.message,
+        },
+        soil: {
+            title: 'Soil Moisture',
+            value: `${soilValueText}`,
+            status: soilState?.status || null,
+            ideal: null,
+            message: soilState?.message,
+        },
+        pump: {
+            title: 'Pump',
+            value: pumpOn ? 'ON' : 'OFF',
+            status: pumpOn ? 'Active' : 'Idle',
+            ideal: null,
+            message: null,
+        },
+    }
+
+    const renderActivePopup = () => {
+        if (!activeSensor || !popupPositions[activeSensor]) return null
+        const data = popupData[activeSensor]
+        return (
+            <Html position={popupPositions[activeSensor]} transform center distanceFactor={8} occlude>
+                <div className="w-44 rounded-xl border border-white/10 bg-black/75 px-3 py-2 text-xs text-slate-100 backdrop-blur">
+                    <div className="text-[10px] uppercase tracking-wide text-slate-300">{data.title}</div>
+                    <div className="mt-1 text-sm font-semibold leading-tight text-white">{data.value}</div>
+                    {data.status && <div className="mt-1 inline-flex rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase text-amber-200">{data.status}</div>}
+                    {data.ideal && <div className="mt-1 text-[10px] text-slate-300">Ideal: {data.ideal}</div>}
+                    {data.message && <div className="mt-1 text-[10px] text-slate-200 leading-snug">{data.message}</div>}
+                </div>
+            </Html>
+        )
+    }
 
     return (
-        <group scale={[sceneScale, sceneScale, sceneScale]}>
+        <group scale={[sceneScale, sceneScale, sceneScale]} onPointerMissed={() => setActiveSensor(null)}>
             <color attach="background" args={[bgColor]} />
-            <ambientLight intensity={ambientIntensity} color={ambientColor} />
-            <directionalLight position={[1.2, 1.6, 1.1]} intensity={dirIntensity} color={dirColor} castShadow />
+            <ambientLight ref={ambientRef} intensity={ambientIntensity} color={ambientColor} />
+            <directionalLight ref={sunLightRef} position={[1.2, 1.6, 1.1]} intensity={dirIntensity} color={dirColor} castShadow />
+
+            <mesh ref={sunOrbRef} position={[backLdrX, barY + 0.36, frontZ * 0.85]}>
+                <sphereGeometry args={[0.05, 18, 18]} />
+                <meshStandardMaterial
+                    ref={sunOrbMatRef}
+                    color="#fde68a"
+                    emissive="#fde68a"
+                    emissiveIntensity={0.8}
+                    roughness={0.2}
+                    metalness={0.1}
+                />
+            </mesh>
+
+            {hasTempAlert && (
+                <mesh position={[0, barY + 0.28, frontZ - 0.06]}>
+                    <sphereGeometry args={[0.011, 14, 14]} />
+                    <meshStandardMaterial
+                        color="#facc15"
+                        emissive="#facc15"
+                        emissiveIntensity={1}
+                        transparent
+                        opacity={0.9}
+                    />
+                </mesh>
+            )}
 
             {/* Outer cube */}
             <mesh position={[0, PROTOTYPE.height / 2, 0]} castShadow receiveShadow>
@@ -164,6 +333,10 @@ export default function WarehouseScene({ live }) {
                 <planeGeometry args={[cutWidth, cutDepth]} />
                 <meshBasicMaterial color={soilColor} transparent opacity={0.7} />
             </mesh>
+            <mesh ref={soilHighlightRef} position={[cutCenterX, topY + 0.0007, cutCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[cutWidth, cutDepth]} />
+                <meshBasicMaterial color="#f97316" transparent opacity={0} depthWrite={false} />
+            </mesh>
 
             {/* Carved interior volumes (stacked boxes to show depth) */}
             {/* layer2 */}
@@ -179,7 +352,13 @@ export default function WarehouseScene({ live }) {
             {/* soil fill */}
             <mesh position={[cutCenterX, soilY / 2, cutCenterZ]} castShadow receiveShadow>
                 <boxGeometry args={[cutWidth * 0.84, soilY, cutDepth * 0.84]} />
-                <meshStandardMaterial color={soilColor} roughness={0.95} />
+                <meshStandardMaterial ref={soilMatRef} color={soilColor} roughness={0.95} />
+            </mesh>
+
+            {/* irrigation shimmer overlay */}
+            <mesh ref={shimmerRef} position={[cutCenterX, soilY + 0.002, cutCenterZ]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+                <planeGeometry args={[cutWidth * 0.7, cutDepth * 0.7]} />
+                <meshBasicMaterial ref={shimmerMatRef} color="#7dd3fc" transparent opacity={0} depthWrite={false} />
             </mesh>
 
             {/* Clickable soil area overlay */}
@@ -188,7 +367,11 @@ export default function WarehouseScene({ live }) {
                 rotation={[-Math.PI / 2, 0, 0]}
                 onPointerDown={(e) => {
                     e.stopPropagation()
-                    setShowSoil((v) => !v)
+                    setShowSoil((v) => {
+                        const next = !v
+                        setActiveSensor(next ? 'soil' : null)
+                        return next
+                    })
                 }}
             >
                 <planeGeometry args={[cutWidth, cutDepth]} />
@@ -201,7 +384,11 @@ export default function WarehouseScene({ live }) {
                 ref={pumpButtonRef}
                 onPointerDown={(e) => {
                     e.stopPropagation()
-                    setShowPump((v) => !v)
+                    setShowPump((v) => {
+                        const next = !v
+                        setActiveSensor(next ? 'pump' : null)
+                        return next
+                    })
                 }}
             >
                 <Text
@@ -257,7 +444,11 @@ export default function WarehouseScene({ live }) {
                 receiveShadow
                 onPointerDown={(e) => {
                     e.stopPropagation()
-                    setShowPoleData((v) => !v)
+                    setShowPoleData((v) => {
+                        const next = !v
+                        if (!next) setActiveSensor(null)
+                        return next
+                    })
                 }}
             >
                 <cylinderGeometry args={[POLE.radius, POLE.radius, POLE.height, 18]} />
@@ -269,7 +460,10 @@ export default function WarehouseScene({ live }) {
                     <group
                         position={[backLdrX, barY, backBarZ]}
                         ref={ldrBarRef}
-                        onPointerDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => {
+                            e.stopPropagation()
+                            setActiveSensor((cur) => (cur === 'ldr' ? null : 'ldr'))
+                        }}
                     >
                         <HoloBar
                             label="LDR"
@@ -279,12 +473,18 @@ export default function WarehouseScene({ live }) {
                             tick={ldrValueText}
                             rangeMin={0}
                             rangeMax={4095}
+                            status={lightState?.status}
+                            severity={lightState?.severity}
+                            message={lightState?.message}
                         />
                     </group>
                     <group
                         position={[backHumX, barY, backBarZ]}
                         ref={humBarRef}
-                        onPointerDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => {
+                            e.stopPropagation()
+                            setActiveSensor((cur) => (cur === 'humidity' ? null : 'humidity'))
+                        }}
                     >
                         <HoloBar
                             label="Humidity"
@@ -294,6 +494,11 @@ export default function WarehouseScene({ live }) {
                             tick={humidityValueText}
                             rangeMin={0}
                             rangeMax={100}
+                            status={humidityState?.status}
+                            severity={humidityState?.severity}
+                            message={humidityState?.message}
+                            idealValue={humidityState?.ideal ?? null}
+                            idealUnit="%"
                         />
                     </group>
                 </>
@@ -305,7 +510,11 @@ export default function WarehouseScene({ live }) {
                 ref={soilTextRef}
                 onPointerDown={(e) => {
                     e.stopPropagation()
-                    setShowSoil((v) => !v)
+                    setShowSoil((v) => {
+                        const next = !v
+                        setActiveSensor(next ? 'soil' : null)
+                        return next
+                    })
                 }}
             >
                 <Text
@@ -326,6 +535,7 @@ export default function WarehouseScene({ live }) {
                     ref={soilBarRef}
                     onPointerDown={(e) => {
                         e.stopPropagation()
+                        setActiveSensor((cur) => (cur === 'soil' ? null : 'soil'))
                     }}
                 >
                     <HoloBar
@@ -336,9 +546,27 @@ export default function WarehouseScene({ live }) {
                         tick={soilValueText}
                         rangeMin={1500}
                         rangeMax={3500}
+                        status={soilState?.status}
+                        severity={soilState?.severity}
+                        message={soilState?.message}
                     />
                 </group>
             )}
+
+            {hasSoilAlert && (
+                <mesh position={[cutCenterX + cutWidth * 0.32, soilY + 0.08, cutCenterZ + 0.08]}>
+                    <sphereGeometry args={[0.012, 16, 16]} />
+                    <meshStandardMaterial
+                        color="#ef4444"
+                        emissive="#ef4444"
+                        emissiveIntensity={1.1}
+                        transparent
+                        opacity={0.9}
+                    />
+                </mesh>
+            )}
+
+            {renderActivePopup()}
 
             {/* Component markers */}
             {COMPONENTS.map((c) => (
@@ -351,7 +579,17 @@ export default function WarehouseScene({ live }) {
             {/* Mist volume over soil area */}
             <mesh position={[cutCenterX, layer3Y / 2, cutCenterZ]}>
                 <boxGeometry args={[cutWidth * 0.9, layer3Y, cutDepth * 0.9]} />
-                <meshStandardMaterial color="#7dd3fc" transparent opacity={mistOpacity} roughness={1} metalness={0} />
+                <meshStandardMaterial
+                    ref={mistMatRef}
+                    color="#9ad8ff"
+                    transparent
+                    opacity={mistOpacity}
+                    roughness={1}
+                    metalness={0}
+                    emissive="#9ad8ff"
+                    emissiveIntensity={0}
+                    depthWrite={false}
+                />
             </mesh>
 
             {/* Irrigation spray removed (cone hidden) */}
