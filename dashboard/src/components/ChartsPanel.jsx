@@ -1,9 +1,10 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Legend } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Legend, ReferenceLine } from 'recharts'
 import useMotionPreferences from '../hooks/useMotionPreferences.jsx'
 import useSoilMoistureSettings from '../hooks/useSoilMoistureSettings'
 import { soilWetnessPercent } from '../utils/soilMoisture'
+import useReplay from '../replay/useReplay'
 
 function timeLabel(ts){
   if(!ts) return ''
@@ -12,6 +13,8 @@ function timeLabel(ts){
   if(d.toDateString() === today.toDateString()) return d.toLocaleTimeString()
   return d.toLocaleDateString()
 }
+
+const shortTime = (ts) => ts ? new Date(Number(ts)).toLocaleTimeString([], { hour12: false }) : ''
 
 function groupPumpByDay(records){
   const map = {}
@@ -30,9 +33,14 @@ export default function ChartsPanel({ timeseries = [] }){
   const { enabled, reducedMotion } = useMotionPreferences()
   const allowMotion = enabled && !reducedMotion
   const soilConfig = useSoilMoistureSettings()
+  const { mode, replayIndex, buffer } = useReplay()
+
+  const activeTs = mode === 'REPLAY' ? buffer[replayIndex]?.ts : null
+  const activeLabel = activeTs ? timeLabel(activeTs) : null
 
   const data = timeseries.map(h=>({
     original: h,
+    ts: h.timestamp,
     time: timeLabel(h.timestamp),
     tempHistorical: h.source === 'historical' ? h.temperature : null,
     tempSensor: h.source === 'sensor' ? h.temperature : null,
@@ -65,6 +73,7 @@ export default function ChartsPanel({ timeseries = [] }){
           <div className="text-xs text-slate-400 flex items-center gap-2">
             <span className="px-2 py-1 rounded-full bg-white/6">Historical</span>
             <span className="px-2 py-1 rounded-full bg-white/6">Real-time</span>
+            {activeTs && <span className="px-2 py-1 rounded-full bg-cyan-500/15 text-cyan-100">Replay @ {shortTime(activeTs)}</span>}
           </div>
         </div>
         <div style={{height:260}}>
@@ -77,6 +86,15 @@ export default function ChartsPanel({ timeseries = [] }){
               <Legend />
               <Line name="Historical (Kaggle)" type="monotone" dataKey="tempHistorical" stroke="#38bdf8" strokeWidth={1.5} dot={false} isAnimationActive={allowMotion} />
               <Line name="Sensors" type="monotone" dataKey="tempSensor" stroke="#fb7185" strokeWidth={2.5} dot={<LiveDot />} isAnimationActive={allowMotion} />
+              {activeLabel && (
+                <ReferenceLine
+                  x={activeLabel}
+                  stroke="#22d3ee"
+                  strokeDasharray="4 2"
+                  label={{ value: `Replay @ ${shortTime(activeTs)}`, position: 'top', fill: '#22d3ee', fontSize: 11 }}
+                  ifOverflow="extendDomain"
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -100,6 +118,15 @@ export default function ChartsPanel({ timeseries = [] }){
               <YAxis domain={[0, 100]} />
               <Tooltip content={<SoilMoistureTooltip />} />
               <Area name="Wetness (%)" type="monotone" dataKey="soilMoistureWetness" stroke="#34d399" fillOpacity={1} fill="url(#soilGrad)" isAnimationActive={allowMotion} />
+              {activeLabel && (
+                <ReferenceLine
+                  x={activeLabel}
+                  stroke="#22d3ee"
+                  strokeDasharray="4 2"
+                  label={{ value: `Replay @ ${shortTime(activeTs)}`, position: 'top', fill: '#22d3ee', fontSize: 11 }}
+                  ifOverflow="extendDomain"
+                />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         </div>

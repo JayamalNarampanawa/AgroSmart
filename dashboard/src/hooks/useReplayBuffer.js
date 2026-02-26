@@ -56,6 +56,13 @@ export default function useReplayBuffer({
     [buffer],
   );
 
+  const setBufferExternal = (snapshots = []) => {
+    const trimmed = Array.isArray(snapshots) ? snapshots.filter(Boolean) : [];
+    const capped = trimmed.slice(-clamp(maxPoints, 1, maxPoints));
+    setBuffer(capped);
+    lastTsRef.current = capped.length ? capped[capped.length - 1]?.ts ?? capped[capped.length - 1]?.__ts ?? null : null;
+  };
+
   return {
     buffer,
     isRecording,
@@ -64,5 +71,6 @@ export default function useReplayBuffer({
     resume,
     toggle,
     stats,
+    setBufferExternal,
   };
 }

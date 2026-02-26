@@ -11,15 +11,17 @@ import { evaluateAlerts } from '../utils/environmentAlertEngine'
 import useReplayBuffer from '../hooks/useReplayBuffer'
 import useReplayController from '../hooks/useReplayController'
 import ReplayControls from '../components/ReplayControls'
+import useReplayHistoryLoader from '../hooks/useReplayHistoryLoader'
 
 export default function ArView() {
     const { data: liveData = {} } = useAgroSmartLiveData({ fastMode: true })
-    const { buffer, isRecording, clear, pause: pauseRecording, resume: resumeRecording } = useReplayBuffer({
+    const { buffer, isRecording, clear, pause: pauseRecording, resume: resumeRecording, setBufferExternal } = useReplayBuffer({
         source: { ...liveData },
         throttleMs: 1000,
         maxPoints: 900,
         enabled: true,
     })
+    const { loadHistory, loading: loadingHistory, error: historyError } = useReplayHistoryLoader({ limit: 900 })
     const {
         mode,
         replayIndex,
@@ -30,6 +32,7 @@ export default function ArView() {
         seek,
         step,
         goLive,
+        enterReplayAtEnd,
         effectiveData,
         currentSnapshot,
     } = useReplayController({
@@ -44,6 +47,12 @@ export default function ArView() {
         if (mode === 'REPLAY') pauseRecording()
         else resumeRecording()
     }, [mode, pauseRecording, resumeRecording])
+
+    const handleLoadHistory = async () => {
+        const snapshots = await loadHistory()
+        setBufferExternal(snapshots)
+        if (snapshots.length) enterReplayAtEnd()
+    }
 
     const sensorData = effectiveData || liveData || {}
     const timelineTs = mode === 'REPLAY' ? currentSnapshot?.ts ?? currentSnapshot?.__ts : liveData?.__ts
@@ -106,6 +115,9 @@ export default function ArView() {
                     onSpeedChange={setSpeed}
                     onClear={clear}
                     onGoLive={goLive}
+                    onLoadHistory={handleLoadHistory}
+                    loadingHistory={loadingHistory}
+                    historyError={historyError?.message || historyError}
                     isRecording={isRecording}
                     liveLabel={liveLabel}
                     timestamp={timelineTs}

@@ -3,13 +3,16 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { MotionPreferencesProvider } from './hooks/useMotionPreferences.jsx'
+import { ReplayProvider } from './replay/ReplayProvider'
 import './styles/index.css'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <MotionPreferencesProvider>
-        <App />
+        <ReplayProvider>
+          <App />
+        </ReplayProvider>
       </MotionPreferencesProvider>
     </BrowserRouter>
   </React.StrictMode>

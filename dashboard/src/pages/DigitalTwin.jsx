@@ -9,6 +9,7 @@ import useMlValidation from '../hooks/useMlValidation'
 import useReplayBuffer from '../hooks/useReplayBuffer'
 import useReplayController from '../hooks/useReplayController'
 import ReplayControls from '../components/ReplayControls'
+import useReplayHistoryLoader from '../hooks/useReplayHistoryLoader'
 
 const formatValue = (v, suffix = '') => {
   if (v === undefined || v === null || Number.isNaN(Number(v))) return '--'
@@ -42,12 +43,14 @@ export default function DigitalTwin() {
     }
   }, [calibration])
 
-  const { buffer, isRecording, clear, pause: pauseRecording, resume: resumeRecording } = useReplayBuffer({
+  const { buffer, isRecording, clear, pause: pauseRecording, resume: resumeRecording, setBufferExternal } = useReplayBuffer({
     source: { ...liveData, normalized, states, __raw: raw, __tick: tick },
     throttleMs: 1000,
     maxPoints: 900,
     enabled: true,
   })
+
+  const { loadHistory, loading: loadingHistory, error: historyError } = useReplayHistoryLoader({ limit: 900 })
 
   const {
     mode,
@@ -59,6 +62,7 @@ export default function DigitalTwin() {
     seek,
     step,
     goLive,
+    enterReplayAtEnd,
     effectiveData,
     currentSnapshot,
   } = useReplayController({
@@ -73,6 +77,12 @@ export default function DigitalTwin() {
     if (mode === 'REPLAY') pauseRecording()
     else resumeRecording()
   }, [mode, pauseRecording, resumeRecording])
+
+  const handleLoadHistory = async () => {
+    const snapshots = await loadHistory()
+    setBufferExternal(snapshots)
+    if (snapshots.length) enterReplayAtEnd()
+  }
 
   const sensorData = effectiveData || liveData || {}
   const effectiveRaw = (mode === 'REPLAY' ? (currentSnapshot?.__raw ?? raw) : raw) || {}
@@ -166,6 +176,9 @@ export default function DigitalTwin() {
               onSpeedChange={setSpeed}
               onClear={clear}
               onGoLive={goLive}
+              onLoadHistory={handleLoadHistory}
+              loadingHistory={loadingHistory}
+              historyError={historyError?.message || historyError}
               isRecording={isRecording}
               liveLabel={liveLabel}
               timestamp={timelineTs}

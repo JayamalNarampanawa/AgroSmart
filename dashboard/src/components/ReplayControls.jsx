@@ -1,12 +1,31 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 
 const speedOptions = [0.5, 1, 2, 4]
+const historyModes = ['replace', 'append']
 
 const formatTime = (ts) => {
     if (!ts) return '—'
     const d = new Date(ts)
     const ms = String(d.getMilliseconds()).padStart(3, '0')
     return `${d.toLocaleTimeString([], { hour12: false })}.${ms}`
+}
+
+const handleImportFile = (event, onImport) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+        try {
+            const text = e.target?.result
+            const parsed = JSON.parse(text)
+            await onImport?.(parsed)
+        } catch (err) {
+            console.error('Import failed', err)
+        } finally {
+            event.target.value = ''
+        }
+    }
+    reader.readAsText(file)
 }
 
 export default function ReplayControls({
@@ -21,10 +40,19 @@ export default function ReplayControls({
     onSpeedChange,
     onClear,
     onGoLive,
+    onLoadHistory,
+    loadingHistory = false,
+    historyError,
+    historyMode = 'replace',
+    onHistoryModeChange,
+    onExport,
+    onImport,
+    importError,
     isRecording = true,
     liveLabel,
     timestamp,
 }) {
+    const fileInputRef = useRef(null)
     const currentTs = useMemo(() => timestamp || buffer[replayIndex]?.ts || buffer[replayIndex]?.__ts, [timestamp, buffer, replayIndex])
     const bufferSize = buffer.length
     const sliderMax = Math.max(bufferSize - 1, 0)
@@ -104,6 +132,27 @@ export default function ReplayControls({
                     >
                         {'+10s >>'}
                     </button>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-300">
+                        <span className="uppercase tracking-[0.12em] text-slate-400">History</span>
+                        {historyModes.map((m) => (
+                            <button
+                                key={m}
+                                type="button"
+                                onClick={() => onHistoryModeChange?.(m)}
+                                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize transition ${historyMode === m ? 'border-blue-400/70 bg-blue-500/20 text-blue-100' : 'border-slate-600 bg-slate-800/60 text-slate-200 hover:border-blue-400/50 hover:text-blue-100'}`}
+                            >
+                                {m}
+                            </button>
+                        ))}
+                        <button
+                            type="button"
+                            onClick={() => onLoadHistory?.(historyMode)}
+                            className="rounded-lg border border-blue-400/60 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                            disabled={loadingHistory}
+                        >
+                            {loadingHistory ? 'Loading…' : 'Load History'}
+                        </button>
+                    </div>
                     <button
                         type="button"
                         onClick={onClear}
@@ -111,7 +160,35 @@ export default function ReplayControls({
                     >
                         Clear Buffer
                     </button>
+                    <button
+                        type="button"
+                        onClick={onExport}
+                        className="rounded-lg border border-emerald-400/60 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
+                    >
+                        Export JSON
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="application/json"
+                        className="hidden"
+                        onChange={(e) => handleImportFile(e, onImport)}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="rounded-lg border border-amber-400/60 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/20"
+                    >
+                        Import JSON
+                    </button>
                 </div>
+
+                {historyError && (
+                    <div className="text-[11px] text-rose-300">{String(historyError)}</div>
+                )}
+                {importError && (
+                    <div className="text-[11px] text-rose-300">{String(importError)}</div>
+                )}
 
                 <div className="space-y-2">
                     <div className="flex items-center justify-between text-[11px] text-slate-400">
