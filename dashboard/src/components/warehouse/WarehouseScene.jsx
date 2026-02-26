@@ -1,11 +1,16 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Text } from '@react-three/drei'
+import { Html, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { PROTOTYPE, CUT, POLE, COMPONENTS } from '../../twin/warehouseLayout'
 import HoloBar from '../../three/HoloBar'
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
+const severityClassMap = {
+    info: 'border-white/10 bg-black/60 text-slate-50',
+    warn: 'border-yellow-400/30 bg-yellow-500/10 text-yellow-100',
+    critical: 'border-red-400/30 bg-red-500/10 text-red-100',
+}
 
 function lerpColor(a, b, t) {
     const c = a.clone()
@@ -13,13 +18,20 @@ function lerpColor(a, b, t) {
     return c
 }
 
-export default function WarehouseScene({ live }) {
+export default function WarehouseScene({ live, envState }) {
     const {
         soilMoisture = 0,
         lightLevel = 0,
         humidity = 0,
         irrigationStatus = false
     } = live || {}
+
+    const featureState = envState?.features || {}
+    const extraState = envState?.extraFeatures || {}
+
+    const humidityState = featureState.humidity || null
+    const lightState = extraState.lightLevel || null
+    const soilState = extraState.soilMoisture || null
 
     const [showPoleData, setShowPoleData] = useState(false)
     const [showSoil, setShowSoil] = useState(false)
@@ -55,10 +67,14 @@ export default function WarehouseScene({ live }) {
 
     const ambientIntensity = useMemo(() => 0.2 + lightT * 0.9, [lightT])
     const dirIntensity = useMemo(() => 0.5 + lightT * 1.5, [lightT])
-    const mistOpacity = useMemo(() => 0.03 + humidityT * 0.22, [humidityT])
+    const humidityAlert = humidityState && (humidityState.severity === 'warn' || humidityState.severity === 'critical')
+    const humidityBoost = humidityAlert ? (humidityState.severity === 'critical' ? 0.08 : 0.04) : 0
+    const mistOpacity = useMemo(() => 0.03 + humidityT * 0.22 + humidityBoost, [humidityT, humidityBoost])
 
     const { camera } = useThree()
     const sprayRef = useRef()
+    const soilHighlightRef = useRef()
+    const sunOrbRef = useRef()
     const ldrBarRef = useRef()
     const humBarRef = useRef()
     const soilTextRef = useRef()
@@ -77,6 +93,24 @@ export default function WarehouseScene({ live }) {
             const o = 0.35 + Math.sin(clock.elapsedTime * 4) * 0.25
             sprayRef.current.scale.set(0.6 * s, 1.05 * s, 0.6 * s)
             sprayRef.current.material.opacity = clamp01(o)
+        }
+
+        const soilAlert = soilState && (soilState.severity === 'warn' || soilState.severity === 'critical')
+        if (soilHighlightRef.current) {
+            const base = soilAlert ? 0.08 : 0
+            const pulse = soilAlert ? 0.05 * Math.sin(clock.elapsedTime * 2.4) : 0
+            soilHighlightRef.current.material.opacity = clamp01(base + pulse)
+        }
+
+        const lightAlert = lightState && (lightState.severity === 'warn' || lightState.severity === 'critical')
+        if (sunOrbRef.current) {
+            const mat = sunOrbRef.current.material
+            const pulse = lightAlert ? 0.05 * Math.sin(clock.elapsedTime * 3.2) : 0
+            const target = lightState?.severity === 'critical' ? 1.5 : lightAlert ? 1.0 : 0.6
+            mat.emissiveIntensity = target + pulse
+            if (lightState?.status === 'LOW') mat.color.set('#60a5fa')
+            else if (lightState?.status === 'HIGH') mat.color.set('#fbbf24')
+            else mat.color.set('#fde68a')
         }
 
         // Visibility easing for holograms
@@ -141,12 +175,19 @@ export default function WarehouseScene({ live }) {
     const backLdrX = -halfW + 0.08
     const backHumX = halfW - 0.08
     const pumpOn = Boolean(irrigationStatus)
+    const lightAlert = lightState && (lightState.severity === 'warn' || lightState.severity === 'critical')
+    const soilAlert = soilState && (soilState.severity === 'warn' || soilState.severity === 'critical')
 
     return (
         <group scale={[sceneScale, sceneScale, sceneScale]}>
             <color attach="background" args={[bgColor]} />
             <ambientLight intensity={ambientIntensity} color={ambientColor} />
             <directionalLight position={[1.2, 1.6, 1.1]} intensity={dirIntensity} color={dirColor} castShadow />
+
+            <mesh ref={sunOrbRef} position={[backLdrX, barY + 0.36, frontZ * 0.85]}>
+                <sphereGeometry args={[0.05, 18, 18]} />
+                <meshStandardMaterial color="#fde68a" emissive="#fde68a" emissiveIntensity={0.8} roughness={0.2} metalness={0.1} />
+            </mesh>
 
             {/* Outer cube */}
             <mesh position={[0, PROTOTYPE.height / 2, 0]} castShadow receiveShadow>
@@ -163,6 +204,10 @@ export default function WarehouseScene({ live }) {
             <mesh position={[cutCenterX, topY + 0.0006, cutCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
                 <planeGeometry args={[cutWidth, cutDepth]} />
                 <meshBasicMaterial color={soilColor} transparent opacity={0.7} />
+            </mesh>
+            <mesh ref={soilHighlightRef} position={[cutCenterX, topY + 0.0007, cutCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[cutWidth, cutDepth]} />
+                <meshBasicMaterial color="#f97316" transparent opacity={0} depthWrite={false} />
             </mesh>
 
             {/* Carved interior volumes (stacked boxes to show depth) */}
@@ -279,7 +324,20 @@ export default function WarehouseScene({ live }) {
                             tick={ldrValueText}
                             rangeMin={0}
                             rangeMax={4095}
+                            status={lightState?.status}
+                            severity={lightState?.severity}
+                            message={lightState?.message}
                         />
+                        {lightAlert && (
+                            <Html position={[0, 0.7, 0.12]} center distanceFactor={12}>
+                                <div
+                                    className={`rounded-full border px-1 py-0.4 font-semibold uppercase tracking-wide ${severityClassMap[lightState?.severity] || severityClassMap.info}`}
+                                    style={{ fontSize: 'clamp(5.5px, 0.55vw, 7px)' }}
+                                >
+                                    Light {lightState?.status || ''}
+                                </div>
+                            </Html>
+                        )}
                     </group>
                     <group
                         position={[backHumX, barY, backBarZ]}
@@ -294,7 +352,22 @@ export default function WarehouseScene({ live }) {
                             tick={humidityValueText}
                             rangeMin={0}
                             rangeMax={100}
+                            status={humidityState?.status}
+                            severity={humidityState?.severity}
+                            message={humidityState?.message}
+                            idealValue={humidityState?.ideal ?? null}
+                            idealUnit="%"
                         />
+                        {humidityAlert && (
+                            <Html position={[0, 0.7, 0.12]} center distanceFactor={12}>
+                                <div
+                                    className={`rounded-full border px-1 py-0.4 font-semibold uppercase tracking-wide ${severityClassMap[humidityState?.severity] || severityClassMap.info}`}
+                                    style={{ fontSize: 'clamp(5.5px, 0.55vw, 7px)' }}
+                                >
+                                    Humidity {humidityState?.status || ''}
+                                </div>
+                            </Html>
+                        )}
                     </group>
                 </>
             )}
@@ -336,7 +409,20 @@ export default function WarehouseScene({ live }) {
                         tick={soilValueText}
                         rangeMin={1500}
                         rangeMax={3500}
+                        status={soilState?.status}
+                        severity={soilState?.severity}
+                        message={soilState?.message}
                     />
+                    {soilAlert && (
+                        <Html position={[0, 0.55, 0.12]} center distanceFactor={12}>
+                            <div
+                                className={`rounded-full border px-1 py-0.4 font-semibold uppercase tracking-wide ${severityClassMap[soilState?.severity] || severityClassMap.info}`}
+                                style={{ fontSize: 'clamp(5.5px, 0.55vw, 7px)' }}
+                            >
+                                Soil {soilState?.status || ''}
+                            </div>
+                        </Html>
+                    )}
                 </group>
             )}
 

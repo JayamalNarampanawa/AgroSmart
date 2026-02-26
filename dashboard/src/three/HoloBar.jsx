@@ -17,6 +17,10 @@ export default function HoloBar({
     idealValue = null,
     rangeMin = 0,
     rangeMax = 1,
+    status = null,
+    severity = 'info',
+    message = '',
+    idealUnit = '',
 }) {
     const barRef = useRef()
     const heightRef = useRef(clamp01(normalizedValue))
@@ -28,6 +32,9 @@ export default function HoloBar({
         const denom = Math.max(rangeMax - rangeMin, 1e-6)
         return clamp01((idealValue - rangeMin) / denom)
     }, [idealValue, rangeMin, rangeMax])
+
+    const badgeClass = useMemo(() => severityClasses[severity] || severityClasses.info, [severity])
+    const showStatus = Boolean(status)
 
     useEffect(() => {
         targetRef.current = clamp01(normalizedValue)
@@ -79,15 +86,32 @@ export default function HoloBar({
             )}
 
             <Html key={`${label}-${tick}`} position={[0, 4.0, 0]} center distanceFactor={8} style={labelStyle}>
-                <div className="text-center">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/90">{label}</div>
-                    <div className="mt-1 text-lg font-bold text-white drop-shadow" aria-label={`${label} value`}>
-                        {valueText}{unit && <span className="text-slate-300 text-xs ml-1">{unit}</span>}
+                <div className="text-center" style={{ fontSize: 'clamp(10px, 1.1vw, 14px)' }}>
+                    <div className="font-semibold uppercase tracking-[0.2em] text-cyan-200/90" style={{ fontSize: 'clamp(9px, 0.95vw, 12px)' }}>{label}</div>
+                    <div className="mt-1 font-bold text-white drop-shadow" aria-label={`${label} value`} style={{ fontSize: 'clamp(13px, 1.8vw, 18px)' }}>
+                        {valueText}{unit && <span className="text-slate-300 ml-1" style={{ fontSize: 'clamp(10px, 1vw, 12px)' }}>{unit}</span>}
                     </div>
-                    {isKey && <div className="mt-1 inline-block rounded-full border border-cyan-300/60 bg-cyan-300/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-cyan-100">Key factor</div>}
-                    {idealNorm !== null && <div className="mt-1 text-[10px] text-amber-200">Ideal marker</div>}
+                    {isKey && <div className="mt-1 inline-block rounded-full border border-cyan-300/60 bg-cyan-300/15 px-2 py-0.5 uppercase tracking-wide text-cyan-100" style={{ fontSize: 'clamp(9px, 0.9vw, 11px)' }}>Key factor</div>}
                 </div>
             </Html>
+
+            {(showStatus || idealNorm !== null || message) && (
+                <Html position={[0.95, 4.0, 0]} center distanceFactor={8} style={labelStyle}>
+                    <div className="text-left space-y-1" style={{ maxWidth: 180, fontSize: 'clamp(6px, 0.6vw, 8px)', whiteSpace: 'normal' }}>
+                        {showStatus && (
+                            <div className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold uppercase tracking-wide ${badgeClass}`} style={{ fontSize: 'clamp(6px, 0.6vw, 8px)' }}>
+                                <span>{status}</span>
+                            </div>
+                        )}
+                        {idealNorm !== null && (
+                            <div className="text-amber-200" style={{ fontSize: 'clamp(6px, 0.6vw, 8px)' }}>
+                                Ideal{idealValue !== null && idealValue !== undefined ? `: ${idealValue}${idealUnit ? ` ${idealUnit}` : ''}` : ''}
+                            </div>
+                        )}
+                        {message && <div className="text-slate-200/90" style={{ fontSize: 'clamp(6px, 0.6vw, 8px)' }}>{message}</div>}
+                    </div>
+                </Html>
+            )}
         </group>
     )
 }
@@ -97,4 +121,10 @@ const labelStyle = {
     color: '#e0f2fe',
     fontFamily: 'Inter, system-ui, sans-serif',
     textShadow: '0 0 12px rgba(56, 189, 248, 0.7)',
+}
+
+const severityClasses = {
+    info: 'border-white/10 bg-black/60 text-slate-50',
+    warn: 'border-yellow-400/30 bg-yellow-500/10 text-yellow-100',
+    critical: 'border-red-400/30 bg-red-500/10 text-red-100',
 }

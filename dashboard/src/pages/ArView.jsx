@@ -1,12 +1,26 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { Link } from 'react-router-dom'
 import WarehouseScene from '../components/warehouse/WarehouseScene'
 import useAgroSmartLiveData from '../three/useAgroSmartLiveData'
+import useRecommendationData from '../hooks/useRecommendationData'
+import { cropIdeals } from '../data/cropIdeals'
+import { evaluateEnvironment, normalizeCropKey } from '../utils/environmentStateEngine'
 
 export default function ArView() {
     const { data: liveData = {}, raw = {}, connected, tick, lastUpdated } = useAgroSmartLiveData({ fastMode: true })
+    const recommendation = useRecommendationData()
+
+    const cropKey = useMemo(
+        () => normalizeCropKey(recommendation?.recommendedCrop || recommendation?.bestCrop || recommendation?.crop),
+        [recommendation?.recommendedCrop, recommendation?.bestCrop, recommendation?.crop]
+    )
+
+    const envState = useMemo(
+        () => evaluateEnvironment({ live: liveData, cropKey, ideals: cropIdeals }),
+        [liveData, cropKey]
+    )
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -35,7 +49,7 @@ export default function ArView() {
                 <Canvas shadows camera={{ position: [0.8, 0.55, 1.2], fov: 55 }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
                     <Suspense fallback={null}>
                         <OrbitControls enableDamping dampingFactor={0.08} maxDistance={2.5} minDistance={0.6} />
-                        <WarehouseScene live={liveData} />
+                        <WarehouseScene live={liveData} envState={envState} />
                     </Suspense>
                 </Canvas>
             </div>
