@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo } from 'react'
+import React, { Suspense, useEffect, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { Link } from 'react-router-dom'
@@ -8,9 +8,46 @@ import useRecommendationData from '../hooks/useRecommendationData'
 import { cropIdeals } from '../data/cropIdeals'
 import { evaluateEnvironment, normalizeCropKey } from '../utils/environmentStateEngine'
 import { evaluateAlerts } from '../utils/environmentAlertEngine'
+import useReplayBuffer from '../hooks/useReplayBuffer'
+import useReplayController from '../hooks/useReplayController'
+import ReplayControls from '../components/ReplayControls'
 
 export default function ArView() {
     const { data: liveData = {} } = useAgroSmartLiveData({ fastMode: true })
+    const { buffer, isRecording, clear, pause: pauseRecording, resume: resumeRecording } = useReplayBuffer({
+        source: { ...liveData },
+        throttleMs: 1000,
+        maxPoints: 900,
+        enabled: true,
+    })
+    const {
+        mode,
+        replayIndex,
+        isPlaying,
+        speed,
+        setSpeed,
+        togglePlay,
+        seek,
+        step,
+        goLive,
+        effectiveData,
+        currentSnapshot,
+    } = useReplayController({
+        buffer,
+        liveData,
+        initialMode: 'LIVE',
+        initialSpeed: 1,
+        persistKey: 'agrosmart-replay-ar',
+    })
+
+    useEffect(() => {
+        if (mode === 'REPLAY') pauseRecording()
+        else resumeRecording()
+    }, [mode, pauseRecording, resumeRecording])
+
+    const sensorData = effectiveData || liveData || {}
+    const timelineTs = mode === 'REPLAY' ? currentSnapshot?.ts ?? currentSnapshot?.__ts : liveData?.__ts
+    const liveLabel = liveData?.__ts ? new Date(liveData.__ts).toLocaleTimeString([], { hour12: false }) : null
     const recommendation = useRecommendationData()
 
     const cropKey = useMemo(
@@ -19,18 +56,18 @@ export default function ArView() {
     )
 
     const envState = useMemo(
-        () => evaluateEnvironment({ live: liveData, cropKey, ideals: cropIdeals }),
-        [liveData, cropKey]
+        () => evaluateEnvironment({ live: sensorData, cropKey, ideals: cropIdeals }),
+        [sensorData, cropKey]
     )
 
     const alerts = useMemo(
         () =>
             evaluateAlerts({
-                live: liveData,
+                live: sensorData,
                 cropIdeals,
                 recommendedCrop: recommendation?.crop,
             }),
-        [liveData, recommendation]
+        [sensorData, recommendation]
     )
 
     return (
@@ -56,11 +93,30 @@ export default function ArView() {
                 </div>
             </header>
 
+            <div className="border-b border-white/10 bg-slate-950 px-6 py-4">
+                <ReplayControls
+                    mode={mode}
+                    isPlaying={isPlaying}
+                    speed={speed}
+                    replayIndex={replayIndex}
+                    buffer={buffer}
+                    onPlayPause={togglePlay}
+                    onSeek={seek}
+                    onStep={step}
+                    onSpeedChange={setSpeed}
+                    onClear={clear}
+                    onGoLive={goLive}
+                    isRecording={isRecording}
+                    liveLabel={liveLabel}
+                    timestamp={timelineTs}
+                />
+            </div>
+
             <div className="relative w-full h-[calc(100vh-72px)]">
                 <Canvas shadows camera={{ position: [0.6, 0.4, 0.8], fov: 50 }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
                     <Suspense fallback={null}>
                         <OrbitControls enableDamping dampingFactor={0.08} maxDistance={2} minDistance={0.4} />
-                        <WarehouseScene live={liveData} envState={envState} alerts={alerts} />
+                        <WarehouseScene live={sensorData} envState={envState} alerts={alerts} />
                     </Suspense>
                 </Canvas>
 
