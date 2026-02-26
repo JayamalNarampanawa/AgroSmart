@@ -51,13 +51,10 @@ export default function ReplayControls({
     isRecording = true,
     liveLabel,
     timestamp,
-<<<<<<< HEAD
     replaySource = 'rolling',
     onJumpPumpOn,
     onJumpPumpOff,
     eventMessage,
-=======
->>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
 }) {
     const fileInputRef = useRef(null)
     const currentTs = useMemo(() => timestamp || buffer[replayIndex]?.ts || buffer[replayIndex]?.__ts, [timestamp, buffer, replayIndex])
@@ -77,18 +74,14 @@ export default function ReplayControls({
                 onStep?.(-1)
             } else if (e.key === 'ArrowRight') {
                 onStep?.(1)
-<<<<<<< HEAD
             } else if (e.key === 'n' || e.key === 'N') {
                 onJumpPumpOn?.()
             } else if (e.key === 'm' || e.key === 'M') {
                 onJumpPumpOff?.()
-=======
->>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
             }
         }
         window.addEventListener('keydown', handler)
         return () => window.removeEventListener('keydown', handler)
-<<<<<<< HEAD
     }, [onPlayPause, onGoLive, onStep, onJumpPumpOn, onJumpPumpOff])
 
     const sourceLabel = replaySource === 'firebase' ? 'Firebase' : replaySource === 'import' ? 'Import' : 'Rolling'
@@ -97,9 +90,6 @@ export default function ReplayControls({
         : replaySource === 'import'
             ? 'border-amber-400/60 bg-amber-500/10 text-amber-100'
             : 'border-slate-600 bg-slate-800/60 text-slate-200'
-=======
-    }, [onPlayPause, onGoLive, onStep])
->>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
 
     return (
         <div className="w-full rounded-2xl border border-cyan-400/30 bg-slate-900/70 p-4 shadow-[0_0_28px_rgba(34,211,238,0.18)] backdrop-blur">
@@ -111,13 +101,10 @@ export default function ReplayControls({
                     </span>
                     <span className="text-slate-400">|</span>
                     <span className="text-slate-300">{isRecording ? 'Recording' : 'Paused'}</span>
-<<<<<<< HEAD
                     <span className={`ml-2 inline-flex items-center gap-2 rounded-full px-3 py-1 border ${sourceTone}`}>
                         <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
                         Source: {sourceLabel}
                     </span>
-=======
->>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
                 </div>
                 <div className="flex items-center gap-2 text-[11px] text-slate-300">
                     <span>Buffer</span>
@@ -164,7 +151,6 @@ export default function ReplayControls({
                     >
                         {'+10s >>'}
                     </button>
-<<<<<<< HEAD
                     <button
                         type="button"
                         onClick={onJumpPumpOn}
@@ -181,8 +167,6 @@ export default function ReplayControls({
                     >
                         Next Pump OFF
                     </button>
-=======
->>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
                     <div className="flex items-center gap-2 text-[11px] text-slate-300">
                         <span className="uppercase tracking-[0.12em] text-slate-400">History</span>
                         {historyModes.map((m) => (
@@ -240,12 +224,9 @@ export default function ReplayControls({
                 {importError && (
                     <div className="text-[11px] text-rose-300">{String(importError)}</div>
                 )}
-<<<<<<< HEAD
                 {eventMessage && (
                     <div className="text-[11px] text-amber-200">{eventMessage}</div>
                 )}
-=======
->>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
 
                 <div className="space-y-2">
                     <div className="flex items-center justify-between text-[11px] text-slate-400">
