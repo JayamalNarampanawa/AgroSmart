@@ -7,9 +7,10 @@ import useAgroSmartLiveData from '../three/useAgroSmartLiveData'
 import useRecommendationData from '../hooks/useRecommendationData'
 import { cropIdeals } from '../data/cropIdeals'
 import { evaluateEnvironment, normalizeCropKey } from '../utils/environmentStateEngine'
+import { evaluateAlerts } from '../utils/environmentAlertEngine'
 
 export default function ArView() {
-    const { data: liveData = {}, raw = {}, connected, tick, lastUpdated } = useAgroSmartLiveData({ fastMode: true })
+    const { data: liveData = {} } = useAgroSmartLiveData({ fastMode: true })
     const recommendation = useRecommendationData()
 
     const cropKey = useMemo(
@@ -20,6 +21,16 @@ export default function ArView() {
     const envState = useMemo(
         () => evaluateEnvironment({ live: liveData, cropKey, ideals: cropIdeals }),
         [liveData, cropKey]
+    )
+
+    const alerts = useMemo(
+        () =>
+            evaluateAlerts({
+                live: liveData,
+                cropIdeals,
+                recommendedCrop: recommendation?.crop,
+            }),
+        [liveData, recommendation]
     )
 
     return (
@@ -45,13 +56,52 @@ export default function ArView() {
                 </div>
             </header>
 
-            <div className="relative h-[calc(100vh-72px)]">
-                <Canvas shadows camera={{ position: [0.8, 0.55, 1.2], fov: 55 }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
+            <div className="relative w-full h-[calc(100vh-72px)]">
+                <Canvas shadows camera={{ position: [0.6, 0.4, 0.8], fov: 50 }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
                     <Suspense fallback={null}>
-                        <OrbitControls enableDamping dampingFactor={0.08} maxDistance={2.5} minDistance={0.6} />
-                        <WarehouseScene live={liveData} envState={envState} />
+                        <OrbitControls enableDamping dampingFactor={0.08} maxDistance={2} minDistance={0.4} />
+                        <WarehouseScene live={liveData} envState={envState} alerts={alerts} />
                     </Suspense>
                 </Canvas>
+
+                <div className="absolute top-6 left-6 w-80 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 backdrop-blur">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-200/80">Intelligence Summary</div>
+                    <div className="mt-2 flex items-center justify-between">
+                        <span className="text-slate-300">Crop</span>
+                        <span className="font-semibold text-white">{cropKey || '—'}</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between">
+                        <span className="text-slate-300">Overall</span>
+                        <span className="font-semibold text-white">{envState?.overall?.level || '—'}</span>
+                    </div>
+                    {envState?.overall?.message && <div className="mt-1 text-xs text-slate-300">{envState.overall.message}</div>}
+                    {recommendation?.matchLevel && (
+                        <div className="mt-2 flex items-center justify-between">
+                            <span className="text-slate-300">Match</span>
+                            <span className="font-semibold text-white">{recommendation.matchLevel}</span>
+                        </div>
+                    )}
+                    {recommendation?.bestScore !== undefined && (
+                        <div className="mt-1 flex items-center justify-between text-xs text-slate-300">
+                            <span>Score</span>
+                            <span className="text-white font-semibold">{Math.round(recommendation.bestScore)}</span>
+                        </div>
+                    )}
+
+                    {alerts.length > 0 && (
+                        <div className="mt-3 border-t border-white/10 pt-3">
+                            <div className="mb-2 text-sm font-semibold">Active Alerts</div>
+                            {alerts.map((a, i) => (
+                                <div
+                                    key={i}
+                                    className={a.severity === 'critical' ? 'text-red-400 text-xs' : 'text-yellow-400 text-xs'}
+                                >
+                                    • {a.message}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )
