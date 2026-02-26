@@ -4,6 +4,9 @@
   final double? soilMoisture;
   final double? lightLevel;
   final bool pumpStatus;
+  final double? waterLevelPercent;
+  final double? waterVolume;
+  final double? waterCapacity;
   final DateTime timestamp;
 
   SensorData({
@@ -13,6 +16,9 @@
     required this.lightLevel,
     required this.pumpStatus,
     required this.timestamp,
+    this.waterLevelPercent,
+    this.waterVolume,
+    this.waterCapacity,
   });
 
   static double? _toDouble(dynamic value) {
@@ -36,6 +42,17 @@
     final soilMoisture = _toDouble(data['soilMoisture'] ?? data['SoilMoisture'] ?? data['soil'] ?? data['Soil']);
     final lightLevel = _toDouble(data['lightLevel'] ?? data['LightLevel'] ?? data['light'] ?? data['Light']);
     final pumpStatus = _toBool(data['pumpStatus'] ?? data['pump'] ?? data['PumpStatus'] ?? data['Irrigation'] ?? data['irrigation']);
+    double? waterLevelPercent;
+    double? waterVolume;
+    double? waterCapacity;
+    final water = data['waterLevel'] ?? data['WaterLevel'];
+    if (water is Map) {
+      waterLevelPercent = _toDouble(water['current'] ?? water['percent'] ?? water['percentage']);
+      waterVolume = _toDouble(water['volume']);
+      waterCapacity = _toDouble(water['capacity']);
+    } else {
+      waterLevelPercent = _toDouble(water);
+    }
     final tsRaw = data['timestamp'] ?? data['time'] ?? data['ts'];
     final tsMillis = tsRaw is num ? tsRaw.toInt() : int.tryParse(tsRaw?.toString() ?? '') ?? DateTime.now().millisecondsSinceEpoch;
 
@@ -46,6 +63,9 @@
       lightLevel: lightLevel,
       pumpStatus: pumpStatus,
       timestamp: DateTime.fromMillisecondsSinceEpoch(tsMillis),
+      waterLevelPercent: waterLevelPercent,
+      waterVolume: waterVolume,
+      waterCapacity: waterCapacity,
     );
   }
 }

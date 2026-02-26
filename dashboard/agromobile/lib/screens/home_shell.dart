@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import 'dashboard_screen.dart';
+import 'farm_profile_screen.dart';
 import 'logs_screen.dart';
 import 'settings_screen.dart';
 
@@ -17,6 +18,7 @@ class _HomeShellState extends State<HomeShell> {
   final _screens = const [
     DashboardScreen(),
     LogsScreen(),
+    FarmProfileScreen(),
     SettingsScreen(),
   ];
 
@@ -30,12 +32,15 @@ class _HomeShellState extends State<HomeShell> {
           setState(() => _index = value);
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.list_alt_outlined), label: 'Logs'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'Settings'),
+          NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined), label: 'Home'),
+          NavigationDestination(
+              icon: Icon(Icons.list_alt_outlined), label: 'Logs'),
+          NavigationDestination(icon: Icon(Icons.eco_outlined), label: 'Farm'),
+          NavigationDestination(
+              icon: Icon(Icons.settings_outlined), label: 'Settings'),
         ],
       ),
     );
   }
 }
-

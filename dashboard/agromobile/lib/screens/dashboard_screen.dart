@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../models/sensor_data.dart';
+import '../services/firebase_service.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/notification_button.dart';
 
@@ -10,12 +13,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Mock sensor data
-  double soilMoisture = 65.0;
-  bool irrigationActive = false;
-  double waterLevel = 78.0;
-  String lightIntensity = 'Medium';
-  bool securityActive = true;
+  void _refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                // Simulate data refresh
-                soilMoisture = (soilMoisture + 5) % 100;
-                waterLevel = (waterLevel + 3) % 100;
-              });
-            },
+            onPressed: _refresh,
           ),
           const NotificationButton(),
         ],
@@ -51,190 +43,146 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome Section
-                Text(
-                  'System Status',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Real-time monitoring',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white60,
-                      ),
-                ),
-                const SizedBox(height: 24),
+          child: StreamBuilder<SensorData?>(
+            stream: FirebaseService.instance.currentDataStream(),
+            initialData: FirebaseService.instance.latestSensorData,
+            builder: (context, snapshot) {
+              final data = snapshot.data;
+              final soil = data?.soilMoisture;
+              final humidity = data?.humidity;
+              final light = data?.lightLevel;
+              final pumpOn = data?.pumpStatus ?? false;
+              final temp = data?.temperature;
 
-                // Status Cards Grid
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.1,
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildStatusCard(
-                      'Soil Moisture',
-                      '${soilMoisture.toInt()}%',
-                      Icons.water_drop,
-                      const Color(0xFF00E5FF),
-                      soilMoisture / 100,
-                    ),
-                    _buildStatusCard(
-                      'Water Level',
-                      '${waterLevel.toInt()}%',
-                      Icons.local_drink,
-                      const Color(0xFF00FFC2),
-                      waterLevel / 100,
-                    ),
-                    _buildStatusCard(
-                      'Light Level',
-                      lightIntensity,
-                      Icons.wb_sunny,
-                      const Color(0xFFFFC107),
-                      0.6,
-                    ),
-                    _buildStatusCard(
-                      'Security',
-                      securityActive ? 'Active' : 'Inactive',
-                      Icons.security,
-                      securityActive
-                          ? const Color(0xFF00FFC2)
-                          : const Color(0xFFFF5252),
-                      securityActive ? 1.0 : 0.0,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 32),
-
-                // Quick Actions
-                Text(
-                  'Quick Actions',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
-                ),
-                const SizedBox(height: 16),
-
-                GlassCard(
-                  padding: const EdgeInsets.all(0),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(24),
-                      onTap: () {
-                        setState(() {
-                          irrigationActive = !irrigationActive;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: (irrigationActive
-                                        ? const Color(0xFFFF5252)
-                                        : const Color(0xFF00FFC2))
-                                    .withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
+                    // Welcome Section
+                    Text(
+                      'System Status',
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
                               ),
-                              child: Icon(
-                                irrigationActive
-                                    ? Icons.stop
-                                    : Icons.play_arrow,
-                                color: irrigationActive
-                                    ? const Color(0xFFFF5252)
-                                    : const Color(0xFF00FFC2),
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    irrigationActive
-                                        ? 'Stop Irrigation'
-                                        : 'Start Irrigation',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    irrigationActive
-                                        ? 'System is running'
-                                        : 'Tap to activate',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white.withOpacity(0.6),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.chevron_right,
-                              color: Colors.white.withOpacity(0.4),
-                            ),
-                          ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Live data from Firebase Realtime Database',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white60,
+                          ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    if (snapshot.connectionState == ConnectionState.waiting &&
+                        data == null)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(),
                         ),
                       ),
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 32),
-
-                // System Health Indicators
-                Text(
-                  'System Health',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
+                    if (snapshot.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          'Failed to load live data: ${snapshot.error}',
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
                       ),
-                ),
-                const SizedBox(height: 16),
 
-                GlassCard(
-                  child: Column(
-                    children: [
-                      _buildHealthIndicator('Sensors', true),
-                      const Divider(height: 24, color: Colors.white12),
-                      _buildHealthIndicator('Connectivity', true),
-                      const Divider(height: 24, color: Colors.white12),
-                      _buildHealthIndicator('Power Supply', true),
-                      const Divider(height: 24, color: Colors.white12),
-                      _buildHealthIndicator('Water Pump', irrigationActive),
-                    ],
-                  ),
+                    // Status Cards Grid
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.1,
+                      children: [
+                        _buildStatusCard(
+                          'Temperature',
+                          temp != null ? '${temp.toStringAsFixed(1)}°C' : '--',
+                          Icons.thermostat,
+                          const Color(0xFFFFA726),
+                          _progress(temp, 0, 50),
+                        ),
+                        _buildStatusCard(
+                          'Humidity',
+                          humidity != null
+                              ? '${humidity.toStringAsFixed(1)}%'
+                              : '--',
+                          Icons.water_drop,
+                          const Color(0xFF00E5FF),
+                          _progress(humidity, 0, 100),
+                        ),
+                        _buildStatusCard(
+                          'Soil Moisture',
+                          soil != null ? soil.toStringAsFixed(0) : '--',
+                          Icons.grass,
+                          const Color(0xFF00FFC2),
+                          _progress(soil, 0, 3000),
+                        ),
+                        _buildStatusCard(
+                          'Light Level',
+                          light != null
+                              ? '${light.toStringAsFixed(0)} lux'
+                              : '--',
+                          Icons.wb_sunny,
+                          const Color(0xFFFFC107),
+                          _progress(light, 0, 5000),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // System Health Indicators
+                    Text(
+                      'System Health',
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    GlassCard(
+                      child: Column(
+                        children: [
+                          _buildHealthIndicator('Sensors', data != null),
+                          const Divider(height: 24, color: Colors.white12),
+                          _buildHealthIndicator('Connectivity',
+                              snapshot.connectionState == ConnectionState.active),
+                          const Divider(height: 24, color: Colors.white12),
+                          _buildHealthIndicator('Power Supply', true),
+                          const Divider(height: 24, color: Colors.white12),
+                          _buildHealthIndicator('Water Pump', pumpOn),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
-                const SizedBox(height: 20),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
     );
+  }
+
+  double _progress(double? value, double min, double max) {
+    if (value == null) return 0.0;
+    final clamped = value.clamp(min, max);
+    return (clamped - min) / (max - min);
   }
 
   Widget _buildStatusCard(

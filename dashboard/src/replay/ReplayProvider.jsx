@@ -1,11 +1,18 @@
+<<<<<<< HEAD
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+=======
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
 import useAgroSmartLiveData from '../three/useAgroSmartLiveData'
 import useReplayBuffer from '../hooks/useReplayBuffer'
 import useReplayController from '../hooks/useReplayController'
 import useReplayHistoryLoader from '../hooks/useReplayHistoryLoader'
 
 const ReplayContext = createContext(null)
+<<<<<<< HEAD
 const MAX_POINTS = 900
+=======
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
 
 const toNumberSafe = (v, fallback = 0) => {
     const n = Number(v)
@@ -38,6 +45,7 @@ const mapLiveToRaw = (live = {}) => {
     }
 }
 
+<<<<<<< HEAD
 const finiteOrNull = (v) => {
     const n = Number(v)
     return Number.isFinite(n) ? n : null
@@ -81,14 +89,30 @@ const mergeSnapshotsPreferRicher = (incoming = [], existing = [], cap = MAX_POIN
     const sorted = Array.from(map.values()).sort((a, b) => a.ts - b.ts)
     if (!Number.isFinite(cap) || cap <= 0) return sorted
     return sorted.slice(-cap)
+=======
+const mergeSnapshots = (incoming = [], existing = []) => {
+    const map = new Map()
+    const add = (arr) => {
+        arr.forEach((s) => {
+            if (!s || !Number.isFinite(s.ts)) return
+            map.set(s.ts, s)
+        })
+    }
+    add(existing)
+    add(incoming)
+    return Array.from(map.values()).sort((a, b) => a.ts - b.ts)
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
 }
 
 export function ReplayProvider({ children }) {
     const { data: liveData = {}, tick = 0 } = useAgroSmartLiveData()
     const [importError, setImportError] = useState(null)
+<<<<<<< HEAD
     const [replaySource, setReplaySource] = useState('rolling')
     const [eventMessage, setEventMessage] = useState('')
     const eventTimerRef = useRef(null)
+=======
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
     const liveRaw = useMemo(() => mapLiveToRaw(liveData), [liveData])
     const liveTs = liveData.__ts ?? liveData.ts ?? liveData.timestamp ?? Date.now()
 
@@ -102,7 +126,11 @@ export function ReplayProvider({ children }) {
     } = useReplayBuffer({
         source: { ...liveData, ts: liveTs, __ts: liveTs, __raw: liveRaw },
         throttleMs: 1000,
+<<<<<<< HEAD
         maxPoints: MAX_POINTS,
+=======
+        maxPoints: 900,
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
         enabled: true,
     })
 
@@ -119,7 +147,10 @@ export function ReplayProvider({ children }) {
         enterReplayAtEnd,
         effectiveData,
         currentSnapshot,
+<<<<<<< HEAD
         setIsPlaying,
+=======
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
     } = useReplayController({ buffer, liveData: { ...liveData, __raw: liveRaw } })
 
     const { loadHistory, loading: historyLoading, error: historyErrorRaw } = useReplayHistoryLoader({ limit: 2000 })
@@ -144,6 +175,7 @@ export function ReplayProvider({ children }) {
         if (snapshots.length) enterReplayAtEnd()
     }, [enterReplayAtEnd, setBufferExternal])
 
+<<<<<<< HEAD
     const clearBuffer = useCallback(() => {
         clear()
         setReplaySource('rolling')
@@ -157,6 +189,13 @@ export function ReplayProvider({ children }) {
             : mergeSnapshotsPreferRicher(incoming, [], MAX_POINTS)
         setSnapshots(merged)
         if (merged.length) setReplaySource('firebase')
+=======
+    const loadHistoryAndReplay = useCallback(async ({ mode: loadMode = 'replace' } = {}) => {
+        const incoming = await loadHistory()
+        if (!Array.isArray(incoming)) return []
+        const merged = loadMode === 'append' ? mergeSnapshots(incoming, buffer) : incoming
+        setSnapshots(merged)
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
         return merged
     }, [buffer, loadHistory, setSnapshots])
 
@@ -170,7 +209,11 @@ export function ReplayProvider({ children }) {
         URL.revokeObjectURL(url)
     }, [buffer])
 
+<<<<<<< HEAD
     const importSnapshots = useCallback((snapshots, { mode: importMode = 'replace' } = {}) => {
+=======
+    const importSnapshots = useCallback((snapshots) => {
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
         if (!Array.isArray(snapshots)) throw new Error('Import must be an array')
         const cleaned = snapshots
             .map((s) => {
@@ -200,6 +243,7 @@ export function ReplayProvider({ children }) {
             .sort((a, b) => a.ts - b.ts)
 
         if (!cleaned.length) throw new Error('No valid snapshots found')
+<<<<<<< HEAD
         const merged = importMode === 'append'
             ? mergeSnapshotsPreferRicher(cleaned, buffer, MAX_POINTS)
             : mergeSnapshotsPreferRicher(cleaned, [], MAX_POINTS)
@@ -207,6 +251,11 @@ export function ReplayProvider({ children }) {
         setReplaySource('import')
         return merged
     }, [buffer, setSnapshots])
+=======
+        setSnapshots(cleaned)
+        return cleaned
+    }, [setSnapshots])
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
 
     const handleImport = useCallback(async (snapshots) => {
         try {
@@ -219,6 +268,7 @@ export function ReplayProvider({ children }) {
         }
     }, [importSnapshots])
 
+<<<<<<< HEAD
     const showEventMessage = useCallback((msg) => {
         setEventMessage(msg)
         if (eventTimerRef.current) clearTimeout(eventTimerRef.current)
@@ -269,6 +319,8 @@ export function ReplayProvider({ children }) {
     const jumpNextPumpOn = useCallback(() => jumpToEvent('ON'), [jumpToEvent])
     const jumpNextPumpOff = useCallback(() => jumpToEvent('OFF'), [jumpToEvent])
 
+=======
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
     const value = useMemo(() => ({
         // controller state
         mode,
@@ -281,10 +333,16 @@ export function ReplayProvider({ children }) {
         step,
         goLive,
         enterReplayAtEnd,
+<<<<<<< HEAD
         setIsPlaying,
         // buffer
         buffer,
         clear: clearBuffer,
+=======
+        // buffer
+        buffer,
+        clear,
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
         pause,
         resume,
         isRecording,
@@ -302,11 +360,14 @@ export function ReplayProvider({ children }) {
         exportBuffer,
         importSnapshots: handleImport,
         importError,
+<<<<<<< HEAD
         // sources & events
         replaySource,
         jumpNextPumpOn,
         jumpNextPumpOff,
         eventMessage,
+=======
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
     }), [
         mode,
         replayIndex,
@@ -318,9 +379,14 @@ export function ReplayProvider({ children }) {
         step,
         goLive,
         enterReplayAtEnd,
+<<<<<<< HEAD
         setIsPlaying,
         buffer,
         clearBuffer,
+=======
+        buffer,
+        clear,
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
         pause,
         resume,
         isRecording,
@@ -335,10 +401,13 @@ export function ReplayProvider({ children }) {
         exportBuffer,
         handleImport,
         importError,
+<<<<<<< HEAD
         replaySource,
         jumpNextPumpOn,
         jumpNextPumpOff,
         eventMessage,
+=======
+>>>>>>> dd9fb876adae20b81d5d7c6646bff1e2fdc10951
     ])
 
     return (

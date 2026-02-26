@@ -42,7 +42,7 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
     setState(() {
       isRecording = !isRecording;
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(isRecording ? 'Recording started' : 'Recording stopped'),
@@ -142,7 +142,7 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
                               ),
                             ),
                           ),
-                          
+
                           // Recording indicator
                           if (isRecording)
                             Positioned(
@@ -178,7 +178,7 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
                                 ),
                               ),
                             ),
-                          
+
                           // Timestamp
                           Positioned(
                             bottom: 8,
@@ -225,9 +225,9 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
                       ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Camera Controls
             Card(
               child: Padding(
@@ -237,19 +237,24 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
                   children: [
                     const Text(
                       'Camera Controls',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    
                     Row(
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: isConnected ? _toggleRecording : null,
-                            icon: Icon(isRecording ? Icons.stop : Icons.fiber_manual_record),
-                            label: Text(isRecording ? 'Stop Recording' : 'Start Recording'),
+                            icon: Icon(isRecording
+                                ? Icons.stop
+                                : Icons.fiber_manual_record),
+                            label: Text(isRecording
+                                ? 'Stop Recording'
+                                : 'Start Recording'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isRecording ? Colors.red : Colors.green,
+                              backgroundColor:
+                                  isRecording ? Colors.red : Colors.green,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
@@ -274,9 +279,9 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Camera Information
             Card(
               child: Padding(
@@ -286,23 +291,24 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
                   children: [
                     const Text(
                       'Camera Information',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     _buildInfoRow('Camera Model', 'AgriCam Pro 4K'),
                     _buildInfoRow('Resolution', '1920x1080'),
                     _buildInfoRow('Frame Rate', '30 FPS'),
                     _buildInfoRow('Location', 'Field Center - 3m Height'),
-                    _buildInfoRow('Connection', cameraStatus, 
+                    _buildInfoRow('Connection', cameraStatus,
                         color: isConnected ? Colors.green : Colors.red),
                     _buildInfoRow('Storage', '2.3 GB / 32 GB'),
                   ],
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Recent Recordings
             Card(
               child: Padding(
@@ -312,12 +318,16 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
                   children: [
                     const Text(
                       'Recent Recordings',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    _buildRecordingItem('Morning_Inspection_2024.mp4', '2 hours ago', '45 MB'),
-                    _buildRecordingItem('Irrigation_Session_2024.mp4', '1 day ago', '128 MB'),
-                    _buildRecordingItem('Weekly_Growth_2024.mp4', '3 days ago', '256 MB'),
+                    _buildRecordingItem(
+                        'Morning_Inspection_2024.mp4', '2 hours ago', '45 MB'),
+                    _buildRecordingItem(
+                        'Irrigation_Session_2024.mp4', '1 day ago', '128 MB'),
+                    _buildRecordingItem(
+                        'Weekly_Growth_2024.mp4', '3 days ago', '256 MB'),
                   ],
                 ),
               ),
@@ -363,7 +373,7 @@ class _CameraFeedScreenState extends State<CameraFeedScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
                 Text(
-                  '$time â€¢ $size',
+                  '$time \u2022 $size',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[400],

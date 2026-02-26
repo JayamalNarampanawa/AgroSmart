@@ -5,16 +5,15 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../services/auth_service.dart';
 import 'analytics_screen.dart';
-import 'camera_feed_screen.dart';
 import 'dashboard_screen.dart';
 import 'irrigation_control_screen.dart';
 import 'light_detector_screen.dart';
 import 'login_screen.dart';
 import 'notifications_screen.dart';
+import 'npk_recommendation_screen.dart';
 import 'security_alarm_screen.dart';
 import 'settings_screen.dart';
 import 'soil_moisture_screen.dart';
-import 'water_level_screen.dart';
 import 'weather_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -32,28 +31,39 @@ class _MainNavigationState extends State<MainNavigation> {
     DashboardScreen(),
     SoilMoistureScreen(),
     IrrigationControlScreen(),
-    WaterLevelScreen(),
     LightDetectorScreen(),
-    CameraFeedScreen(),
     SecurityAlarmScreen(),
     AnalyticsScreen(),
     WeatherScreen(),
+    NpkRecommendationScreen(),
     NotificationsScreen(),
     SettingsScreen(),
   ];
 
   final List<NavigationItem> _navigationItems = [
-    NavigationItem(icon: Icons.dashboard_rounded, label: 'Dashboard', color: Colors.blue),
-    NavigationItem(icon: Icons.water_drop, label: 'Soil Moisture', color: Colors.brown),
+    NavigationItem(
+        icon: Icons.dashboard_rounded, label: 'Dashboard', color: Colors.blue),
+    NavigationItem(
+        icon: Icons.water_drop, label: 'Soil Moisture', color: Colors.brown),
     NavigationItem(icon: Icons.water, label: 'Irrigation', color: Colors.cyan),
-    NavigationItem(icon: Icons.local_drink, label: 'Water Level', color: Colors.blue),
-    NavigationItem(icon: Icons.wb_sunny, label: 'Light Detector', color: Colors.orange),
-    NavigationItem(icon: Icons.camera_alt, label: 'Camera Feed', color: Colors.purple),
-    NavigationItem(icon: Icons.security, label: 'Security Alarm', color: Colors.red),
-    NavigationItem(icon: Icons.analytics, label: 'Analytics', color: Colors.green),
-    NavigationItem(icon: Icons.cloud, label: 'Weather', color: Colors.lightBlue),
-    NavigationItem(icon: Icons.notifications, label: 'Notifications', color: const Color(0xFF00E5FF)),
-    NavigationItem(icon: Icons.settings, label: 'Settings', color: const Color(0xFF00FFC2)),
+    NavigationItem(
+        icon: Icons.wb_sunny, label: 'Light Detector', color: Colors.orange),
+    NavigationItem(
+        icon: Icons.security, label: 'Security Alarm', color: Colors.red),
+    NavigationItem(
+        icon: Icons.analytics, label: 'Analytics', color: Colors.green),
+    NavigationItem(
+        icon: Icons.cloud, label: 'Weather', color: Colors.lightBlue),
+    NavigationItem(
+        icon: Icons.eco, label: 'Crop Advisor', color: const Color(0xFF66BB6A)),
+    NavigationItem(
+        icon: Icons.notifications,
+        label: 'Notifications',
+        color: const Color(0xFF00E5FF)),
+    NavigationItem(
+        icon: Icons.settings,
+        label: 'Settings',
+        color: const Color(0xFF00FFC2)),
   ];
 
   void _selectIndex(int index) {
@@ -98,7 +108,8 @@ class _MainNavigationState extends State<MainNavigation> {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white10),
                   ),
-                  child: const Icon(Icons.menu, color: Color(0xFF00FFC2), size: 20),
+                  child: const Icon(Icons.menu,
+                      color: Color(0xFF00FFC2), size: 20),
                 ),
               ),
             ),
@@ -149,7 +160,8 @@ class _AppDrawer extends StatelessWidget {
                       item.label,
                       style: GoogleFonts.inter(
                         color: isSelected ? Colors.white : Colors.white70,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
                       ),
                     ),
                     shape: RoundedRectangleBorder(

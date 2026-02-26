@@ -1,614 +1,409 @@
-﻿import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import '../services/api_service.dart';
+import 'dart:math' as math;
 
-class AnalyticsScreen extends StatefulWidget {
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../models/sensor_data.dart';
+import '../services/firebase_service.dart';
+import '../widgets/glass_card.dart';
+
+class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({super.key});
-
-  @override
-  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
-}
-
-class _AnalyticsScreenState extends State<AnalyticsScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
-  AnalyticsData? analyticsData;
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _loadAnalyticsData();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadAnalyticsData() async {
-    try {
-      final data = await ApiService().getAnalyticsData();
-      if (!mounted) return;
-      setState(() {
-        analyticsData = data;
-        isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading analytics: $e')),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(
-          'Analytics Dashboard',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-        ),
+        title: const Text('Analytics'),
         centerTitle: true,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.water_drop), text: 'Water Usage'),
-            Tab(icon: Icon(Icons.trending_up), text: 'Growth'),
-            Tab(icon: Icon(Icons.analytics), text: 'Performance'),
-          ],
-        ),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildWaterUsageTab(),
-                _buildGrowthTab(),
-                _buildPerformanceTab(),
-              ],
-            ),
-    );
-  }
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF050A14),
+              Color(0xFF0B1221),
+              Color(0xFF050A14),
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: StreamBuilder<List<SensorData>>(
+            stream: FirebaseService.instance.historyStream(limit: 50),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-  Widget _buildWaterUsageTab() {
-    return AnimationLimiter(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: AnimationConfiguration.toStaggeredList(
-            duration: const Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              horizontalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
-            children: [
-              // Daily Water Usage Chart
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+              final history = snapshot.data ?? [];
+
+              if (history.isEmpty) {
+                return Center(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.water_drop,
-                              color: Colors.blue,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Daily Water Usage',
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 250,
-                        child: SfCartesianChart(
-                          primaryXAxis: const CategoryAxis(),
-                          primaryYAxis: const NumericAxis(
-                            title: AxisTitle(text: 'Liters'),
-                          ),
-                          series: <CartesianSeries>[
-                            ColumnSeries<UsageData, String>(
-                              dataSource: analyticsData?.dailyWaterUsage ?? [],
-                              xValueMapper: (UsageData data, _) =>
-                                  data.date.split('-').last,
-                              yValueMapper: (UsageData data, _) => data.usage,
-                              color: Colors.blue,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(4),
-                                topRight: Radius.circular(4),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Water Usage Stats
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      'Total This Week',
-                      '${_calculateTotalUsage()} L',
-                      Icons.water,
-                      Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
-                      'Average Daily',
-                      '${_calculateAverageUsage()} L',
-                      Icons.analytics,
-                      Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Efficiency Gauge
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
+                      Icon(Icons.analytics_outlined,
+                          size: 64, color: Colors.white.withOpacity(0.3)),
+                      const SizedBox(height: 16),
                       Text(
-                        'Water Efficiency',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 200,
-                        child: SfCircularChart(
-                          series: <CircularSeries>[
-                            DoughnutSeries<ChartData, String>(
-                              dataSource: [
-                                ChartData(
-                                    'Efficient',
-                                    analyticsData?.efficiency ?? 0,
-                                    Colors.green),
-                                ChartData(
-                                    'Waste',
-                                    100 - (analyticsData?.efficiency ?? 0),
-                                    Colors.red),
-                              ],
-                              xValueMapper: (ChartData data, _) =>
-                                  data.category,
-                              yValueMapper: (ChartData data, _) => data.value,
-                              pointColorMapper: (ChartData data, _) =>
-                                  data.color,
-                              innerRadius: '60%',
-                              dataLabelSettings: const DataLabelSettings(
-                                isVisible: true,
-                                labelPosition: ChartDataLabelPosition.outside,
-                              ),
-                            ),
-                          ],
-                          annotations: <CircularChartAnnotation>[
-                            CircularChartAnnotation(
-                              widget: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '${analyticsData?.efficiency.toInt() ?? 0}%',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Efficient',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                        'No history data yet',
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.5), fontSize: 16),
                       ),
                     ],
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+                );
+              }
 
-  Widget _buildGrowthTab() {
-    return AnimationLimiter(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: AnimationConfiguration.toStaggeredList(
-            duration: const Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              horizontalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
-            children: [
-              // Growth Chart
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.trending_up,
-                              color: Colors.green,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Weekly Growth Rate',
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 250,
-                        child: SfCartesianChart(
-                          primaryXAxis: const CategoryAxis(),
-                          primaryYAxis: const NumericAxis(
-                            title: AxisTitle(text: 'Growth (cm)'),
-                          ),
-                          series: <CartesianSeries>[
-                            SplineAreaSeries<GrowthData, String>(
-                              dataSource: analyticsData?.weeklyGrowth ?? [],
-                              xValueMapper: (GrowthData data, _) =>
-                                  data.date.split('-').last,
-                              yValueMapper: (GrowthData data, _) => data.growth,
-                              color: Colors.green.withValues(alpha: 0.3),
-                              borderColor: Colors.green,
-                              borderWidth: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Summary Stats
+                    _SummaryRow(history: history),
+                    const SizedBox(height: 24),
 
-              // Growth Stats
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      'Total Growth',
-                      '${_calculateTotalGrowth()} cm',
-                      Icons.height,
-                      Colors.green,
+                    // Temperature Chart
+                    _SectionTitle(title: 'Temperature'),
+                    const SizedBox(height: 12),
+                    _TrendChart(
+                      history: history,
+                      getValue: (d) => d.temperature,
+                      color: const Color(0xFFFFA726),
+                      unit: '\u00B0C',
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatCard(
-                      'Growth Rate',
-                      '${_calculateGrowthRate()} cm/day',
-                      Icons.speed,
-                      Colors.orange,
+                    const SizedBox(height: 24),
+
+                    // Humidity Chart
+                    _SectionTitle(title: 'Humidity'),
+                    const SizedBox(height: 12),
+                    _TrendChart(
+                      history: history,
+                      getValue: (d) => d.humidity,
+                      color: const Color(0xFF00E5FF),
+                      unit: '%',
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(height: 24),
+
+                    // Soil Moisture Chart
+                    _SectionTitle(title: 'Soil Moisture'),
+                    const SizedBox(height: 12),
+                    _TrendChart(
+                      history: history,
+                      getValue: (d) => d.soilMoisture,
+                      color: const Color(0xFF00FFC2),
+                      unit: '',
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildPerformanceTab() {
-    return AnimationLimiter(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: AnimationConfiguration.toStaggeredList(
-            duration: const Duration(milliseconds: 375),
-            childAnimationBuilder: (widget) => SlideAnimation(
-              horizontalOffset: 50.0,
-              child: FadeInAnimation(child: widget),
-            ),
-            children: [
-              // Performance Overview
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'System Performance',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildPerformanceMetric('Water Efficiency',
-                          analyticsData?.efficiency ?? 0, Colors.blue),
-                      _buildPerformanceMetric(
-                          'Growth Rate', 85.0, Colors.green),
-                      _buildPerformanceMetric(
-                          'System Uptime', 98.5, Colors.orange),
-                      _buildPerformanceMetric(
-                          'Energy Efficiency', 92.0, Colors.purple),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+// ── Summary row ──────────────────────────────────────────────────────────────
 
-              // Performance Grid
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _buildPerformanceCard(
-                    'Irrigation Cycles',
-                    '24',
-                    'This Week',
-                    Icons.water,
-                    Colors.blue,
-                  ),
-                  _buildPerformanceCard(
-                    'Alerts Resolved',
-                    '12',
-                    'This Month',
-                    Icons.check_circle,
-                    Colors.green,
-                  ),
-                  _buildPerformanceCard(
-                    'Energy Saved',
-                    '15%',
-                    'vs Last Month',
-                    Icons.energy_savings_leaf,
-                    Colors.orange,
-                  ),
-                  _buildPerformanceCard(
-                    'Yield Increase',
-                    '8%',
-                    'vs Last Season',
-                    Icons.trending_up,
-                    Colors.purple,
-                  ),
-                ],
-              ),
-            ],
+class _SummaryRow extends StatelessWidget {
+  final List<SensorData> history;
+  const _SummaryRow({required this.history});
+
+  @override
+  Widget build(BuildContext context) {
+    final temps = history.where((d) => d.temperature != null).toList();
+    final humids = history.where((d) => d.humidity != null).toList();
+    final soils = history.where((d) => d.soilMoisture != null).toList();
+
+    final avgTemp = temps.isEmpty
+        ? '--'
+        : (temps.fold<double>(0, (s, d) => s + d.temperature!) / temps.length)
+            .toStringAsFixed(1);
+    final avgHumid = humids.isEmpty
+        ? '--'
+        : (humids.fold<double>(0, (s, d) => s + d.humidity!) / humids.length)
+            .toStringAsFixed(1);
+    final avgSoil = soils.isEmpty
+        ? '--'
+        : (soils.fold<double>(0, (s, d) => s + d.soilMoisture!) / soils.length)
+            .toStringAsFixed(0);
+
+    return Row(
+      children: [
+        Expanded(
+          child: _StatCard(
+            label: 'Avg Temp',
+            value: '$avgTemp\u00B0',
+            icon: Icons.thermostat,
+            color: const Color(0xFFFFA726),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-      String title, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: GoogleFonts.inter(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            label: 'Avg Humidity',
+            value: '$avgHumid%',
+            icon: Icons.water_drop,
+            color: const Color(0xFF00E5FF),
+          ),
         ),
-      ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            label: 'Avg Soil',
+            value: avgSoil,
+            icon: Icons.grass,
+            color: const Color(0xFF00FFC2),
+          ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildPerformanceMetric(String label, double value, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-              ),
-              Text(
-                '${value.toInt()}%',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                  color: color, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            value: value / 100,
-            backgroundColor: Colors.grey[300],
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white54, fontSize: 10),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildPerformanceCard(
-    String title,
-    String value,
-    String subtitle,
-    IconData icon,
-    Color color,
-  ) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: GoogleFonts.inter(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              subtitle,
-              style: GoogleFonts.inter(
-                fontSize: 10,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+// ── Section title ────────────────────────────────────────────────────────────
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.2,
+          ),
+    );
+  }
+}
+
+// ── Trend chart card ─────────────────────────────────────────────────────────
+
+class _TrendChart extends StatelessWidget {
+  final List<SensorData> history;
+  final double? Function(SensorData) getValue;
+  final Color color;
+  final String unit;
+
+  const _TrendChart({
+    required this.history,
+    required this.getValue,
+    required this.color,
+    required this.unit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final points = <FlSpot>[];
+    double minY = double.infinity;
+    double maxY = double.negativeInfinity;
+
+    for (var i = 0; i < history.length; i++) {
+      final v = getValue(history[i]);
+      if (v == null) continue;
+      points.add(FlSpot(i.toDouble(), v));
+      minY = math.min(minY, v);
+      maxY = math.max(maxY, v);
+    }
+
+    if (points.isEmpty) {
+      return GlassCard(
+        child: SizedBox(
+          height: 140,
+          child: Center(
+            child: Text('No data',
+                style: TextStyle(color: Colors.white.withOpacity(0.4))),
+          ),
         ),
+      );
+    }
+
+    // Add some padding to y-axis range
+    final range = maxY - minY;
+    final padY = range < 1 ? 1.0 : range * 0.15;
+
+    // Compute current, min, max for the footer
+    final current = points.last.y;
+    final timeFormat = DateFormat('HH:mm');
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Chart
+          SizedBox(
+            height: 160,
+            child: LineChart(
+              LineChartData(
+                minY: minY - padY,
+                maxY: maxY + padY,
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      interval:
+                          math.max(1, (points.length / 5).floorToDouble()),
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx < 0 || idx >= history.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Text(
+                          timeFormat.format(history[idx].timestamp),
+                          style: const TextStyle(
+                              color: Colors.white30, fontSize: 9),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(
+                              color: Colors.white30, fontSize: 10),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: Colors.white.withOpacity(0.04),
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: points,
+                    isCurved: true,
+                    color: color,
+                    barWidth: 2.5,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          color.withOpacity(0.25),
+                          color.withOpacity(0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Min / Current / Max footer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _MiniStat(
+                  label: 'Min',
+                  value: '${minY.toStringAsFixed(1)}$unit',
+                  color: Colors.white54),
+              _MiniStat(
+                  label: 'Current',
+                  value: '${current.toStringAsFixed(1)}$unit',
+                  color: color),
+              _MiniStat(
+                  label: 'Max',
+                  value: '${maxY.toStringAsFixed(1)}$unit',
+                  color: Colors.white54),
+            ],
+          ),
+        ],
       ),
     );
   }
-
-  double _calculateTotalUsage() {
-    final usage = analyticsData?.dailyWaterUsage;
-    if (usage == null || usage.isEmpty) return 0.0;
-
-    var total = 0.0;
-    for (final item in usage) {
-      total += item.usage;
-    }
-    return total;
-  }
-
-  double _calculateAverageUsage() {
-    final total = _calculateTotalUsage();
-    final count = analyticsData?.dailyWaterUsage.length ?? 1;
-    return total / count;
-  }
-
-  double _calculateTotalGrowth() {
-    final growth = analyticsData?.weeklyGrowth;
-    if (growth == null || growth.isEmpty) return 0.0;
-
-    var total = 0.0;
-    for (final item in growth) {
-      total += item.growth;
-    }
-    return total;
-  }
-
-  double _calculateGrowthRate() {
-    final total = _calculateTotalGrowth();
-    final days = analyticsData?.weeklyGrowth.length ?? 1;
-    return total / days;
-  }
 }
 
-class ChartData {
-  final String category;
-  final double value;
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
   final Color color;
+  const _MiniStat(
+      {required this.label, required this.value, required this.color});
 
-  ChartData(this.category, this.value, this.color);
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value,
+            style: TextStyle(
+                color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+        Text(label,
+            style: const TextStyle(color: Colors.white38, fontSize: 10)),
+      ],
+    );
+  }
 }
-

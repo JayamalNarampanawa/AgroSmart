@@ -21,26 +21,29 @@ class _NotificationPanelState extends State<NotificationPanel> {
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.centerRight,
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.85,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0B1221),
-              Color(0xFF050A14),
-            ],
+      child: Material(
+        type: MaterialType.transparency,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.85,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0B1221),
+                Color(0xFF050A14),
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildFilterBar(),
-              Expanded(child: _buildNotificationList()),
-            ],
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                _buildFilterBar(),
+                Expanded(child: _buildNotificationList()),
+              ],
+            ),
           ),
         ),
       ),
@@ -157,7 +160,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
           GlassCard(
             padding: const EdgeInsets.all(8),
             onTap: () {
-              NotificationService.instance.clearRead();
+              NotificationService.instance.clearAll();
             },
             child: Icon(
               Icons.delete_sweep,
