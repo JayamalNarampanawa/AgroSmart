@@ -19,10 +19,10 @@ createRoot(document.getElementById('root')).render(
 )
 
 // persistent theme: respect localStorage 'theme' or default to dark
-try{
+try {
   const stored = localStorage.getItem('theme')
-  if(stored === 'light') document.documentElement.classList.remove('dark')
+  if (stored === 'light') document.documentElement.classList.remove('dark')
   else document.documentElement.classList.add('dark')
-}catch(e){
-  try{ document.documentElement.classList.add('dark') }catch(e){}
+} catch (e) {
+  try { document.documentElement.classList.add('dark') } catch (e) { }
 }

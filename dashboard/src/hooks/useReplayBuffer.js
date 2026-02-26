@@ -60,7 +60,11 @@ export default function useReplayBuffer({
     const trimmed = Array.isArray(snapshots) ? snapshots.filter(Boolean) : [];
     const capped = trimmed.slice(-clamp(maxPoints, 1, maxPoints));
     setBuffer(capped);
-    lastTsRef.current = capped.length ? capped[capped.length - 1]?.ts ?? capped[capped.length - 1]?.__ts ?? null : null;
+    lastTsRef.current = capped.length
+      ? (capped[capped.length - 1]?.ts ??
+        capped[capped.length - 1]?.__ts ??
+        null)
+      : null;
   };
 
   return {
