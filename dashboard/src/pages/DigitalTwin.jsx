@@ -574,7 +574,7 @@ export default function DigitalTwin() {
               )}
             </div>
 
-            <div className={`${presentationHighlight === 'timeline' ? 'ring-2 ring-emerald-400/70 shadow-[0_0_30px_rgba(16,185,129,0.25)] scale-[1.005]' : ''} transition rounded-2xl`}> 
+            <div className={`${presentationHighlight === 'timeline' ? 'ring-2 ring-emerald-400/70 shadow-[0_0_30px_rgba(16,185,129,0.25)] scale-[1.005]' : ''} transition rounded-2xl`}>
               <ReplayControls
                 mode={mode}
                 isPlaying={isPlaying}
@@ -729,7 +729,7 @@ export default function DigitalTwin() {
 
 function MetricCard({ label, value, stateLabel, tone = 'text-slate-200 border-slate-500/40 bg-slate-500/10' }) {
   return (
-    <div className={`rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-lg shadow-sky-500/5 backdrop-blur`}> 
+    <div className={`rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-lg shadow-sky-500/5 backdrop-blur`}>
       <div className="text-[11px] uppercase tracking-[0.2em] text-slate-300">{label}</div>
       <div className="mt-1 flex items-baseline gap-2 text-xl font-semibold text-white">
         <span>{value}</span>
