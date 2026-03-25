@@ -13,7 +13,7 @@ import TwinInsightPanel from './TwinInsightPanel'
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
 
-export default function FarmScene({ data = {}, normalized = {}, irrigationOn = false, tick = 0, debugMode = false, labelsEnabled = false, recommendation = null, mlResult = null }) {
+export default function FarmScene({ data = {}, normalized = {}, irrigationOn = false, tick = 0, debugMode = false, labelsEnabled = false, recommendation = null, mlResult = null, cameraTarget = null }) {
     const {
         temperature = 24,
         humidity = 60,
@@ -85,7 +85,7 @@ export default function FarmScene({ data = {}, normalized = {}, irrigationOn = f
 
     return (
         <Selection>
-            <CinematicCamera focus={[0, 0.6, 0]} radius={6.5} height={2.4} sway={0.18} speed={0.05} tick={tick} />
+            <CinematicCamera focus={[0, 0.6, 0]} radius={6.5} height={2.4} sway={0.18} speed={0.05} tick={tick} target={cameraTarget} />
 
             <color attach="background" args={[targetBackground]} />
             {!debugMode && <fog attach="fog" args={[targetFog, 8, 20]} />}

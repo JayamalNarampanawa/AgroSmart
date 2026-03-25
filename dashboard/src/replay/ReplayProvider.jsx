@@ -84,7 +84,16 @@ const mergeSnapshotsPreferRicher = (incoming = [], existing = [], cap = MAX_POIN
 }
 
 export function ReplayProvider({ children }) {
-    const { data: liveData = {}, tick = 0 } = useAgroSmartLiveData()
+    const {
+        data: liveData = {},
+        tick = 0,
+        connected: liveConnected = false,
+        error: liveError = null,
+        normalized: liveNormalized = {},
+        states: liveStates = {},
+        irrigationOn: liveIrrigationOn = false,
+        lastUpdated: liveLastUpdated = null,
+    } = useAgroSmartLiveData()
     const [importError, setImportError] = useState(null)
     const [replaySource, setReplaySource] = useState('rolling')
     const [eventMessage, setEventMessage] = useState('')
@@ -299,6 +308,13 @@ export function ReplayProvider({ children }) {
         jumpNextPumpOn,
         jumpNextPumpOff,
         eventMessage,
+        liveData,
+        liveConnected,
+        liveError,
+        liveNormalized,
+        liveStates,
+        liveIrrigationOn,
+        liveLastUpdated,
     }), [
         mode,
         replayIndex,
@@ -331,6 +347,13 @@ export function ReplayProvider({ children }) {
         jumpNextPumpOn,
         jumpNextPumpOff,
         eventMessage,
+        liveData,
+        liveConnected,
+        liveError,
+        liveNormalized,
+        liveStates,
+        liveIrrigationOn,
+        liveLastUpdated,
     ])
 
     return (

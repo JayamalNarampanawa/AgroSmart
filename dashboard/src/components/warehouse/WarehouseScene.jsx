@@ -7,6 +7,10 @@ import HoloBar from '../../three/HoloBar'
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v))
 const normalize = (v, min, max) => (v - min) / (max - min)
+const normalizeClamped = (v, min, max) => clamp01(normalize(v, min, max))
+
+// Soil moisture helper (capacitive ADC: lower ~= wetter, higher ~= drier). Invert here if your sensor is wired differently.
+const normalizeSoilAdcToDryness = (v, min, max) => normalizeClamped(v, min, max)
 
 const RANGES = {
     soilMoisture: { min: 1500, max: 3500 },
@@ -44,16 +48,22 @@ export default function WarehouseScene({ live, envState, alerts = [] }) {
     const hasSoilAlert = useMemo(() => alerts?.some((a) => a.type === 'soil'), [alerts])
     const hasTempAlert = useMemo(() => alerts?.some((a) => a.type === 'temperature'), [alerts])
 
-    const soilT = useMemo(() => clamp01(normalize(soilMoisture, RANGES.soilMoisture.min, RANGES.soilMoisture.max)), [soilMoisture])
+    const soilDryness = useMemo(() => normalizeSoilAdcToDryness(soilMoisture, RANGES.soilMoisture.min, RANGES.soilMoisture.max), [soilMoisture])
+    const soilWetness = useMemo(() => 1 - soilDryness, [soilDryness])
+    const soilT = soilDryness
     const lightT = useMemo(() => clamp01(normalize(lightLevel, RANGES.lightLevel.min, RANGES.lightLevel.max)), [lightLevel])
     const humidityT = useMemo(() => clamp01(normalize(humidity, RANGES.humidity.min, RANGES.humidity.max)), [humidity])
 
-    const wetMix = useMemo(() => 1 - soilT, [soilT])
+    const drySoilColor = useMemo(() => new THREE.Color('#7b553c'), [])
+    const wetSoilColor = useMemo(() => new THREE.Color('#243f2f'), [])
+    const mistColorLow = useMemo(() => new THREE.Color('#b7e4ff'), [])
+    const mistColorHigh = useMemo(() => new THREE.Color('#7cc5ff'), [])
+    const irrigationColorDry = useMemo(() => new THREE.Color('#bde0fe'), [])
+    const irrigationColorWet = useMemo(() => new THREE.Color('#38bdf8'), [])
+
     const soilColor = useMemo(() => {
-        const dry = new THREE.Color('#5c3b27')
-        const wet = new THREE.Color('#2f5f42')
-        return lerpColor(dry, wet, wetMix)
-    }, [wetMix])
+        return lerpColor(drySoilColor, wetSoilColor, soilWetness)
+    }, [soilWetness, drySoilColor, wetSoilColor])
 
     const bgColor = useMemo(() => {
         const dark = new THREE.Color('#050913')
@@ -77,17 +87,12 @@ export default function WarehouseScene({ live, envState, alerts = [] }) {
     const dirIntensity = useMemo(() => 0.6 + lightT * 1.8, [lightT])
     const humidityAlert = humidityState && (humidityState.severity === 'warn' || humidityState.severity === 'critical')
     const humidityBoost = humidityAlert ? (humidityState.severity === 'critical' ? 0.08 : 0.04) : 0
-    const mistOpacity = useMemo(() => 0.03 + humidityT * 0.22 + humidityBoost, [humidityT, humidityBoost])
 
     const { camera } = useThree()
-    const sprayRef = useRef()
     const soilMatRef = useRef()
-    const mistMatRef = useRef()
     const sunLightRef = useRef()
     const sunOrbMatRef = useRef()
     const ambientRef = useRef()
-    const shimmerMatRef = useRef()
-    const shimmerRef = useRef()
     const soilHighlightRef = useRef()
     const sunOrbRef = useRef()
     const ldrBarRef = useRef()
@@ -96,30 +101,35 @@ export default function WarehouseScene({ live, envState, alerts = [] }) {
     const soilBarRef = useRef()
     const pumpButtonRef = useRef()
     const pumpPanelRef = useRef()
+    const mistPlanesRef = useRef([])
+    const irrigationStripRefs = useRef([])
+    const irrigationMatRefs = useRef([])
+    const soilWetnessRef = useRef(soilWetness)
+    const humidityVisRef = useRef(humidityT)
+    const irrigationStrengthRef = useRef(irrigationStatus ? 1 : 0)
     const ldrVis = useRef(0)
     const humVis = useRef(0)
     const soilVis = useRef(0)
     const pumpVis = useRef(0)
 
     useFrame(({ clock }) => {
-        // Animate irrigation spray opacity when active
-        if (sprayRef.current && irrigationStatus) {
-            const s = 1 + Math.sin(clock.elapsedTime * 3) * 0.08
-            const o = 0.35 + Math.sin(clock.elapsedTime * 4) * 0.25
-            sprayRef.current.scale.set(0.6 * s, 1.05 * s, 0.6 * s)
-            sprayRef.current.material.opacity = clamp01(o)
-        }
+        const time = clock.elapsedTime
+
+        // Smooth targets for sensor-driven visuals
+        soilWetnessRef.current = THREE.MathUtils.lerp(soilWetnessRef.current, soilWetness, 0.08)
+        humidityVisRef.current = THREE.MathUtils.lerp(humidityVisRef.current, clamp01(humidityT + humidityBoost), 0.07)
+        irrigationStrengthRef.current = THREE.MathUtils.lerp(irrigationStrengthRef.current, irrigationStatus ? 1 : 0, 0.12)
 
         const soilAlert = soilState && (soilState.severity === 'warn' || soilState.severity === 'critical')
         if (soilHighlightRef.current) {
             const base = soilAlert ? 0.08 : 0
-            const pulse = soilAlert ? 0.05 * Math.sin(clock.elapsedTime * 2.4) : 0
+            const pulse = soilAlert ? 0.05 * Math.sin(time * 2.4) : 0
             soilHighlightRef.current.material.opacity = clamp01(base + pulse)
         }
 
         const lightAlert = lightState && (lightState.severity === 'warn' || lightState.severity === 'critical')
         if (sunOrbMatRef.current) {
-            const pulse = lightAlert ? 0.05 * Math.sin(clock.elapsedTime * 3.2) : 0
+            const pulse = lightAlert ? 0.05 * Math.sin(time * 3.2) : 0
             const baseIntensity = Math.min(2.4, 0.3 + lightT * 2.2)
             const alertBoost = lightState?.severity === 'critical' ? 0.6 : lightAlert ? 0.3 : 0
             sunOrbMatRef.current.emissiveIntensity = baseIntensity + alertBoost + pulse
@@ -138,34 +148,54 @@ export default function WarehouseScene({ live, envState, alerts = [] }) {
             ambientRef.current.intensity += (target - ambientRef.current.intensity) * 0.08
         }
 
+        // Soil surface: wetter = darker/smoother, drier = lighter/rougher
         if (soilMatRef.current) {
-            const { r, g, b } = soilColor
-            soilMatRef.current.color.setRGB(r, g, b)
-            soilMatRef.current.roughness = 0.65 + (1 - wetMix) * 0.25
-            soilMatRef.current.metalness = 0.03 + wetMix * 0.05
+            const wet = soilWetnessRef.current
+            const color = new THREE.Color().lerpColors(drySoilColor, wetSoilColor, wet)
+            soilMatRef.current.color.copy(color)
+            soilMatRef.current.roughness = THREE.MathUtils.lerp(0.9, 0.46, wet)
+            soilMatRef.current.metalness = THREE.MathUtils.lerp(0.02, 0.08, wet)
+            soilMatRef.current.clearcoat = THREE.MathUtils.lerp(0.02, 0.14, wet)
+            soilMatRef.current.clearcoatRoughness = THREE.MathUtils.lerp(0.36, 0.22, wet)
         }
 
-        if (mistMatRef.current) {
-            const targetOpacity = clamp01(0.04 + humidityT * 0.28)
-            mistMatRef.current.opacity = targetOpacity
-            mistMatRef.current.transparent = true
-            mistMatRef.current.depthWrite = false
-            mistMatRef.current.emissiveIntensity = humidityT > 0.8 ? 0.05 * humidityT : 0
-            mistMatRef.current.color.set('#9ad8ff')
-        }
+        // Humidity-driven mist: subtle animated layers floating above soil
+        mistPlanesRef.current.forEach((plane, idx) => {
+            if (!plane) return
+            const mat = plane.material
+            const strength = humidityVisRef.current
+            const sway = Math.sin(time * 0.35 + idx * 0.8) * 0.02
+            const rise = strength * 0.08 + idx * 0.008
+            plane.position.x = cutCenterX + sway
+            plane.position.y = soilY + 0.016 + rise
+            plane.rotation.z = Math.sin(time * 0.25 + idx) * 0.05
+            const opacityTarget = clamp01(0.015 + strength * 0.38 - idx * 0.04)
+            mat.opacity = opacityTarget
+            mat.transparent = true
+            mat.depthWrite = false
+            mat.emissiveIntensity = 0.04 * strength
+            mat.color.lerpColors(mistColorLow, mistColorHigh, strength)
+            plane.visible = mat.opacity > 0.01
+        })
 
-        if (shimmerMatRef.current && shimmerRef.current) {
-            if (irrigationStatus) {
-                const shimmerOpacity = 0.06 + 0.04 * Math.sin(clock.elapsedTime * 3)
-                const shimmerScale = 1 + 0.008 * Math.sin(clock.elapsedTime * 2)
-                shimmerMatRef.current.opacity = clamp01(shimmerOpacity)
-                shimmerRef.current.scale.set(shimmerScale, shimmerScale, shimmerScale)
-                shimmerRef.current.visible = true
-            } else {
-                shimmerMatRef.current.opacity = 0
-                shimmerRef.current.visible = false
+        // Irrigation overlay: localized ripples that persist while ON
+        irrigationStripRefs.current.forEach((strip, idx) => {
+            if (!strip) return
+            const mat = irrigationMatRefs.current[idx]
+            const strength = irrigationStrengthRef.current
+            const ripple = Math.sin(time * 3 + idx * 0.8) * 0.006
+            const shimmer = Math.sin(time * 1.8 + idx) * 0.01
+            strip.position.y = soilY + 0.003 + ripple
+            strip.position.x = cutCenterX + shimmer
+            const opacityTarget = clamp01(0.02 + strength * 0.32 - idx * 0.05)
+            if (mat) {
+                mat.opacity = opacityTarget
+                mat.emissiveIntensity = 0.18 * strength
+                mat.color.lerpColors(irrigationColorDry, irrigationColorWet, strength)
             }
-        }
+            strip.scale.setScalar(1 + strength * 0.06)
+            strip.visible = opacityTarget > 0.01
+        })
 
         // Visibility easing for holograms
         const lerpVis = (ref, target) => {
@@ -355,11 +385,35 @@ export default function WarehouseScene({ live, envState, alerts = [] }) {
                 <meshStandardMaterial ref={soilMatRef} color={soilColor} roughness={0.95} />
             </mesh>
 
-            {/* irrigation shimmer overlay */}
-            <mesh ref={shimmerRef} position={[cutCenterX, soilY + 0.002, cutCenterZ]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-                <planeGeometry args={[cutWidth * 0.7, cutDepth * 0.7]} />
-                <meshBasicMaterial ref={shimmerMatRef} color="#7dd3fc" transparent opacity={0} depthWrite={false} />
-            </mesh>
+            {/* Irrigation overlay: localized ripples */}
+            <group position={[0, 0, 0]} rotation={[0, 0, 0]}>
+                {[0, 1, 2].map((i) => (
+                    <mesh
+                        key={`irrigation-${i}`}
+                        ref={(el) => {
+                            irrigationStripRefs.current[i] = el
+                        }}
+                        position={[cutCenterX, soilY + 0.003, cutCenterZ + (i - 1) * 0.05]}
+                        rotation={[-Math.PI / 2, 0, 0]}
+                        visible={false}
+                    >
+                        <planeGeometry args={[cutWidth * 0.4, cutDepth * 0.18]} />
+                        <meshStandardMaterial
+                            ref={(mat) => {
+                                irrigationMatRefs.current[i] = mat
+                            }}
+                            color="#7dd3fc"
+                            transparent
+                            opacity={0}
+                            roughness={0.35}
+                            metalness={0.06}
+                            emissive="#7dd3fc"
+                            emissiveIntensity={0}
+                            depthWrite={false}
+                        />
+                    </mesh>
+                ))}
+            </group>
 
             {/* Clickable soil area overlay */}
             <mesh
@@ -576,23 +630,31 @@ export default function WarehouseScene({ live, envState, alerts = [] }) {
                 </mesh>
             ))}
 
-            {/* Mist volume over soil area */}
-            <mesh position={[cutCenterX, layer3Y / 2, cutCenterZ]}>
-                <boxGeometry args={[cutWidth * 0.9, layer3Y, cutDepth * 0.9]} />
-                <meshStandardMaterial
-                    ref={mistMatRef}
-                    color="#9ad8ff"
-                    transparent
-                    opacity={mistOpacity}
-                    roughness={1}
-                    metalness={0}
-                    emissive="#9ad8ff"
-                    emissiveIntensity={0}
-                    depthWrite={false}
-                />
-            </mesh>
-
-            {/* Irrigation spray removed (cone hidden) */}
+            {/* Humidity-reactive mist layers */}
+            <group>
+                {[0, 1, 2].map((i) => (
+                    <mesh
+                        key={`mist-${i}`}
+                        ref={(el) => {
+                            mistPlanesRef.current[i] = el
+                        }}
+                        position={[cutCenterX, soilY + 0.018 + i * 0.01, cutCenterZ]}
+                        rotation={[-Math.PI / 2, 0, 0]}
+                    >
+                        <planeGeometry args={[cutWidth * (0.7 + i * 0.12), cutDepth * (0.7 + i * 0.12)]} />
+                        <meshStandardMaterial
+                            color="#b7e4ff"
+                            transparent
+                            opacity={0.01}
+                            roughness={1}
+                            metalness={0}
+                            emissive="#7cc5ff"
+                            emissiveIntensity={0}
+                            depthWrite={false}
+                        />
+                    </mesh>
+                ))}
+            </group>
         </group>
     )
 }

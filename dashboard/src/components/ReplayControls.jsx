@@ -55,11 +55,20 @@ export default function ReplayControls({
     onJumpPumpOn,
     onJumpPumpOff,
     eventMessage,
+    markers = [],
 }) {
     const fileInputRef = useRef(null)
     const currentTs = useMemo(() => timestamp || buffer[replayIndex]?.ts || buffer[replayIndex]?.__ts, [timestamp, buffer, replayIndex])
     const bufferSize = buffer.length
     const sliderMax = Math.max(bufferSize - 1, 0)
+
+    const markerMap = useMemo(() => {
+        const last = Math.max(bufferSize - 1, 1)
+        return markers.map((m) => ({
+            ...m,
+            left: `${Math.max(0, Math.min(100, (m.index / last) * 100))}%`,
+        }))
+    }, [markers, bufferSize])
 
     useEffect(() => {
         const handler = (e) => {
@@ -233,19 +242,46 @@ export default function ReplayControls({
                         <span>Timeline</span>
                         <span className="text-slate-200">{formatTime(currentTs)}</span>
                     </div>
-                    <input
-                        type="range"
-                        min={0}
-                        max={sliderMax}
-                        value={clampValue(replayIndex, sliderMax)}
-                        onChange={(e) => onSeek?.(Number(e.target.value))}
-                        className="w-full accent-cyan-400"
-                        disabled={bufferSize === 0}
-                    />
+                    <div className="relative w-full">
+                        <input
+                            type="range"
+                            min={0}
+                            max={sliderMax}
+                            value={clampValue(replayIndex, sliderMax)}
+                            onChange={(e) => onSeek?.(Number(e.target.value))}
+                            className="w-full accent-cyan-400"
+                            disabled={bufferSize === 0}
+                        />
+                        <div className="pointer-events-none absolute inset-0">
+                            {markerMap.map((m, i) => (
+                                <div
+                                    key={`${m.type}-${m.index}-${i}`}
+                                    className="absolute -top-3 flex flex-col items-center"
+                                    style={{ left: m.left }}
+                                >
+                                    <button
+                                        type="button"
+                                        title={`${m.label || m.type} @ ${formatTime(m.ts)}`}
+                                        onClick={() => onSeek?.(m.index)}
+                                        className={`pointer-events-auto h-3 w-3 rounded-full border shadow-sm transition hover:scale-110 ${markerTone(m.type)}`}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-400">
                         <span>0</span>
                         <span>{sliderMax}</span>
                     </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-slate-400">
+                    <span className="text-slate-300">Legend</span>
+                    <LegendPill label="Pump ON" tone="bg-emerald-500/30 border-emerald-400/70 text-emerald-100" />
+                    <LegendPill label="Pump OFF" tone="bg-rose-500/30 border-rose-400/70 text-rose-100" />
+                    <LegendPill label="Soil Alert" tone="bg-amber-500/30 border-amber-400/70 text-amber-100" />
+                    <LegendPill label="Humidity Alert" tone="bg-sky-500/30 border-sky-400/70 text-sky-100" />
+                    <LegendPill label="Light Alert" tone="bg-purple-500/30 border-purple-400/70 text-purple-100" />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -273,4 +309,24 @@ const clampValue = (v, max) => {
     if (v < 0) return 0
     if (v > max) return max
     return v
+}
+
+const markerTone = (type) => {
+    switch (type) {
+        case 'pump-on': return 'bg-emerald-400 border-emerald-300'
+        case 'pump-off': return 'bg-rose-400 border-rose-300'
+        case 'soil-alert': return 'bg-amber-400 border-amber-300'
+        case 'humidity-alert': return 'bg-sky-400 border-sky-300'
+        case 'light-alert': return 'bg-purple-400 border-purple-300'
+        default: return 'bg-slate-400 border-slate-300'
+    }
+}
+
+function LegendPill({ label, tone }) {
+    return (
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold ${tone}`}>
+            <span className="h-2 w-2 rounded-full bg-white/70" />
+            {label}
+        </span>
+    )
 }
