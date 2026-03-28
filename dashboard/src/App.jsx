@@ -7,7 +7,9 @@ import ensureWeatherDefaults from './utils/ensureWeatherDefaults'
 import updateRainfallFromApi from './utils/updateRainfallFromApi'
 import useMotionPreferences from './hooks/useMotionPreferences.jsx'
 import SensorTwinTest from './pages/SensorTwinTest'
+import DigitalTwin from './pages/DigitalTwin'
 import ArView from './pages/ArView'
+import ScadaPage from "./pages/ScadaPage";
 
 const ExternalRedirect = ({ to }) => {
   useEffect(() => {
@@ -64,10 +66,11 @@ export default function App() {
         <Routes location={location}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/twin" element={<SensorTwinTest />} />
-          <Route path="/twin-test" element={<SensorTwinTest />} />
+          <Route path="/twin-test" element={<DigitalTwin />} />
           <Route path="/ar" element={<ArView />} />
           <Route path="/" element={<Navigate to={defaultHome} replace />} />
           <Route path="*" element={<Navigate to={defaultHome} replace />} />
+          <Route path="/scada" element={<ScadaPage />} />
         </Routes>
       </motion.div>
     </AnimatePresence>

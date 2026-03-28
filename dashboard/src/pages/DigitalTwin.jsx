@@ -1,6 +1,6 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import FarmScene from '../three/FarmScene'
 import useRecommendationData from '../hooks/useRecommendationData'
@@ -479,12 +479,20 @@ export default function DigitalTwin() {
           <div className="text-[11px] uppercase tracking-[0.35em] text-emerald-200/80">AgroSmart 2.0</div>
           <div className="text-xl font-semibold text-white">Digital Twin Hologram</div>
         </div>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300 px-5 py-2.5 text-sm font-semibold text-emerald-950 shadow-[0_10px_40px_-18px_rgba(6,182,212,0.75)] transition hover:translate-y-[-1px] focus:outline-none focus:ring-2 focus:ring-emerald-200/70 focus:ring-offset-2 focus:ring-offset-black"
-        >
-          Go to Dashboard
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/dashboard"
+            className="rounded-full border border-emerald-300/70 bg-emerald-400/20 px-5 py-2.5 text-sm font-semibold text-emerald-50 shadow-[0_10px_40px_-18px_rgba(16,185,129,0.65)] transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-300/25 hover:shadow-[0_14px_46px_-18px_rgba(16,185,129,0.75)] focus:outline-none focus:ring-2 focus:ring-emerald-200/70 focus:ring-offset-2 focus:ring-offset-black"
+          >
+            Back to Dashboard
+          </Link>
+          <Link
+            to="/ar"
+            className="rounded-full border border-cyan-300/70 bg-cyan-400/15 px-5 py-2.5 text-sm font-semibold text-cyan-50 shadow-[0_10px_40px_-18px_rgba(56,189,248,0.6)] transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-cyan-300/25 hover:shadow-[0_14px_46px_-18px_rgba(56,189,248,0.72)] focus:outline-none focus:ring-2 focus:ring-cyan-200/70 focus:ring-offset-2 focus:ring-offset-black"
+          >
+            Enter AR Mode
+          </Link>
+        </div>
       </div>
 
       <Canvas

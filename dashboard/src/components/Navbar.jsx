@@ -36,6 +36,12 @@ export default function Navbar() {
             >
               AgroSmart 2.0
             </Link>
+            <Link
+              to="/scada"
+              className="inline-flex items-center gap-1 rounded-lg border border-emerald-300/60 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.22)] transition-all duration-200 hover:scale-[1.02] hover:border-emerald-200/80 hover:bg-emerald-500/20"
+            >
+              SCADA
+            </Link>
           </div>
         </div>
       </div>

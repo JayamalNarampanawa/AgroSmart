@@ -105,6 +105,14 @@ export default function SensorTwinTest() {
                         Back to Dashboard
                     </Link>
                     <Link
+                        to="/scada"
+                        className="group inline-flex items-center gap-2 rounded-xl border border-cyan-300/60 bg-cyan-500/15 px-4 py-3 text-sm font-semibold text-cyan-50 shadow-[0_0_16px_rgba(34,211,238,0.3)] transition-all duration-300 hover:scale-[1.03] hover:border-cyan-200 hover:bg-cyan-400/20 hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] focus:outline-none focus:ring-2 focus:ring-cyan-300/70"
+                    >
+                        <span className="text-lg leading-none">⚙️</span>
+                        <span>Open SCADA</span>
+                        <span className="absolute inset-0 rounded-xl bg-cyan-400/15 opacity-0 blur-md transition group-hover:opacity-70" aria-hidden />
+                    </Link>
+                    <Link
                         to="/ar"
                         className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-500/10 px-5 py-3 text-sm font-semibold text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.25)] transition-all duration-300 hover:scale-[1.02] hover:border-cyan-400/70 hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
                     >
