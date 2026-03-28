@@ -7,10 +7,22 @@ export default function AlertsPanel({ current }){
   const alerts = []
   if (!current) return <div className="text-slate-400">No realtime data</div>
 
+  const toNum = (v) => {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+
   const wetness = soilWetnessPercent(current.soilMoisture, soilConfig.wetMin, soilConfig.dryMax)
-  if (current.temperature > 35) alerts.push({level:'high', text:'Temperature too high'})
-  if (wetness !== null && wetness < 30) alerts.push({level:'medium', text:'Soil is very dry'})
-  if (current.lightLevel < 100) alerts.push({level:'low', text:'Light level low'})
+  const temp = toNum(current.temperature)
+  const hum = toNum(current.humidity)
+  const soil = toNum(current.soilMoisture)
+  const lastTs = current.timestamp ?? current.__ts ?? current.ts
+
+  if (wetness !== null && wetness < 30) alerts.push({level:'high', text:'Soil is very dry'})
+  if (soil !== null && soil > 2800) alerts.push({level:'high', text:'Soil moisture above safe range'})
+  if (lastTs && Date.now() - lastTs > 20000) alerts.push({level:'high', text:'Data offline (>20s)'})
+  if (temp !== null && temp > 35) alerts.push({level:'medium', text:'Temperature too high'})
+  if (hum !== null && hum < 40) alerts.push({level:'medium', text:'Humidity low'})
 
   return (
     <div>

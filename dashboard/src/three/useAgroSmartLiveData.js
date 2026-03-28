@@ -112,8 +112,9 @@ function pickLiveNode(root) {
       current.pumpStatus !== undefined ||
       current.irrigationStatus !== undefined);
 
-  if (hasUpper) return { val: root, source: "/AgroSmart" };
+  // Prefer the structured currentData node when both exist; root values can be stale
   if (hasLower) return { val: current, source: "/AgroSmart/currentData" };
+  if (hasUpper) return { val: root, source: "/AgroSmart" };
 
   // fallback: if currentData exists use it, else root
   return { val: current || root || {}, source: current ? "/AgroSmart/currentData (fallback)" : "/AgroSmart (fallback)" };
