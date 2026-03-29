@@ -1,8 +1,18 @@
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import useSensorData from "../hooks/useSensorData"
 
 export default function ScadaPage() {
     const { current } = useSensorData()
+
+    const [events, setEvents] = useState([])
+    const prevStateRef = useRef({
+        pumpOn: null,
+        soilDry: null,
+        tempHigh: null,
+        humidityLow: null,
+        online: null,
+    })
 
     const toNum = (v) => {
         const n = Number(v)
@@ -18,6 +28,37 @@ export default function ScadaPage() {
     const lastTs = current?.timestamp
     const lastUpdate = lastTs ? new Date(lastTs).toLocaleTimeString([], { hour12: false }) : '--:--:--'
 
+    const parseTs = (value) => {
+        if (!value) return null
+        const numTs = Number(value)
+        if (Number.isFinite(numTs)) return numTs
+        const parsed = new Date(value).getTime()
+        return Number.isFinite(parsed) ? parsed : null
+    }
+
+    const eventTimestamp = () => {
+        const rawTs = current?.raw?.__ts ?? current?.timestamp ?? Date.now()
+        const ts = parseTs(rawTs)
+        return ts ?? Date.now()
+    }
+
+    const pushEvent = (title, message, severity) => {
+        const ts = eventTimestamp()
+        setEvents((prev) => {
+            const next = [
+                {
+                    id: `${ts}-${title}-${Math.random().toString(36).slice(2, 6)}`,
+                    title,
+                    message,
+                    severity,
+                    timestamp: ts,
+                },
+                ...prev,
+            ]
+            return next.slice(0, 15)
+        })
+    }
+
     const alarms = []
     const t = toNum(temperature)
     const h = toNum(humidity)
@@ -25,12 +66,75 @@ export default function ScadaPage() {
     const l = toNum(lightLevel)
     const now = Date.now()
 
+    const isOnline = (() => {
+        const ts = parseTs(lastTs)
+        return ts !== null ? now - ts <= 20000 : false
+    })()
+
     if (t !== null && t > 35) alarms.push({ id: 'temp-high', title: 'High Temperature', message: 'Temperature above 35°C', value: `${t} °C`, severity: 'warning' })
     if (h !== null && h < 40) alarms.push({ id: 'humidity-low', title: 'Low Humidity', message: 'Humidity below 40%', value: `${h} %`, severity: 'warning' })
     if (s !== null && s > 2800) alarms.push({ id: 'soil-dry', title: 'Dry Soil', message: 'Soil moisture above 2800 (drier)', value: `${s}`, severity: 'critical' })
     if (l !== null && l < 800) alarms.push({ id: 'light-low', title: 'Low Light', message: 'Light level below 800', value: `${l}`, severity: 'warning' })
     if (irrigation === 'ON') alarms.push({ id: 'pump-on', title: 'Pump Active', message: 'Irrigation pump is ON', value: irrigation, severity: 'info' })
-    if (lastTs && now - lastTs > 20000) alarms.push({ id: 'data-offline', title: 'Data Offline', message: 'No updates in the last 20s', value: lastUpdate, severity: 'critical' })
+    if (!isOnline) alarms.push({ id: 'data-offline', title: 'Data Offline', message: 'No updates in the last 20s', value: lastUpdate, severity: 'critical' })
+
+    useEffect(() => {
+        const ts = eventTimestamp()
+        const pumpOn = current?.pumpStatus === true
+        const soilDry = s !== null ? s > 2800 : null
+        const tempHigh = t !== null ? t > 35 : null
+        const humidityLow = h !== null ? h < 40 : null
+        const prev = prevStateRef.current
+
+        if (prev.online !== null && prev.online !== isOnline) {
+            pushEvent(
+                isOnline ? 'Live data restored' : 'Data connection lost',
+                isOnline ? 'Telemetry is updating again' : 'No updates received recently',
+                isOnline ? 'success' : 'critical'
+            )
+        }
+
+        if (prev.pumpOn !== null && prev.pumpOn !== pumpOn && pumpOn !== null) {
+            pushEvent(
+                pumpOn ? 'Pump turned ON' : 'Pump turned OFF',
+                pumpOn ? 'Irrigation pump activated' : 'Irrigation pump deactivated',
+                'info'
+            )
+        }
+
+        if (prev.soilDry !== null && prev.soilDry !== soilDry && soilDry !== null) {
+            pushEvent(
+                soilDry ? 'Dry soil detected' : 'Soil moisture back to normal',
+                soilDry ? 'Soil moisture is above safe range' : 'Soil moisture returned within range',
+                soilDry ? 'critical' : 'success'
+            )
+        }
+
+        if (prev.tempHigh !== null && prev.tempHigh !== tempHigh && tempHigh !== null) {
+            pushEvent(
+                tempHigh ? 'High temperature detected' : 'Temperature back to normal',
+                tempHigh ? 'Temperature crossed safe limit' : 'Temperature returned within range',
+                tempHigh ? 'warning' : 'success'
+            )
+        }
+
+        if (prev.humidityLow !== null && prev.humidityLow !== humidityLow && humidityLow !== null) {
+            pushEvent(
+                humidityLow ? 'Low humidity detected' : 'Humidity back to normal',
+                humidityLow ? 'Humidity dropped below safe range' : 'Humidity recovered to safe range',
+                humidityLow ? 'warning' : 'success'
+            )
+        }
+
+        prevStateRef.current = {
+            pumpOn,
+            soilDry,
+            tempHigh,
+            humidityLow,
+            online: isOnline,
+            ts,
+        }
+    }, [current, h, isOnline, s, t])
 
     const badgeFor = (severity) => {
         switch (severity) {
@@ -41,6 +145,22 @@ export default function ScadaPage() {
             case 'standby': return 'border-slate-500/60 bg-slate-800 text-slate-200'
             default: return 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100'
         }
+    }
+
+    const eventTone = (severity) => {
+        switch (severity) {
+            case 'critical': return 'border-red-500/40 bg-red-500/10 text-red-100'
+            case 'warning': return 'border-amber-500/40 bg-amber-500/10 text-amber-100'
+            case 'info': return 'border-cyan-500/40 bg-cyan-500/10 text-cyan-100'
+            case 'success': return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+            default: return 'border-slate-700 bg-slate-950 text-slate-200'
+        }
+    }
+
+    const formatEventTime = (ts) => {
+        const n = Number(ts)
+        if (!Number.isFinite(n)) return '--:--:--'
+        return new Date(n).toLocaleTimeString([], { hour12: false })
     }
 
     const statusForSensor = {
@@ -69,6 +189,70 @@ export default function ScadaPage() {
             if (irrigation === 'OFF') return { label: 'Standby', severity: 'standby' }
             return { label: 'Standby', severity: 'standby' }
         },
+    }
+
+    const processTone = (severity) => {
+        switch (severity) {
+            case 'critical': return 'border-red-500/50 bg-red-500/5 shadow-red-500/10'
+            case 'warning': return 'border-amber-500/50 bg-amber-500/5 shadow-amber-500/10'
+            case 'active': return 'border-cyan-500/60 bg-cyan-500/5 shadow-cyan-500/15'
+            case 'normal': return 'border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10'
+            case 'standby': return 'border-slate-600 bg-slate-950 shadow-slate-900/40'
+            default: return 'border-slate-700 bg-slate-950'
+        }
+    }
+
+    const processNodes = () => {
+        const pumpOn = current?.pumpStatus === true
+        const soilDry = s !== null ? s > 2800 : null
+        const warningConditions = (
+            (t !== null && t > 35) ||
+            (h !== null && h < 40) ||
+            (s !== null && s > 2800)
+        )
+
+        return [
+            {
+                key: 'water',
+                title: 'Water Source',
+                status: isOnline ? 'Online' : 'Offline',
+                severity: isOnline ? 'normal' : 'critical',
+                note: isOnline ? 'Data link good' : 'No recent telemetry',
+                pulse: isOnline,
+            },
+            {
+                key: 'pump',
+                title: 'Pump Unit',
+                status: pumpOn ? 'Active' : pumpOn === false ? 'Idle' : 'Idle',
+                severity: pumpOn ? 'active' : 'standby',
+                note: pumpOn ? 'Irrigation ON' : 'Standing by',
+                pulse: pumpOn,
+            },
+            {
+                key: 'line',
+                title: 'Irrigation Line',
+                status: pumpOn ? 'Flowing' : 'Standby',
+                severity: pumpOn ? 'active' : 'standby',
+                note: pumpOn ? 'Flow in progress' : 'Awaiting demand',
+                pulse: pumpOn,
+            },
+            {
+                key: 'field',
+                title: 'Field Zone',
+                status: soilDry === true ? 'Dry' : 'Normal',
+                severity: soilDry === true ? 'critical' : 'normal',
+                note: soilDry === true ? 'Soil moisture high (dry)' : 'Within range',
+                pulse: soilDry === true,
+            },
+            {
+                key: 'sensor',
+                title: 'Sensor Node',
+                status: !isOnline ? 'Offline' : warningConditions ? 'Warning' : 'Healthy',
+                severity: !isOnline ? 'critical' : warningConditions ? 'warning' : 'normal',
+                note: !isOnline ? 'Awaiting data' : warningConditions ? 'Check thresholds' : 'Operating normally',
+                pulse: isOnline && !warningConditions,
+            },
+        ]
     }
 
     return (
@@ -139,18 +323,40 @@ export default function ScadaPage() {
                             <h2 className="mb-4 text-lg font-semibold text-cyan-300">
                                 Process Overview
                             </h2>
-
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-                                {["Water Source", "Pump Unit", "Irrigation Line", "Field Zone", "Sensor Node"].map((item) => (
-                                    <div
-                                        key={item}
-                                        className="rounded-xl border border-slate-700 bg-slate-950 p-4 text-center"
-                                    >
-                                        <div className="mb-2 mx-auto h-3 w-3 rounded-full bg-green-400" />
-                                        <p className="text-sm font-medium text-slate-200">{item}</p>
-                                        <p className="mt-1 text-xs text-slate-500">Active</p>
-                                    </div>
-                                ))}
+                            <div className="relative">
+                                <div className="pointer-events-none absolute inset-x-4 top-7 hidden h-px bg-gradient-to-r from-cyan-500/10 via-slate-700/60 to-cyan-500/10 md:block" />
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+                                    {processNodes().map((node) => {
+                                        const tone = processTone(node.severity)
+                                        const dotTone = node.severity === 'critical'
+                                            ? 'bg-red-400'
+                                            : node.severity === 'warning'
+                                                ? 'bg-amber-400'
+                                                : node.severity === 'active'
+                                                    ? 'bg-cyan-400'
+                                                    : node.severity === 'normal'
+                                                        ? 'bg-emerald-400'
+                                                        : 'bg-slate-400'
+                                        return (
+                                            <div
+                                                key={node.key}
+                                                className={`relative overflow-hidden rounded-xl border p-4 text-center ${tone}`}
+                                            >
+                                                {node.pulse && (
+                                                    <div className="pointer-events-none absolute inset-0 animate-pulse bg-cyan-400/5" />
+                                                )}
+                                                <div className="relative space-y-2">
+                                                    <div className={`mx-auto h-3 w-3 rounded-full ${dotTone}`} />
+                                                    <p className="text-sm font-semibold text-slate-100">{node.title}</p>
+                                                    <div className="inline-flex items-center justify-center rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-100">
+                                                        {node.status}
+                                                    </div>
+                                                    <p className="text-xs text-slate-400">{node.note}</p>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
                             </div>
                         </div>
 
@@ -258,9 +464,31 @@ export default function ScadaPage() {
                             </h2>
 
                             <div className="space-y-3 text-sm">
-                                <div className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-slate-400">
-                                    Waiting for live events...
-                                </div>
+                                {events.length === 0 ? (
+                                    <div className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-slate-400">
+                                        Waiting for live events...
+                                    </div>
+                                ) : (
+                                    events.map((event) => {
+                                        const tone = eventTone(event.severity)
+                                        return (
+                                            <div key={event.id} className={`rounded-xl border p-3 ${tone}`}>
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <div className="text-xs uppercase tracking-wide opacity-80">{event.title}</div>
+                                                        <div className="text-slate-100">{event.message}</div>
+                                                    </div>
+                                                    <div className="text-[11px] font-mono text-slate-300">
+                                                        {formatEventTime(event.timestamp)}
+                                                    </div>
+                                                </div>
+                                                <div className="mt-2 inline-flex rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">
+                                                    {event.severity}
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                )}
                             </div>
                         </div>
 
