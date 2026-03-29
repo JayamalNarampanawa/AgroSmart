@@ -1,17 +1,31 @@
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
+import {
+    Area,
+    AreaChart,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts"
 import useSensorData from "../hooks/useSensorData"
 
 export default function ScadaPage() {
     const { current } = useSensorData()
 
     const [events, setEvents] = useState([])
+    const [trendSamples, setTrendSamples] = useState([])
+    const [controlMode, setControlMode] = useState('AUTO')
+    const [lastCommand, setLastCommand] = useState(null)
+    const [alarmAckTs, setAlarmAckTs] = useState(null)
     const prevStateRef = useRef({
         pumpOn: null,
         soilDry: null,
         tempHigh: null,
         humidityLow: null,
         online: null,
+        lastSampleTs: null,
     })
 
     const toNum = (v) => {
@@ -40,6 +54,28 @@ export default function ScadaPage() {
         const rawTs = current?.raw?.__ts ?? current?.timestamp ?? Date.now()
         const ts = parseTs(rawTs)
         return ts ?? Date.now()
+    }
+
+    const pushTrendSample = () => {
+        const ts = eventTimestamp()
+        const prevTs = prevStateRef.current.lastSampleTs
+        if (prevTs && ts === prevTs) return
+
+        const sample = {
+            ts,
+            temperature: t,
+            humidity: h,
+            soilMoisture: s,
+            lightLevel: l,
+            irrigation: irrigation === 'ON' ? 1 : irrigation === 'OFF' ? 0 : null,
+        }
+
+        setTrendSamples((prev) => {
+            const next = [...prev, sample].slice(-40)
+            return next
+        })
+
+        prevStateRef.current.lastSampleTs = ts
     }
 
     const pushEvent = (title, message, severity) => {
@@ -85,6 +121,8 @@ export default function ScadaPage() {
         const tempHigh = t !== null ? t > 35 : null
         const humidityLow = h !== null ? h < 40 : null
         const prev = prevStateRef.current
+
+        pushTrendSample()
 
         if (prev.online !== null && prev.online !== isOnline) {
             pushEvent(
@@ -133,6 +171,7 @@ export default function ScadaPage() {
             humidityLow,
             online: isOnline,
             ts,
+            lastSampleTs: prevStateRef.current.lastSampleTs,
         }
     }, [current, h, isOnline, s, t])
 
@@ -161,6 +200,12 @@ export default function ScadaPage() {
         const n = Number(ts)
         if (!Number.isFinite(n)) return '--:--:--'
         return new Date(n).toLocaleTimeString([], { hour12: false })
+    }
+
+    const formatTrendTime = (ts) => {
+        const n = Number(ts)
+        if (!Number.isFinite(n)) return ''
+        return new Date(n).toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })
     }
 
     const statusForSensor = {
@@ -253,6 +298,38 @@ export default function ScadaPage() {
                 pulse: isOnline && !warningConditions,
             },
         ]
+    }
+
+    const modeTone = controlMode === 'AUTO'
+        ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-100'
+        : 'border-amber-500/50 bg-amber-500/10 text-amber-100'
+
+    const handleModeToggle = () => {
+        const next = controlMode === 'AUTO' ? 'MANUAL' : 'AUTO'
+        setControlMode(next)
+        pushEvent(
+            `Control mode switched to ${next}`,
+            'Supervisory control updated',
+            'info'
+        )
+    }
+
+    const handlePumpOn = () => {
+        if (controlMode !== 'MANUAL') return
+        setLastCommand('Pump ON')
+        pushEvent('Manual pump ON command issued', 'Operator command (local UI)', 'info')
+    }
+
+    const handlePumpOff = () => {
+        if (controlMode !== 'MANUAL') return
+        setLastCommand('Pump OFF')
+        pushEvent('Manual pump OFF command issued', 'Operator command (local UI)', 'info')
+    }
+
+    const handleResetAlarms = () => {
+        const ts = Date.now()
+        setAlarmAckTs(ts)
+        pushEvent('Alarms acknowledged/reset', 'Pending alarms will reappear if conditions persist', 'info')
     }
 
     return (
@@ -410,8 +487,50 @@ export default function ScadaPage() {
                             <h2 className="mb-4 text-lg font-semibold text-cyan-300">
                                 Trend Monitoring
                             </h2>
-                            <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-950 text-slate-500">
-                                Trend charts will be added here
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                {[
+                                    { key: 'temperature', title: 'Temperature (°C)', dataKey: 'temperature', stroke: '#22d3ee', fill: '#22d3ee22' },
+                                    { key: 'humidity', title: 'Humidity (%)', dataKey: 'humidity', stroke: '#a3e635', fill: '#a3e63522' },
+                                    { key: 'soil', title: 'Soil Moisture', dataKey: 'soilMoisture', stroke: '#f43f5e', fill: '#f43f5e22' },
+                                    { key: 'light', title: 'Light Level', dataKey: 'lightLevel', stroke: '#fb923c', fill: '#fb923c22' },
+                                    { key: 'irrigation', title: 'Irrigation Activity', dataKey: 'irrigation', stroke: '#38bdf8', fill: '#38bdf822', yDomain: [0, 1], step: true },
+                                ].map((chart) => (
+                                    <div key={chart.key} className="rounded-xl border border-slate-700 bg-slate-950 p-3 shadow-inner shadow-cyan-500/5">
+                                        <div className="mb-2 text-sm font-semibold text-slate-100 flex items-center justify-between">
+                                            <span>{chart.title}</span>
+                                            <span className="text-[11px] text-slate-500">Last {Math.min(trendSamples.length, 40)} samples</span>
+                                        </div>
+                                        <div className="h-40">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={trendSamples} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                                    <defs>
+                                                        <linearGradient id={`grad-${chart.key}`} x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor={chart.stroke} stopOpacity={0.35} />
+                                                            <stop offset="95%" stopColor={chart.stroke} stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
+                                                    <XAxis dataKey="ts" tickFormatter={formatTrendTime} stroke="#64748b" tickLine={false} axisLine={false} minTickGap={20} style={{ fontSize: '11px' }} />
+                                                    <YAxis stroke="#64748b" tickLine={false} axisLine={false} width={chart.yDomain ? 28 : 36} domain={chart.yDomain || ['auto', 'auto']} style={{ fontSize: '11px' }} />
+                                                    <Tooltip
+                                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', color: '#e2e8f0', fontSize: '12px' }}
+                                                        labelFormatter={(v) => formatTrendTime(v)}
+                                                        formatter={(value) => [value ?? '--', chart.title]}
+                                                    />
+                                                    <Area
+                                                        type={chart.step ? 'stepAfter' : 'monotone'}
+                                                        dataKey={chart.dataKey}
+                                                        stroke={chart.stroke}
+                                                        fill={`url(#grad-${chart.key})`}
+                                                        strokeWidth={2}
+                                                        connectNulls
+                                                        isAnimationActive={false}
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -498,17 +617,45 @@ export default function ScadaPage() {
                                 Supervisory Controls
                             </h2>
 
+                            <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                                <div className={`rounded-full border px-3 py-1 font-semibold uppercase tracking-wide ${modeTone}`}>
+                                    Mode: {controlMode}
+                                </div>
+                                <div className="rounded-full border border-slate-700 px-3 py-1 text-[11px] text-slate-300">
+                                    Last command: {lastCommand ?? 'None'}
+                                </div>
+                                {alarmAckTs && (
+                                    <div className="rounded-full border border-slate-700 px-3 py-1 text-[11px] text-slate-300">
+                                        Alarms acknowledged at {formatEventTime(alarmAckTs)}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="grid grid-cols-2 gap-3">
-                                <button className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-medium text-green-300">
+                                <button
+                                    onClick={handlePumpOn}
+                                    disabled={controlMode !== 'MANUAL'}
+                                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${controlMode === 'MANUAL' ? 'border-green-500/40 bg-green-500/10 text-green-200 hover:border-green-400/70' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'}`}
+                                >
                                     Pump ON
                                 </button>
-                                <button className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300">
+                                <button
+                                    onClick={handlePumpOff}
+                                    disabled={controlMode !== 'MANUAL'}
+                                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${controlMode === 'MANUAL' ? 'border-red-500/40 bg-red-500/10 text-red-200 hover:border-red-400/70' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'}`}
+                                >
                                     Pump OFF
                                 </button>
-                                <button className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm font-medium text-cyan-300">
-                                    Auto Mode
+                                <button
+                                    onClick={handleModeToggle}
+                                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${controlMode === 'AUTO' ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-200 hover:border-cyan-400/70' : 'border-amber-500/50 bg-amber-500/10 text-amber-200 hover:border-amber-400/70'}`}
+                                >
+                                    {controlMode === 'AUTO' ? 'Switch to MANUAL' : 'Switch to AUTO'}
                                 </button>
-                                <button className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-300">
+                                <button
+                                    onClick={handleResetAlarms}
+                                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-300 hover:border-amber-400/60"
+                                >
                                     Reset Alarms
                                 </button>
                             </div>
