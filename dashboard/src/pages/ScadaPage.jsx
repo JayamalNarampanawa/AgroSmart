@@ -9,6 +9,8 @@ import {
     XAxis,
     YAxis,
 } from "recharts"
+import { database, authReady } from "../firebase"
+import { onValue, ref, serverTimestamp, update } from "firebase/database"
 import useSensorData from "../hooks/useSensorData"
 
 export default function ScadaPage() {
@@ -19,6 +21,7 @@ export default function ScadaPage() {
     const [controlMode, setControlMode] = useState('AUTO')
     const [lastCommand, setLastCommand] = useState(null)
     const [alarmAckTs, setAlarmAckTs] = useState(null)
+    const [aiRecommendation, setAiRecommendation] = useState(null)
     const prevStateRef = useRef({
         pumpOn: null,
         soilDry: null,
@@ -54,6 +57,24 @@ export default function ScadaPage() {
         const rawTs = current?.raw?.__ts ?? current?.timestamp ?? Date.now()
         const ts = parseTs(rawTs)
         return ts ?? Date.now()
+    }
+
+    const commandsRef = ref(database, '/AgroSmart/scadaCommands')
+
+    const sendCommand = async (payload, successTitle, successMsg) => {
+        try {
+            await authReady
+            await update(commandsRef, {
+                ...payload,
+                requestedAt: serverTimestamp(),
+            })
+            if (successTitle) {
+                pushEvent(successTitle, successMsg, 'info')
+            }
+        } catch (err) {
+            console.error('[SCADA] command write failed', err)
+            pushEvent('SCADA command failed', err?.message ?? 'Failed to write command', 'warning')
+        }
     }
 
     const pushTrendSample = () => {
@@ -175,6 +196,16 @@ export default function ScadaPage() {
         }
     }, [current, h, isOnline, s, t])
 
+    useEffect(() => {
+        const recRef = ref(database, '/AgroSmart/ai/recommendation')
+        const unsub = onValue(recRef, (snap) => {
+            setAiRecommendation(snap.val() ?? null)
+        }, (err) => {
+            console.error('[AI] recommendation listener error', err)
+        })
+        return () => unsub()
+    }, [])
+
     const badgeFor = (severity) => {
         switch (severity) {
             case 'critical': return 'border-red-400/50 bg-red-500/10 text-red-200'
@@ -250,6 +281,7 @@ export default function ScadaPage() {
     const processNodes = () => {
         const pumpOn = current?.pumpStatus === true
         const soilDry = s !== null ? s > 2800 : null
+        const tempHighFlag = t !== null ? t > 35 : null
         const warningConditions = (
             (t !== null && t > 35) ||
             (h !== null && h < 40) ||
@@ -272,6 +304,7 @@ export default function ScadaPage() {
                 severity: pumpOn ? 'active' : 'standby',
                 note: pumpOn ? 'Irrigation ON' : 'Standing by',
                 pulse: pumpOn,
+                glow: pumpOn,
             },
             {
                 key: 'line',
@@ -280,6 +313,7 @@ export default function ScadaPage() {
                 severity: pumpOn ? 'active' : 'standby',
                 note: pumpOn ? 'Flow in progress' : 'Awaiting demand',
                 pulse: pumpOn,
+                glow: pumpOn,
             },
             {
                 key: 'field',
@@ -288,6 +322,7 @@ export default function ScadaPage() {
                 severity: soilDry === true ? 'critical' : 'normal',
                 note: soilDry === true ? 'Soil moisture high (dry)' : 'Within range',
                 pulse: soilDry === true,
+                glow: soilDry === true,
             },
             {
                 key: 'sensor',
@@ -296,6 +331,7 @@ export default function ScadaPage() {
                 severity: !isOnline ? 'critical' : warningConditions ? 'warning' : 'normal',
                 note: !isOnline ? 'Awaiting data' : warningConditions ? 'Check thresholds' : 'Operating normally',
                 pulse: isOnline && !warningConditions,
+                glow: tempHighFlag === true,
             },
         ]
     }
@@ -318,23 +354,19 @@ export default function ScadaPage() {
     const handleModeToggle = () => {
         const next = controlMode === 'AUTO' ? 'MANUAL' : 'AUTO'
         setControlMode(next)
-        pushEvent(
-            `Control mode switched to ${next}`,
-            'Supervisory control updated',
-            'info'
-        )
+        sendCommand({ mode: next }, `SCADA mode set to ${next}`, 'Mode updated in SCADA commands')
     }
 
     const handlePumpOn = () => {
         if (controlMode !== 'MANUAL') return
         setLastCommand('Pump ON')
-        pushEvent('Manual pump ON command issued', 'Operator command (local UI)', 'info')
+        sendCommand({ pumpCommand: 'ON' }, 'SCADA command issued: Pump ON', 'Operator requested pump ON')
     }
 
     const handlePumpOff = () => {
         if (controlMode !== 'MANUAL') return
         setLastCommand('Pump OFF')
-        pushEvent('Manual pump OFF command issued', 'Operator command (local UI)', 'info')
+        sendCommand({ pumpCommand: 'OFF' }, 'SCADA command issued: Pump OFF', 'Operator requested pump OFF')
     }
 
     const handleResetAlarms = () => {
@@ -468,7 +500,7 @@ export default function ScadaPage() {
                     {/* Left side */}
                     <div className="space-y-6 xl:col-span-8">
                         {/* Process overview */}
-                        <div className="rounded-2xl border border-cyan-500/20 bg-slate-900 p-5">
+                        <div className={`rounded-2xl border bg-slate-900 p-5 ${!isOnline ? 'border-red-500/30 shadow-red-500/10' : 'border-cyan-500/20'}`}>
                             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-cyan-300">
                                 <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
                                 Process Overview
@@ -490,10 +522,13 @@ export default function ScadaPage() {
                                         return (
                                             <div
                                                 key={node.key}
-                                                className={`relative overflow-hidden rounded-xl border p-4 text-center ${tone}`}
+                                                className={`relative overflow-hidden rounded-xl border p-4 text-center ${tone} ${!isOnline ? 'ring-1 ring-red-500/50' : ''}`}
                                             >
                                                 {node.pulse && (
                                                     <div className="pointer-events-none absolute inset-0 animate-pulse bg-cyan-400/5" />
+                                                )}
+                                                {node.glow && (
+                                                    <div className="pointer-events-none absolute inset-0 blur-md bg-current opacity-5" />
                                                 )}
                                                 <div className="relative space-y-2">
                                                     <div className={`mx-auto h-3 w-3 rounded-full ${dotTone}`} />
@@ -650,6 +685,44 @@ export default function ScadaPage() {
                                     })
                                 )}
                             </div>
+                        </div>
+
+                        {/* AI recommendation */}
+                        <div className="rounded-2xl border border-emerald-500/20 bg-slate-900 p-5">
+                            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-emerald-300">
+                                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                                AI Recommendation
+                            </h2>
+                            {aiRecommendation ? (
+                                <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-950 p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="text-sm font-semibold text-slate-100">{aiRecommendation.recommendedCrop ?? '—'}</div>
+                                        {(() => {
+                                            const match = (aiRecommendation.matchLevel ?? '').toLowerCase()
+                                            const tone = match === 'good'
+                                                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-100'
+                                                : match === 'moderate'
+                                                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-100'
+                                                    : 'border-red-500/50 bg-red-500/10 text-red-100'
+                                            return (
+                                                <span className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${tone}`}>
+                                                    {aiRecommendation.matchLevel ?? 'Unknown'}
+                                                </span>
+                                            )
+                                        })()}
+                                    </div>
+                                    {aiRecommendation.suitabilityScore !== undefined && aiRecommendation.suitabilityScore !== null && (
+                                        <div className="text-xs text-slate-300">Suitability: {aiRecommendation.suitabilityScore}</div>
+                                    )}
+                                    <div className="text-xs text-slate-400">
+                                        {aiRecommendation.reason ?? aiRecommendation.explanation ?? 'Short explanation not available.'}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/70 p-3 text-sm text-slate-400">
+                                    No recommendation available
+                                </div>
+                            )}
                         </div>
 
                         {/* Event log */}
