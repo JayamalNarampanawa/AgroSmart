@@ -300,6 +300,17 @@ export default function ScadaPage() {
         ]
     }
 
+    const kpiStats = () => {
+        const totalAlarms = alarms.length
+        const criticalAlarms = alarms.filter((a) => a.severity === 'critical').length
+        return {
+            totalAlarms,
+            criticalAlarms,
+            eventCount: events.length,
+            pumpOn: irrigation === 'ON',
+        }
+    }
+
     const modeTone = controlMode === 'AUTO'
         ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-100'
         : 'border-amber-500/50 bg-amber-500/10 text-amber-100'
@@ -365,6 +376,67 @@ export default function ScadaPage() {
 
             {/* Main SCADA layout */}
             <div className="mx-auto max-w-7xl px-6 py-6">
+                {/* KPI strip */}
+                <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+                    {(() => {
+                        const stats = kpiStats()
+                        const tiles = [
+                            {
+                                key: 'total-alarms',
+                                label: 'Total Alarms',
+                                value: stats.totalAlarms,
+                                tone: stats.totalAlarms > 0 ? 'border-amber-500/40 bg-amber-500/10 text-amber-100' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100',
+                            },
+                            {
+                                key: 'critical-alarms',
+                                label: 'Critical',
+                                value: stats.criticalAlarms,
+                                tone: stats.criticalAlarms > 0 ? 'border-red-500/40 bg-red-500/10 text-red-100' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100',
+                            },
+                            {
+                                key: 'control-mode',
+                                label: 'Control Mode',
+                                value: controlMode,
+                                tone: controlMode === 'AUTO' ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-100' : 'border-amber-500/40 bg-amber-500/10 text-amber-100',
+                            },
+                            {
+                                key: 'pump-status',
+                                label: 'Pump Status',
+                                value: irrigation,
+                                tone: irrigation === 'ON' ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-100' : 'border-slate-600 bg-slate-900 text-slate-200',
+                            },
+                            {
+                                key: 'connection',
+                                label: 'Connection',
+                                value: isOnline ? 'ONLINE' : 'OFFLINE',
+                                tone: isOnline ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100' : 'border-red-500/40 bg-red-500/10 text-red-100',
+                            },
+                            {
+                                key: 'last-command',
+                                label: 'Last Command',
+                                value: lastCommand ?? '--',
+                                tone: 'border-slate-600 bg-slate-900 text-slate-200',
+                                helper: `Events: ${stats.eventCount}`,
+                            },
+                        ]
+                        return tiles.map((tile) => (
+                            <div
+                                key={tile.key}
+                                className={`rounded-xl border p-3 text-sm shadow-inner shadow-cyan-500/5 transition hover:border-cyan-400/40 ${tile.tone}`}
+                            >
+                                <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-wide opacity-70">
+                                    <span>{tile.label}</span>
+                                    <span className="h-2 w-2 rounded-full bg-white/40" />
+                                </div>
+                                <div className="mt-1 text-lg font-semibold leading-tight text-slate-50">{tile.value}</div>
+                                {tile.helper && (
+                                    <div className="text-[11px] text-slate-300/80">{tile.helper}</div>
+                                )}
+                            </div>
+                        ))
+                    })()}
+                </div>
+
                 {/* System status row */}
                 <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
                     <div className="rounded-2xl border border-cyan-500/20 bg-slate-900 p-4 shadow-lg shadow-cyan-500/5">
@@ -397,7 +469,8 @@ export default function ScadaPage() {
                     <div className="space-y-6 xl:col-span-8">
                         {/* Process overview */}
                         <div className="rounded-2xl border border-cyan-500/20 bg-slate-900 p-5">
-                            <h2 className="mb-4 text-lg font-semibold text-cyan-300">
+                            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-cyan-300">
+                                <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
                                 Process Overview
                             </h2>
                             <div className="relative">
@@ -439,7 +512,8 @@ export default function ScadaPage() {
 
                         {/* Sensor cards */}
                         <div className="rounded-2xl border border-cyan-500/20 bg-slate-900 p-5">
-                            <h2 className="mb-4 text-lg font-semibold text-cyan-300">
+                            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-cyan-300">
+                                <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
                                 Live Sensor Panels
                             </h2>
 
@@ -484,7 +558,8 @@ export default function ScadaPage() {
 
                         {/* Trend charts placeholder */}
                         <div className="rounded-2xl border border-cyan-500/20 bg-slate-900 p-5">
-                            <h2 className="mb-4 text-lg font-semibold text-cyan-300">
+                            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-cyan-300">
+                                <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
                                 Trend Monitoring
                             </h2>
                             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -539,13 +614,14 @@ export default function ScadaPage() {
                     <div className="space-y-6 xl:col-span-4">
                         {/* Alarm panel */}
                         <div className="rounded-2xl border border-red-500/20 bg-slate-900 p-5">
-                            <h2 className="mb-4 text-lg font-semibold text-red-300">
+                            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-red-300">
+                                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                                 Alarm Panel
                             </h2>
 
                             <div className="space-y-3">
                                 {alarms.length === 0 ? (
-                                    <div className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-400">
+                                    <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/70 p-3 text-sm text-slate-400">
                                         No active alarms
                                     </div>
                                 ) : (
@@ -578,13 +654,14 @@ export default function ScadaPage() {
 
                         {/* Event log */}
                         <div className="rounded-2xl border border-cyan-500/20 bg-slate-900 p-5">
-                            <h2 className="mb-4 text-lg font-semibold text-cyan-300">
+                            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-cyan-300">
+                                <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
                                 Event Log
                             </h2>
 
                             <div className="space-y-3 text-sm">
                                 {events.length === 0 ? (
-                                    <div className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-slate-400">
+                                    <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/70 p-3 text-slate-400">
                                         Waiting for live events...
                                     </div>
                                 ) : (
@@ -613,7 +690,8 @@ export default function ScadaPage() {
 
                         {/* Supervisory controls */}
                         <div className="rounded-2xl border border-amber-500/20 bg-slate-900 p-5">
-                            <h2 className="mb-4 text-lg font-semibold text-amber-300">
+                            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-amber-300">
+                                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                                 Supervisory Controls
                             </h2>
 
@@ -635,26 +713,26 @@ export default function ScadaPage() {
                                 <button
                                     onClick={handlePumpOn}
                                     disabled={controlMode !== 'MANUAL'}
-                                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${controlMode === 'MANUAL' ? 'border-green-500/40 bg-green-500/10 text-green-200 hover:border-green-400/70' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'}`}
+                                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${controlMode === 'MANUAL' ? 'border-green-500/50 bg-green-500/10 text-green-200 hover:border-green-400/70 hover:bg-green-500/15' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'}`}
                                 >
                                     Pump ON
                                 </button>
                                 <button
                                     onClick={handlePumpOff}
                                     disabled={controlMode !== 'MANUAL'}
-                                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${controlMode === 'MANUAL' ? 'border-red-500/40 bg-red-500/10 text-red-200 hover:border-red-400/70' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'}`}
+                                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${controlMode === 'MANUAL' ? 'border-red-500/50 bg-red-500/10 text-red-200 hover:border-red-400/70 hover:bg-red-500/15' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'}`}
                                 >
                                     Pump OFF
                                 </button>
                                 <button
                                     onClick={handleModeToggle}
-                                    className={`rounded-xl border px-4 py-3 text-sm font-medium transition ${controlMode === 'AUTO' ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-200 hover:border-cyan-400/70' : 'border-amber-500/50 bg-amber-500/10 text-amber-200 hover:border-amber-400/70'}`}
+                                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${controlMode === 'AUTO' ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-200 hover:border-cyan-400/70 hover:bg-cyan-500/15' : 'border-amber-500/50 bg-amber-500/10 text-amber-200 hover:border-amber-400/70 hover:bg-amber-500/15'}`}
                                 >
                                     {controlMode === 'AUTO' ? 'Switch to MANUAL' : 'Switch to AUTO'}
                                 </button>
                                 <button
                                     onClick={handleResetAlarms}
-                                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-300 hover:border-amber-400/60"
+                                    className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200 transition hover:border-amber-400/70 hover:bg-amber-500/15"
                                 >
                                     Reset Alarms
                                 </button>
