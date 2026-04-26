@@ -69,7 +69,7 @@ export default function Dashboard() {
           </AnimatePresence>
           <Navbar />
           <Scroll3D>
-            <main className="mt-4 space-y-8">
+            <main className="space-y-8">
               <NavSectionBar
                 sections={[
                   { id: 'status', label: 'Status' },
