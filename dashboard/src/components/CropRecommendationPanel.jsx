@@ -91,11 +91,6 @@ export default function CropRecommendationPanel({ mlResult, mlError }) {
           )}
         </div>
       </div>
-
-      <div className="mt-4 text-sm text-slate-300">
-        <div className="font-semibold">Inputs used</div>
-        <pre className="text-xs bg-slate-950/70 border border-white/8 p-3 rounded-xl mt-2 overflow-auto">{JSON.stringify(rec.inputUsed, null, 2)}</pre>
-      </div>
     </HologramCard>
   )
 }
