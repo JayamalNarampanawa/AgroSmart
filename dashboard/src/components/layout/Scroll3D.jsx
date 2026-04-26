@@ -12,7 +12,7 @@ export default function Scroll3D({ children, className = '' }){
     offset: ['start end', 'end start']
   })
 
-  const y = useTransform(scrollYProgress, [0, 1], allowMotion ? [8, -18] : [0, 0])
+  const y = useTransform(scrollYProgress, [0, 1], allowMotion ? [0, -14] : [0, 0])
   const rotateX = useTransform(scrollYProgress, [0, 1], allowMotion ? [2, -2] : [0, 0])
   const scale = useTransform(scrollYProgress, [0, 1], allowMotion ? [0.995, 1.005] : [1, 1])
 
