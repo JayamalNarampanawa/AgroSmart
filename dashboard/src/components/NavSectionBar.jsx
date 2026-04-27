@@ -31,7 +31,7 @@ export default function NavSectionBar({ sections = [] }) {
   }
 
   return (
-    <div className="sticky top-2 z-20 flex justify-center">
+    <div className="sticky top-0 z-20 flex justify-center">
       <motion.div
         className="rounded-2xl border border-white/10 bg-gradient-to-r from-slate-950/80 via-slate-950/60 to-slate-900/60 backdrop-blur px-3 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.35)] ring-1 ring-white/5"
         initial={allowMotion ? { opacity: 0, y: -8 } : false}

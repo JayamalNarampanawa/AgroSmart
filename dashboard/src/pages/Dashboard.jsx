@@ -69,7 +69,7 @@ export default function Dashboard() {
           </AnimatePresence>
           <Navbar />
           <Scroll3D>
-            <main className="mt-4 space-y-8">
+            <main className="-mt-1 md:mt-0 space-y-8">
               <NavSectionBar
                 sections={[
                   { id: 'status', label: 'Status' },
@@ -268,35 +268,6 @@ export default function Dashboard() {
                 </section>
               </AnimatedSection>
 
-              {/* PRIORITY 6: Debug Information - Developer Tools (Collapsible) */}
-              <AnimatedSection>
-                <section className="pb-6">
-                  <Card className="p-6">
-                    <details className="group">
-                      <summary className="cursor-pointer font-semibold mb-2 flex items-center gap-2 hover:text-emerald-400 transition-colors">
-                        <span className="transform group-open:rotate-90 transition-transform">▶</span>
-                        Debug - Raw Firebase Data
-                        <span className="text-xs text-slate-500 ml-auto">(Click to expand)</span>
-                      </summary>
-                      <div className="mt-4 space-y-4">
-                        {error && <div className="text-red-600 mb-2">Error: {String(error?.message ?? error)}</div>}
-                        <div className="text-sm text-slate-600 dark:text-slate-300">
-                          <div className="mb-2"><strong>currentData:</strong></div>
-                          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(current, null, 2)}</pre>
-                          <div className="mt-4 mb-2"><strong>history (latest 20):</strong></div>
-                          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(history.slice(-20), null, 2)}</pre>
-                          <div className="mt-4 mb-2"><strong>ai/currentInsight:</strong></div>
-                          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(insight, null, 2)}</pre>
-                          <div className="mt-4 mb-2"><strong>ai/suitability:</strong></div>
-                          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(suitability, null, 2)}</pre>
-                          <div className="mt-4 mb-2"><strong>ai/recommendations:</strong></div>
-                          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-auto max-h-40">{JSON.stringify(recs, null, 2)}</pre>
-                        </div>
-                      </div>
-                    </details>
-                  </Card>
-                </section>
-              </AnimatedSection>
             </main>
           </Scroll3D>
           <AnimatedSection>
