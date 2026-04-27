@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
+import '../theme/app_radius.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -14,51 +16,45 @@ class GlassCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(20),
-    this.startColor = const Color(0xFF111C2E), // More neutral dark blue
-    this.endColor = const Color(0xFF0B1221), // Darker shade
-    this.borderOpacity = 0.1,
-    this.blurStrength = 16,
+    this.startColor = const Color(0xFF111C2E),
+    this.endColor = const Color(0xFF0B1221),
+    this.borderOpacity = 0.12,
+    this.blurStrength = 18,
     this.borderRadius,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Wrap in GestureDetector if onTap is provided
-    Widget cardContent = Container(
+    final cardContent = Container(
       padding: padding,
       decoration: BoxDecoration(
-        borderRadius: borderRadius ?? BorderRadius.circular(24),
+        borderRadius: borderRadius ?? AppRadius.cardRadius,
         border: Border.all(
-          color: Colors.white.withOpacity(borderOpacity),
-          width: 1.0,
+          color: Colors.white.withValues(alpha: borderOpacity),
+          width: 1,
         ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            startColor.withOpacity(0.85),
-            endColor.withOpacity(0.90),
+            startColor.withValues(alpha: 0.86),
+            endColor.withValues(alpha: 0.92),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-            spreadRadius: -5,
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: blurStrength + 10,
+            offset: const Offset(0, 16),
+            spreadRadius: -8,
           ),
         ],
       ),
       child: child,
     );
 
-    if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: cardContent,
-      );
-    }
-    return cardContent;
+    if (onTap == null) return cardContent;
+    return GestureDetector(onTap: onTap, child: cardContent);
   }
 }

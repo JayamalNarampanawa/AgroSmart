@@ -1,0 +1,57 @@
+{
+  "model_name": "Crop recommendation MLP",
+  "model_type": "mlp_classifier",
+  "features": [
+    "N",
+    "P",
+    "K",
+    "temperature",
+    "humidity",
+    "rainfall",
+    "ph"
+  ],
+  "labels": [
+    "Cotton",
+    "Maize",
+    "Potato",
+    "Rice",
+    "Soybean",
+    "Sugarcane",
+    "Tomato",
+    "Wheat"
+  ],
+  "label_to_index": {
+    "Cotton": 0,
+    "Maize": 1,
+    "Potato": 2,
+    "Rice": 3,
+    "Soybean": 4,
+    "Sugarcane": 5,
+    "Tomato": 6,
+    "Wheat": 7
+  },
+  "feature_mean": {
+    "N": 88.64820098876953,
+    "P": 48.680904388427734,
+    "K": 60.30219650268555,
+    "temperature": 22.97041893005371,
+    "humidity": 67.09680938720703,
+    "rainfall": 964.78125,
+    "ph": 6.439315319061279
+  },
+  "feature_std": {
+    "N": 24.87569236755371,
+    "P": 15.636161804199219,
+    "K": 25.99188995361328,
+    "temperature": 3.2508959770202637,
+    "humidity": 10.390109062194824,
+    "rainfall": 520.1093139648438,
+    "ph": 0.5411968231201172
+  },
+  "metrics": {
+    "accuracy": 0.9524,
+    "log_loss": 0.1822
+  },
+  "rows": 2240,
+  "source": "C:\\Users\\Mihiranga Rathnayake\\Documents\\GitHub\\AgroSmart\\dashboard\\agromobile\\ml\\data\\raw\\starter_crop_dataset.csv"
+}

@@ -58,11 +58,15 @@ class _NotificationPanelState extends State<NotificationPanel> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.3),
                   blurRadius: 15,
                   spreadRadius: 1,
                 ),
@@ -189,7 +193,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
                 Icon(
                   Icons.notifications_off_outlined,
                   size: 64,
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -197,7 +201,7 @@ class _NotificationPanelState extends State<NotificationPanel> {
                       ? 'No unread notifications'
                       : 'No notifications',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 16,
                   ),
                 ),
@@ -237,13 +241,13 @@ class _NotificationPanelState extends State<NotificationPanel> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: notification.isRead
                     ? []
                     : [
                         BoxShadow(
-                          color: color.withOpacity(0.3),
+                          color: color.withValues(alpha: 0.3),
                           blurRadius: 10,
                           spreadRadius: 1,
                         ),
@@ -285,17 +289,32 @@ class _NotificationPanelState extends State<NotificationPanel> {
                   Text(
                     notification.message,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 13,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    _formatTimestamp(notification.timestamp),
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.4),
-                      fontSize: 11,
-                    ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _NotificationMetaChip(
+                        label: notification.source,
+                        color: color,
+                      ),
+                      _NotificationMetaChip(
+                        label: notification.priority.name.toUpperCase(),
+                        color: _getPriorityColor(notification.priority),
+                      ),
+                      Text(
+                        _formatTimestamp(notification.timestamp),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -335,6 +354,19 @@ class _NotificationPanelState extends State<NotificationPanel> {
     }
   }
 
+  Color _getPriorityColor(NotificationPriority priority) {
+    switch (priority) {
+      case NotificationPriority.critical:
+        return const Color(0xFFFF1744);
+      case NotificationPriority.high:
+        return const Color(0xFFFFC107);
+      case NotificationPriority.normal:
+        return const Color(0xFF00E5FF);
+      case NotificationPriority.low:
+        return Colors.white54;
+    }
+  }
+
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
@@ -350,5 +382,32 @@ class _NotificationPanelState extends State<NotificationPanel> {
     } else {
       return DateFormat('MMM d, y').format(timestamp);
     }
+  }
+}
+
+class _NotificationMetaChip extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _NotificationMetaChip({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
   }
 }

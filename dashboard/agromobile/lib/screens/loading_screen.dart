@@ -3,7 +3,9 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'main_navigation.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -26,9 +28,12 @@ class _LoadingScreenState extends State<LoadingScreen>
 
     Timer(const Duration(milliseconds: 2100), () {
       if (!mounted) return;
+      final destination = AuthService.instance.isLoggedIn
+          ? const MainNavigation()
+          : const LoginScreen();
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const LoginScreen(),
+          pageBuilder: (_, __, ___) => destination,
           transitionDuration: const Duration(milliseconds: 450),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);

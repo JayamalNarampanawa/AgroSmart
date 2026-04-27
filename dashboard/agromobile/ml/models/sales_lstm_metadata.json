@@ -1,0 +1,49 @@
+{
+  "model_name": "LSTM sales forecaster",
+  "model_type": "lstm",
+  "lookback": 14,
+  "feature_dimension": 18,
+  "source": "C:\\Users\\Mihiranga Rathnayake\\Documents\\GitHub\\AgroSmart\\dashboard\\agromobile\\ml\\data\\raw\\starter_sales_dataset.csv",
+  "rows": 11680,
+  "category_vocab": [
+    "Electronics",
+    "Fashion",
+    "Grocery",
+    "Home"
+  ],
+  "region_vocab": [
+    "East",
+    "North",
+    "South",
+    "West"
+  ],
+  "store_vocab": [
+    "Online",
+    "Store A",
+    "Store B",
+    "Store C"
+  ],
+  "target_mean": 1219.076824,
+  "target_std": 300.441292,
+  "metrics": {
+    "rmse": 108.65,
+    "mae": 82.96,
+    "mape": 6.5,
+    "r2": 0.8655
+  },
+  "residual_std": 102.24,
+  "train_sequences": 7248,
+  "validation_sequences": 1744,
+  "test_sequences": 1792,
+  "feature_order": [
+    "scaled_sales",
+    "promo_flag",
+    "day_of_week_norm",
+    "month_norm",
+    "week_of_year_norm",
+    "is_weekend",
+    "category_one_hot",
+    "region_one_hot",
+    "store_one_hot"
+  ]
+}

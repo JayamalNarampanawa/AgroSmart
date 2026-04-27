@@ -6,6 +6,7 @@ class NotificationModel {
   final DateTime timestamp;
   final bool isRead;
   final NotificationPriority priority;
+  final String source;
 
   NotificationModel({
     required this.id,
@@ -15,6 +16,7 @@ class NotificationModel {
     required this.timestamp,
     this.isRead = false,
     this.priority = NotificationPriority.normal,
+    this.source = 'System',
   });
 
   NotificationModel copyWith({
@@ -25,6 +27,7 @@ class NotificationModel {
     DateTime? timestamp,
     bool? isRead,
     NotificationPriority? priority,
+    String? source,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -34,6 +37,7 @@ class NotificationModel {
       timestamp: timestamp ?? this.timestamp,
       isRead: isRead ?? this.isRead,
       priority: priority ?? this.priority,
+      source: source ?? this.source,
     );
   }
 
@@ -46,6 +50,7 @@ class NotificationModel {
       'timestamp': timestamp.millisecondsSinceEpoch,
       'isRead': isRead,
       'priority': priority.name,
+      'source': source,
     };
   }
 
@@ -66,6 +71,7 @@ class NotificationModel {
         (e) => e.name == map['priority'],
         orElse: () => NotificationPriority.normal,
       ),
+      source: map['source'] as String? ?? 'System',
     );
   }
 }

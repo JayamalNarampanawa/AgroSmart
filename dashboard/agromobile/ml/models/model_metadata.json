@@ -1,0 +1,37 @@
+{
+  "model_name": "Random Forest sales forecaster",
+  "features": [
+    "product_category",
+    "region",
+    "store",
+    "promo_flag",
+    "day_of_week",
+    "month",
+    "week_of_year",
+    "is_weekend",
+    "date_ordinal"
+  ],
+  "categorical_features": [
+    "product_category",
+    "region",
+    "store"
+  ],
+  "numeric_features": [
+    "promo_flag",
+    "day_of_week",
+    "month",
+    "week_of_year",
+    "is_weekend",
+    "date_ordinal"
+  ],
+  "target": "sales",
+  "source": "C:\\Users\\Mihiranga Rathnayake\\Documents\\GitHub\\AgroSmart\\dashboard\\agromobile\\ml\\data\\raw\\starter_sales_dataset.csv",
+  "rows": 11680,
+  "metrics": {
+    "rmse": 113.99,
+    "mae": 86.05,
+    "mape": 6.57,
+    "r2": 0.8526
+  },
+  "residual_std": 98.81
+}

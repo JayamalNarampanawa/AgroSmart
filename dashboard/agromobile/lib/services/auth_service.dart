@@ -1,9 +1,7 @@
-﻿import 'dart:convert';
-import 'dart:math';
-
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+
+import 'notification_service.dart';
 
 class AuthService {
   AuthService._();
@@ -12,6 +10,9 @@ class AuthService {
 
   static const _boxName = 'local_auth';
   static const _sessionKey = 'session_email';
+
+  static const hardcodedEmail = 'admin@agrosmart.com';
+  static const hardcodedPassword = 'agro2026';
 
   late Box _box;
   final ValueNotifier<String?> sessionEmail = ValueNotifier<String?>(null);
@@ -26,61 +27,35 @@ class AuthService {
 
   String _normalizeEmail(String email) => email.trim().toLowerCase();
 
-  String _generateSalt() {
-    final rand = Random.secure();
-    final bytes = List<int>.generate(16, (_) => rand.nextInt(256));
-    return base64Url.encode(bytes);
+  Future<String?> register({
+    required String email,
+    required String password,
+  }) async {
+    return 'Registration is disabled in this demo build. Use the provided login credentials.';
   }
 
-  String _hashPassword(String email, String password, String salt) {
-    final bytes = utf8.encode('$email|$password|$salt');
-    return sha256.convert(bytes).toString();
-  }
-
-  Future<String?> register({required String email, required String password}) async {
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
     final normalized = _normalizeEmail(email);
-    if (normalized.isEmpty || !normalized.contains('@')) {
-      return 'Please enter a valid email address.';
+    if (normalized != hardcodedEmail || password != hardcodedPassword) {
+      NotificationService.instance.notifyAuthFailure(normalized);
+      return 'Invalid credentials. Use the demo email and password shown on the login page.';
     }
-    if (password.length < 6) {
-      return 'Password must be at least 6 characters.';
-    }
-    final userKey = 'user:$normalized';
-    if (_box.containsKey(userKey)) {
-      return 'User already exists. Please log in.';
-    }
-    final salt = _generateSalt();
-    final hash = _hashPassword(normalized, password, salt);
-    await _box.put(userKey, {'hash': hash, 'salt': salt});
-    await _box.put(_sessionKey, normalized);
-    sessionEmail.value = normalized;
-    return null;
-  }
 
-  Future<String?> login({required String email, required String password}) async {
-    final normalized = _normalizeEmail(email);
-    final userKey = 'user:$normalized';
-    final stored = _box.get(userKey);
-    if (stored is! Map) {
-      return 'User not found. Please register.';
-    }
-    final salt = stored['salt']?.toString() ?? '';
-    final hash = stored['hash']?.toString() ?? '';
-    if (salt.isEmpty || hash.isEmpty) {
-      return 'Stored credentials are invalid.';
-    }
-    final attempt = _hashPassword(normalized, password, salt);
-    if (attempt != hash) {
-      return 'Incorrect password.';
-    }
-    await _box.put(_sessionKey, normalized);
-    sessionEmail.value = normalized;
+    await _box.put(_sessionKey, hardcodedEmail);
+    sessionEmail.value = hardcodedEmail;
+    NotificationService.instance.notifyAuthSuccess(hardcodedEmail);
     return null;
   }
 
   Future<void> logout() async {
+    final email = sessionEmail.value;
     await _box.delete(_sessionKey);
     sessionEmail.value = null;
+    if (email != null) {
+      NotificationService.instance.notifyLogout(email);
+    }
   }
 }
-

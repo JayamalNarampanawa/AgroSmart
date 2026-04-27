@@ -50,7 +50,7 @@ class NotificationService {
     // Check soil moisture (higher raw ADC value = drier soil)
     if (data.soilMoisture != null &&
         data.soilMoisture! > settings.soilMoistureDryThreshold.value) {
-      _addNotification(
+      addNotification(
         title: 'Low Soil Moisture',
         message:
             'Soil moisture reading is ${data.soilMoisture!.toStringAsFixed(0)} '
@@ -58,46 +58,53 @@ class NotificationService {
             'Consider irrigation.',
         type: NotificationType.warning,
         priority: NotificationPriority.high,
+        source: 'Live Sensors',
       );
     }
 
     // Check temperature
     if (data.temperature != null &&
         data.temperature! > settings.highTempThreshold.value) {
-      _addNotification(
+      addNotification(
         title: 'High Temperature Alert',
         message:
             'Temperature is ${data.temperature!.toStringAsFixed(1)}\u00B0C. '
             'Monitor crops closely.',
         type: NotificationType.alert,
         priority: NotificationPriority.high,
+        source: 'Live Sensors',
       );
     }
 
     // Irrigation status change (only notify on transitions)
     if (data.pumpStatus && !_previousPumpStatus) {
-      _addNotification(
+      addNotification(
         title: 'Irrigation Started',
         message: 'Water pump is now active.',
         type: NotificationType.info,
         priority: NotificationPriority.low,
+        source: 'Irrigation',
       );
     } else if (!data.pumpStatus && _previousPumpStatus) {
-      _addNotification(
+      addNotification(
         title: 'Irrigation Stopped',
         message: 'Water pump has been turned off.',
         type: NotificationType.info,
         priority: NotificationPriority.low,
+        source: 'Irrigation',
       );
     }
     _previousPumpStatus = data.pumpStatus;
   }
 
-  void _addNotification({
+  void addNotification({
     required String title,
     required String message,
     required NotificationType type,
     required NotificationPriority priority,
+    String source = 'System',
+    bool showSystemAlert = false,
+    Duration duplicateWindow = const Duration(minutes: 5),
   }) {
     if (!SettingsService.instance.alertsEnabled.value) return;
     if (SettingsService.instance.highPriorityOnly.value &&
@@ -109,7 +116,9 @@ class NotificationService {
     // Check if similar notification exists in last 5 minutes
     final now = DateTime.now();
     final recentNotifications = notifications.value.where((n) {
-      return n.title == title && now.difference(n.timestamp).inMinutes < 5;
+      return n.title == title &&
+          n.source == source &&
+          now.difference(n.timestamp) < duplicateWindow;
     });
 
     if (recentNotifications.isNotEmpty) return; // Avoid duplicates
@@ -121,12 +130,59 @@ class NotificationService {
       type: type,
       timestamp: now,
       priority: priority,
+      source: source,
     );
 
     final updated = [notification, ...notifications.value];
     notifications.value = updated;
     _updateUnreadCount();
     _saveNotifications();
+
+    if (showSystemAlert ||
+        priority == NotificationPriority.high ||
+        priority == NotificationPriority.critical) {
+      unawaited(
+        AlertService.instance.showSystemNotification(
+          title: title,
+          message: message,
+          id: notification.id.hashCode,
+        ),
+      );
+    }
+  }
+
+  void notifyAuthSuccess(String email) {
+    addNotification(
+      title: 'Login Successful',
+      message: 'Signed in as $email.',
+      type: NotificationType.success,
+      priority: NotificationPriority.normal,
+      source: 'Authentication',
+      duplicateWindow: const Duration(seconds: 10),
+    );
+  }
+
+  void notifyAuthFailure(String email) {
+    addNotification(
+      title: 'Login Failed',
+      message: 'Failed sign-in attempt for $email.',
+      type: NotificationType.warning,
+      priority: NotificationPriority.high,
+      source: 'Authentication',
+      showSystemAlert: true,
+      duplicateWindow: const Duration(seconds: 10),
+    );
+  }
+
+  void notifyLogout(String email) {
+    addNotification(
+      title: 'Signed Out',
+      message: '$email signed out from the mobile app.',
+      type: NotificationType.info,
+      priority: NotificationPriority.normal,
+      source: 'Authentication',
+      duplicateWindow: const Duration(seconds: 10),
+    );
   }
 
   void markAsRead(String id) {

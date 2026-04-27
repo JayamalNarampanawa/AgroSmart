@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import '../services/app_state.dart';
 import '../models/crop_database.dart';
+import '../models/ml_crop_prediction.dart';
+import '../services/ml_crop_recommendation_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
 
@@ -30,6 +32,9 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
 
   // ── Results ───────────────────────────────────────────────────────────────
   List<MapEntry<CropInfo, double>>? _results;
+  MlCropPrediction? _mlPrediction;
+  String? _mlError;
+  bool _isPredicting = false;
 
   // ── Selected crop for detail ──────────────────────────────────────────────
   CropInfo? _selectedCrop;
@@ -37,15 +42,17 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
   // ── Use live data ─────────────────────────────────────────────────────────
   bool _useLiveData = false;
 
-  void _analyze(AppState state) {
-    if (_useLiveData && state.sensor != null) {
-      _temperature = state.sensor!.temperature;
-      _humidity = state.sensor!.humidity;
-    }
+  Future<void> _analyze(AppState state) async {
+    final temperature = _useLiveData && state.sensor != null
+        ? state.sensor!.temperature
+        : _temperature;
+    final humidity = _useLiveData && state.sensor != null
+        ? state.sensor!.humidity
+        : _humidity;
 
     final results = state.scoreCrops(
-      temperature: _temperature,
-      humidity: _humidity,
+      temperature: temperature,
+      humidity: humidity,
       n: _n,
       p: _p,
       k: _k,
@@ -55,9 +62,37 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
     );
 
     setState(() {
+      _temperature = temperature;
+      _humidity = humidity;
       _results = results;
+      _mlPrediction = null;
+      _mlError = null;
+      _isPredicting = true;
       _selectedCrop = null;
     });
+
+    try {
+      final prediction = await MlCropRecommendationService.instance.predict(
+        n: _n,
+        p: _p,
+        k: _k,
+        temperature: temperature,
+        humidity: humidity,
+        rainfall: _rainfall,
+        ph: _ph,
+      );
+      if (!mounted) return;
+      setState(() {
+        _mlPrediction = prediction;
+        _isPredicting = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _mlError = e.toString();
+        _isPredicting = false;
+      });
+    }
   }
 
   @override
@@ -71,8 +106,7 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
           children: [
             // Header
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
                 color: Color(0xFF060d1a),
                 border: Border(
@@ -97,8 +131,8 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
                       ),
                       Text(
                         'Find the best crops for your soil',
-                        style: TextStyle(
-                            fontSize: 10, color: AppTheme.textMuted),
+                        style:
+                            TextStyle(fontSize: 10, color: AppTheme.textMuted),
                       ),
                     ],
                   ),
@@ -120,7 +154,10 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _SoilInputCard(
-                            n: _n, p: _p, k: _k, ph: _ph,
+                            n: _n,
+                            p: _p,
+                            k: _k,
+                            ph: _ph,
                             temperature: _temperature,
                             humidity: _humidity,
                             rainfall: _rainfall,
@@ -128,7 +165,10 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
                             hasSensor: state.sensor != null,
                             onChanged: (n, p, k, ph, temp, hum, rain, live) {
                               setState(() {
-                                _n = n; _p = p; _k = k; _ph = ph;
+                                _n = n;
+                                _p = p;
+                                _k = k;
+                                _ph = ph;
                                 _temperature = temp;
                                 _humidity = hum;
                                 _rainfall = rain;
@@ -144,32 +184,52 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
                           ),
                           const SizedBox(height: 12),
                           GradientButton(
-                            label: 'Analyze Soil & Find Best Crops',
-                            icon: FontAwesomeIcons.magnifyingGlass,
-                            onPressed: () => _analyze(state),
+                            label: _isPredicting
+                                ? 'Asking ML Model...'
+                                : 'Predict Best Crop with ML',
+                            icon: _isPredicting
+                                ? FontAwesomeIcons.circleNotch
+                                : FontAwesomeIcons.robot,
+                            onPressed:
+                                _isPredicting ? null : () => _analyze(state),
                             colors: const [
                               AppTheme.accent2,
                               AppTheme.accent1,
                             ],
                           ),
                           const SizedBox(height: 20),
+                          if (_isPredicting ||
+                              _mlPrediction != null ||
+                              _mlError != null) ...[
+                            _MlPredictionCard(
+                              prediction: _mlPrediction,
+                              error: _mlError,
+                              isLoading: _isPredicting,
+                              matchedCrop: _findCropInfo(
+                                _mlPrediction?.predictedCrop,
+                              ),
+                              onOpenCrop: (crop) =>
+                                  setState(() => _selectedCrop = crop),
+                            ),
+                            const SizedBox(height: 18),
+                          ],
                           if (_results != null) ...[
                             _ResultsHeader(
                                 count: _results!.length,
                                 category: _selectedCategory),
                             const SizedBox(height: 12),
                             ..._results!.take(20).map(
-                              (e) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _CropResultCard(
-                                  crop: e.key,
-                                  score: e.value,
-                                  rank: _results!.indexOf(e) + 1,
-                                  onTap: () =>
-                                      setState(() => _selectedCrop = e.key),
+                                  (e) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: _CropResultCard(
+                                      crop: e.key,
+                                      score: e.value,
+                                      rank: _results!.indexOf(e) + 1,
+                                      onTap: () =>
+                                          setState(() => _selectedCrop = e.key),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
                           ] else
                             _EmptyState(),
                         ],
@@ -181,14 +241,38 @@ class _SoilAnalysisScreenState extends State<SoilAnalysisScreen> {
       ),
     );
   }
+
+  CropInfo? _findCropInfo(String? cropName) {
+    if (cropName == null) return null;
+    final normalized = cropName.toLowerCase().replaceAll('_', ' ').trim();
+
+    for (final crop in cropDatabase) {
+      final name = crop.name.toLowerCase();
+      final aliases = name.split('/').map((part) => part.trim());
+      if (crop.id.toLowerCase() == normalized ||
+          name == normalized ||
+          aliases.contains(normalized)) {
+        return crop;
+      }
+    }
+
+    return null;
+  }
 }
 
 // ─── Soil Input Card ──────────────────────────────────────────────────────────
 class _SoilInputCard extends StatelessWidget {
   final double n, p, k, ph, temperature, humidity, rainfall;
   final bool useLiveData, hasSensor;
-  final void Function(double n, double p, double k, double ph, double temperature,
-      double humidity, double rainfall, bool useLive) onChanged;
+  final void Function(
+      double n,
+      double p,
+      double k,
+      double ph,
+      double temperature,
+      double humidity,
+      double rainfall,
+      bool useLive) onChanged;
 
   const _SoilInputCard({
     required this.n,
@@ -204,12 +288,23 @@ class _SoilInputCard extends StatelessWidget {
   });
 
   void _emit(
-    double? n_, double? p_, double? k_, double? ph_,
-    double? temp_, double? hum_, double? rain_, bool? live_,
+    double? n_,
+    double? p_,
+    double? k_,
+    double? ph_,
+    double? temp_,
+    double? hum_,
+    double? rain_,
+    bool? live_,
   ) {
     onChanged(
-      n_ ?? n, p_ ?? p, k_ ?? k, ph_ ?? ph,
-      temp_ ?? temperature, hum_ ?? humidity, rain_ ?? rainfall,
+      n_ ?? n,
+      p_ ?? p,
+      k_ ?? k,
+      ph_ ?? ph,
+      temp_ ?? temperature,
+      hum_ ?? humidity,
+      rain_ ?? rainfall,
       live_ ?? useLiveData,
     );
   }
@@ -252,7 +347,8 @@ class _SoilInputCard extends StatelessWidget {
                   ),
                   Switch(
                     value: useLiveData,
-                    onChanged: (v) => _emit(null, null, null, null, null, null, null, v),
+                    onChanged: (v) =>
+                        _emit(null, null, null, null, null, null, null, v),
                     activeThumbColor: AppTheme.accent1,
                   ),
                 ],
@@ -267,7 +363,8 @@ class _SoilInputCard extends StatelessWidget {
             max: 150,
             color: AppTheme.accent2,
             unit: 'ppm',
-            onChanged: (v) => _emit(v, null, null, null, null, null, null, null),
+            onChanged: (v) =>
+                _emit(v, null, null, null, null, null, null, null),
           ),
           _SliderInput(
             label: 'Phosphorus (P)',
@@ -276,7 +373,8 @@ class _SoilInputCard extends StatelessWidget {
             max: 150,
             color: AppTheme.accent3,
             unit: 'ppm',
-            onChanged: (v) => _emit(null, v, null, null, null, null, null, null),
+            onChanged: (v) =>
+                _emit(null, v, null, null, null, null, null, null),
           ),
           _SliderInput(
             label: 'Potassium (K)',
@@ -285,7 +383,8 @@ class _SoilInputCard extends StatelessWidget {
             max: 200,
             color: const Color(0xFFfbbf24),
             unit: 'ppm',
-            onChanged: (v) => _emit(null, null, v, null, null, null, null, null),
+            onChanged: (v) =>
+                _emit(null, null, v, null, null, null, null, null),
           ),
           _SliderInput(
             label: 'pH Level',
@@ -295,7 +394,8 @@ class _SoilInputCard extends StatelessWidget {
             divisions: 60,
             color: const Color(0xFFa78bfa),
             unit: '',
-            onChanged: (v) => _emit(null, null, null, v, null, null, null, null),
+            onChanged: (v) =>
+                _emit(null, null, null, v, null, null, null, null),
           ),
 
           // Weather inputs (disabled if using live)
@@ -307,7 +407,8 @@ class _SoilInputCard extends StatelessWidget {
             color: const Color(0xFFfb7185),
             unit: '°C',
             enabled: !useLiveData,
-            onChanged: (v) => _emit(null, null, null, null, v, null, null, null),
+            onChanged: (v) =>
+                _emit(null, null, null, null, v, null, null, null),
           ),
           _SliderInput(
             label: 'Humidity',
@@ -317,7 +418,8 @@ class _SoilInputCard extends StatelessWidget {
             color: AppTheme.accent3,
             unit: '%',
             enabled: !useLiveData,
-            onChanged: (v) => _emit(null, null, null, null, null, v, null, null),
+            onChanged: (v) =>
+                _emit(null, null, null, null, null, v, null, null),
           ),
           _SliderInput(
             label: 'Rainfall',
@@ -326,7 +428,8 @@ class _SoilInputCard extends StatelessWidget {
             max: 400,
             color: AppTheme.accent1,
             unit: 'mm',
-            onChanged: (v) => _emit(null, null, null, null, null, null, v, null),
+            onChanged: (v) =>
+                _emit(null, null, null, null, null, null, v, null),
           ),
         ],
       ),
@@ -401,8 +504,7 @@ class _SliderInput extends StatelessWidget {
                   (enabled ? color : AppTheme.textMuted).withOpacity(0.15),
               thumbColor: enabled ? color : AppTheme.textMuted,
               overlayColor: color.withOpacity(0.1),
-              thumbShape:
-                  const RoundSliderThumbShape(enabledThumbRadius: 7),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
               trackHeight: 3,
             ),
             child: Slider(
@@ -443,25 +545,22 @@ class _CategoryFilter extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         children: _cats.entries.map((e) {
           final isSelected =
-              (e.key == 'all' && selected == null) ||
-              e.key == selected;
+              (e.key == 'all' && selected == null) || e.key == selected;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               onTap: () => onChanged(e.key == 'all' ? null : e.key),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppTheme.accent1.withOpacity(0.15)
                       : AppTheme.cardBg,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected
-                        ? AppTheme.accent1
-                        : AppTheme.glassBorder,
+                    color: isSelected ? AppTheme.accent1 : AppTheme.glassBorder,
                     width: 1,
                   ),
                 ),
@@ -469,12 +568,8 @@ class _CategoryFilter extends StatelessWidget {
                   e.value,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.w400,
-                    color: isSelected
-                        ? AppTheme.accent1
-                        : AppTheme.textMuted,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected ? AppTheme.accent1 : AppTheme.textMuted,
                   ),
                 ),
               ),
@@ -497,8 +592,7 @@ class _ResultsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const FaIcon(FontAwesomeIcons.award,
-            size: 14, color: AppTheme.accent2),
+        const FaIcon(FontAwesomeIcons.award, size: 14, color: AppTheme.accent2),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -518,6 +612,324 @@ class _ResultsHeader extends StatelessWidget {
 }
 
 // ─── Crop result card ─────────────────────────────────────────────────────────
+class _MlPredictionCard extends StatelessWidget {
+  final MlCropPrediction? prediction;
+  final String? error;
+  final bool isLoading;
+  final CropInfo? matchedCrop;
+  final ValueChanged<CropInfo> onOpenCrop;
+
+  const _MlPredictionCard({
+    required this.prediction,
+    required this.error,
+    required this.isLoading,
+    required this.matchedCrop,
+    required this.onOpenCrop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = error != null ? AppTheme.warning : AppTheme.accent2;
+
+    return GlassCard(
+      radius: 8,
+      borderColor: accent.withValues(alpha: 0.3),
+      gradientColors: [accent.withValues(alpha: 0.08), AppTheme.cardBg],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(
+            title: 'ML Model Recommendation',
+            subtitle: isLoading
+                ? 'Sending soil data to the trained model'
+                : error != null
+                    ? 'Model API is not reachable'
+                    : 'Prediction returned from the trained crop model',
+            icon: FontAwesomeIcons.robot,
+            trailing: StatusBadge(
+              label: error != null ? 'Needs API' : 'Trained ML',
+              color: accent,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (isLoading) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                minHeight: 7,
+                backgroundColor: AppTheme.glassBorder,
+                valueColor: AlwaysStoppedAnimation<Color>(accent),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'The app is calling /predict with N, P, K, temperature, humidity, rainfall and pH.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ] else if (error != null) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const FaIcon(
+                  FontAwesomeIcons.triangleExclamation,
+                  size: 16,
+                  color: AppTheme.warning,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _shortError(error!),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const _ApiHint(),
+          ] else if (prediction != null) ...[
+            Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent2.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.accent2.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      matchedCrop?.emoji ?? '🌱',
+                      style: const TextStyle(fontSize: 28),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        prediction!.displayCrop,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.heading,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Source: ${prediction!.sourceUrl}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _ConfidenceRing(value: prediction!.confidence),
+              ],
+            ),
+            if (prediction!.topProbabilities.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Top model probabilities',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ...prediction!.topProbabilities.map(
+                (entry) => _ProbabilityRow(
+                  crop: MlCropPrediction.formatCropName(entry.key),
+                  value: entry.value,
+                ),
+              ),
+            ],
+            if (matchedCrop != null) ...[
+              const SizedBox(height: 14),
+              GestureDetector(
+                onTap: () => onOpenCrop(matchedCrop!),
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent1.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.accent1.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Open crop details',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.accent1,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      FaIcon(
+                        FontAwesomeIcons.chevronRight,
+                        size: 10,
+                        color: AppTheme.accent1,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.04, end: 0);
+  }
+
+  String _shortError(String value) {
+    if (value.length <= 180) return value;
+    return '${value.substring(0, 180)}...';
+  }
+}
+
+class _ConfidenceRing extends StatelessWidget {
+  final double? value;
+
+  const _ConfidenceRing({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final confidence = value?.clamp(0.0, 1.0);
+    final label =
+        confidence == null ? '--' : '${(confidence * 100).toStringAsFixed(0)}%';
+
+    return CircularPercentIndicator(
+      radius: 34,
+      lineWidth: 5,
+      percent: confidence ?? 0,
+      progressColor: AppTheme.accent2,
+      backgroundColor: AppTheme.accent2.withValues(alpha: 0.12),
+      center: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.accent2,
+        ),
+      ),
+      footer: const Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: Text(
+          'Confidence',
+          style: TextStyle(fontSize: 9, color: AppTheme.textMuted),
+        ),
+      ),
+      animation: true,
+      animationDuration: 700,
+    );
+  }
+}
+
+class _ProbabilityRow extends StatelessWidget {
+  final String crop;
+  final double value;
+
+  const _ProbabilityRow({required this.crop, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = value.clamp(0.0, 1.0);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 94,
+            child: Text(
+              crop,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: pct,
+                minHeight: 7,
+                backgroundColor: AppTheme.glassBorder,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppTheme.accent2),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 42,
+            child: Text(
+              '${(pct * 100).toStringAsFixed(0)}%',
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.accent2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ApiHint extends StatelessWidget {
+  const _ApiHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.2)),
+      ),
+      child: const Text(
+        'Start the model server from the ML folder: python -m uvicorn ml_api:app --host 0.0.0.0 --port 8000. For a physical phone, pass --dart-define=ML_API_BASE_URL=http://YOUR-PC-IP:8000.',
+        style: TextStyle(
+          fontSize: 11,
+          color: AppTheme.textSecondary,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
 class _CropResultCard extends StatelessWidget {
   final CropInfo crop;
   final double score;
@@ -558,9 +970,8 @@ class _CropResultCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: AppTheme.glassDeco(
-          borderColor: rank <= 3
-              ? _rankColor.withOpacity(0.3)
-              : AppTheme.glassBorder,
+          borderColor:
+              rank <= 3 ? _rankColor.withOpacity(0.3) : AppTheme.glassBorder,
         ),
         child: Row(
           children: [
@@ -627,8 +1038,7 @@ class _CropResultCard extends StatelessWidget {
                   lineWidth: 4,
                   percent: (score / 100).clamp(0, 1),
                   progressColor: _scoreColor,
-                  backgroundColor:
-                      _scoreColor.withOpacity(0.12),
+                  backgroundColor: _scoreColor.withOpacity(0.12),
                   center: Text(
                     score.toStringAsFixed(0),
                     style: TextStyle(
@@ -791,8 +1201,7 @@ class _CropDetailView extends StatelessWidget {
                       const SizedBox(height: 4),
                       StatusBadge(
                         label: crop.category.replaceFirst(
-                            crop.category[0],
-                            crop.category[0].toUpperCase()),
+                            crop.category[0], crop.category[0].toUpperCase()),
                         color: AppTheme.accent1,
                       ),
                       const SizedBox(height: 8),
@@ -841,20 +1250,18 @@ class _CropDetailView extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     const Text('Match Score',
-                        style: TextStyle(
-                            fontSize: 11, color: AppTheme.textMuted)),
+                        style:
+                            TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                   ],
                 ),
                 _DetailStat(
                   label: 'Temp Range',
-                  value:
-                      '${crop.tempMin.toInt()}–${crop.tempMax.toInt()}°C',
+                  value: '${crop.tempMin.toInt()}–${crop.tempMax.toInt()}°C',
                   color: const Color(0xFFfb7185),
                 ),
                 _DetailStat(
                   label: 'pH Range',
-                  value:
-                      '${crop.phMin}–${crop.phMax}',
+                  value: '${crop.phMin}–${crop.phMax}',
                   color: const Color(0xFFa78bfa),
                 ),
               ],
@@ -883,8 +1290,7 @@ class _CropDetailView extends StatelessWidget {
                     '${crop.pMin.toInt()} – ${crop.pMax.toInt()} ppm'),
                 _ConditionRow('Potassium (K)',
                     '${crop.kMin.toInt()} – ${crop.kMax.toInt()} ppm'),
-                _ConditionRow('Soil pH',
-                    '${crop.phMin} – ${crop.phMax}'),
+                _ConditionRow('Soil pH', '${crop.phMin} – ${crop.phMax}'),
                 _ConditionRow('Rainfall',
                     '${crop.rainfallMin.toInt()} – ${crop.rainfallMax.toInt()} mm'),
               ],
@@ -941,44 +1347,44 @@ class _CropDetailView extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 ...crop.tips.asMap().entries.map(
-                  (e) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.primaryGradient,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${e.key + 1}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                      (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.primaryGradient,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${e.key + 1}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            e.value,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                              height: 1.5,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                e.value,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary,
+                                  height: 1.5,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
               ],
             ),
           ).animate().fadeIn(duration: 400.ms, delay: 250.ms),
@@ -1033,8 +1439,8 @@ class _ConditionRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
-                  fontSize: 13, color: AppTheme.textSecondary),
+              style:
+                  const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),
           ),
           Container(

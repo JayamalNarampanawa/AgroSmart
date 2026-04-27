@@ -3,7 +3,17 @@ import 'package:flutter/services.dart';
 
 import '../models/crop_recommendation.dart';
 import '../services/crop_recommendation_service.dart';
-import '../widgets/glass_card.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_shadows.dart';
+import '../theme/app_spacing.dart';
+import '../widgets/cards/alert_card.dart';
+import '../widgets/cards/soft_white_card.dart';
+import '../widgets/common/app_scaffold.dart';
+import '../widgets/common/dashboard_header.dart';
+import '../widgets/common/modern_action_button.dart';
+import '../widgets/common/section_header.dart';
+import '../widgets/common/status_badge.dart';
 
 class NpkRecommendationScreen extends StatefulWidget {
   const NpkRecommendationScreen({super.key});
@@ -41,7 +51,10 @@ class _NpkRecommendationScreenState extends State<NpkRecommendationScreen> {
 
     if (n == null || p == null || k == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid N, P, K values')),
+        const SnackBar(
+          content: Text('Please enter valid N, P, K values'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -62,248 +75,229 @@ class _NpkRecommendationScreenState extends State<NpkRecommendationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text('Crop Advisor'),
-        centerTitle: true,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF050A14),
-              Color(0xFF0B1221),
-              Color(0xFF050A14),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
+    return AppScaffold(
+      bottomInset: 110,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.xxl,
         ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Text(
-                  'NPK Crop Recommendation',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Enter your soil NPK & pH values to find the best crop among Chickpea, Mung Beans and Kidney Beans',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white60,
-                      ),
-                ),
-                const SizedBox(height: 24),
-
-                // NPK Input Card
-                GlassCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DashboardHeader(
+              greeting: 'Crop Advisor',
+              subtitle: 'NPK crop fit scoring for selected legumes',
+              avatarText: 'C',
+              trailing: StatusBadge(
+                label: _hasAnalyzed ? 'Analyzed' : 'Ready',
+                icon: Icons.eco_rounded,
+                tone: _hasAnalyzed
+                    ? StatusBadgeTone.success
+                    : StatusBadgeTone.info,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            const _AdvisorHero(),
+            const SizedBox(height: AppSpacing.xxl),
+            const SectionHeader(
+              title: 'Soil Nutrients',
+              subtitle: 'Enter soil values and compare the target crops',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SoftWhiteCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
                     children: [
-                      const Text(
-                        'Soil Nutrient Values',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
+                      Expanded(
+                        child: Text(
+                          'NPK and pH values',
+                          style: TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _NpkField(
-                              controller: _nController,
-                              label: 'N',
-                              hint: 'Nitrogen',
-                              color: const Color(0xFF4CAF50),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _NpkField(
-                              controller: _pController,
-                              label: 'P',
-                              hint: 'Phosphorus',
-                              color: const Color(0xFFFFA726),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _NpkField(
-                              controller: _kController,
-                              label: 'K',
-                              hint: 'Potassium',
-                              color: const Color(0xFF42A5F5),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _NpkField(
-                        controller: _phController,
-                        label: 'pH',
-                        hint: 'Soil pH (default 6.5)',
-                        color: const Color(0xFFAB47BC),
-                        isDecimal: true,
+                      StatusBadge(
+                        label: '3 crops',
+                        icon: Icons.filter_3_rounded,
+                        tone: StatusBadgeTone.info,
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 20),
-
-                // Analyze Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _analyze,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00FFC2),
-                      foregroundColor: const Color(0xFF003328),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: const Icon(Icons.eco),
-                    label: const Text(
-                      'Find Best Crop',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-
-                // Results
-                if (_hasAnalyzed && _results != null) ...[
-                  Text(
-                    'Results',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                        ),
-                  ),
-                  const SizedBox(height: 16),
-                  ..._results!.asMap().entries.map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _CropResultCard(
-                            recommendation: entry.value,
-                            rank: entry.key + 1,
-                            isBest: entry.key == 0,
-                          ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _NpkField(
+                          controller: _nController,
+                          label: 'N',
+                          hint: 'Nitrogen',
+                          icon: Icons.grass_rounded,
+                          color: AppColors.accentGreen,
                         ),
                       ),
-                ],
-
-                // Crop Info Guide
-                if (!_hasAnalyzed) ...[
-                  Text(
-                    'Crop Guide',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: _NpkField(
+                          controller: _pController,
+                          label: 'P',
+                          hint: 'Phosphorus',
+                          icon: Icons.bubble_chart_rounded,
+                          color: AppColors.primary,
                         ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _buildCropGuide(
-                    'Chickpea',
-                    'N: 20\u201340  |  P: 40\u201360  |  K: 20\u201340  |  pH: 6.0\u20138.0',
-                    'Drought-tolerant legume, fixes nitrogen. Thrives in well-drained sandy loam.',
-                    Icons.grass,
-                    const Color(0xFFFFC107),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCropGuide(
-                    'Mung Beans',
-                    'N: 15\u201325  |  P: 40\u201360  |  K: 20\u201340  |  pH: 6.2\u20137.2',
-                    'Short-season legume, low nitrogen demand. Prefers warm, humid conditions.',
-                    Icons.spa,
-                    const Color(0xFF66BB6A),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCropGuide(
-                    'Kidney Beans',
-                    'N: 40\u201360  |  P: 50\u201370  |  K: 30\u201350  |  pH: 6.0\u20137.0',
-                    'Higher nutrient demand. Needs fertile, moist soil with good drainage.',
-                    Icons.local_florist,
-                    const Color(0xFFEF5350),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _NpkField(
+                          controller: _kController,
+                          label: 'K',
+                          hint: 'Potassium',
+                          icon: Icons.eco_rounded,
+                          color: AppColors.accentOrange,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: _NpkField(
+                          controller: _phController,
+                          label: 'pH',
+                          hint: '6.5',
+                          icon: Icons.science_rounded,
+                          color: AppColors.accentCyan,
+                          isDecimal: true,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              width: double.infinity,
+              child: ModernActionButton.primary(
+                label: 'Find Best Crop',
+                icon: Icons.auto_awesome_rounded,
+                onPressed: _analyze,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            if (_hasAnalyzed && _results != null) ...[
+              const SectionHeader(
+                title: 'Results',
+                subtitle: 'Ranked crop matches for this soil profile',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              ..._results!.asMap().entries.map(
+                    (entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: _CropResultCard(
+                        recommendation: entry.value,
+                        rank: entry.key + 1,
+                        isBest: entry.key == 0,
+                      ),
+                    ),
+                  ),
+            ] else ...[
+              const SectionHeader(
+                title: 'Crop Guide',
+                subtitle: 'Default ideal ranges used by the advisor',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const _CropGuideCard(
+                name: 'Chickpea',
+                range: 'N 20-40 / P 40-60 / K 20-40 / pH 6.0-8.0',
+                description:
+                    'Drought-tolerant legume that fixes nitrogen and prefers well-drained sandy loam.',
+                icon: Icons.grass_rounded,
+                color: AppColors.accentOrange,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const _CropGuideCard(
+                name: 'Mung Beans',
+                range: 'N 15-25 / P 40-60 / K 20-40 / pH 6.2-7.2',
+                description:
+                    'Short-season legume with low nitrogen demand for warm, humid conditions.',
+                icon: Icons.spa_rounded,
+                color: AppColors.accentGreen,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const _CropGuideCard(
+                name: 'Kidney Beans',
+                range: 'N 40-60 / P 50-70 / K 30-50 / pH 6.0-7.0',
+                description:
+                    'Higher nutrient-demand crop that needs fertile, moist soil and good drainage.',
+                icon: Icons.local_florist_rounded,
+                color: AppColors.accentRose,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              const AlertCard(
+                icon: Icons.info_outline_rounded,
+                title: 'Advisor scope',
+                message:
+                    'This advisor compares Chickpea, Mung Beans, and Kidney Beans using local crop fit scoring.',
+                color: AppColors.primary,
+                tone: StatusBadgeTone.info,
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildCropGuide(
-    String name,
-    String range,
-    String description,
-    IconData icon,
-    Color color,
-  ) {
-    return GlassCard(
+class _AdvisorHero extends StatelessWidget {
+  const _AdvisorHero();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.growthGradient,
+        ),
+        borderRadius: AppRadius.cardRadius,
+        boxShadow: AppShadows.softGlow(AppColors.accentGreen),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 58,
+            height: 58,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: const Icon(Icons.eco_rounded, color: Colors.white, size: 32),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: AppSpacing.lg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  'Legume crop advisor',
+                  style: theme.titleLarge?.copyWith(color: Colors.white),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
-                  range,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white54,
+                  'Score crop fit with soil nutrients and pH.',
+                  style: theme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.84),
                   ),
                 ),
               ],
@@ -315,13 +309,11 @@ class _NpkRecommendationScreenState extends State<NpkRecommendationScreen> {
   }
 }
 
-// ------------------------------------------------------------------
-// NPK text field
-// ------------------------------------------------------------------
 class _NpkField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String hint;
+  final IconData icon;
   final Color color;
   final bool isDecimal;
 
@@ -329,61 +321,108 @@ class _NpkField extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.hint,
+    required this.icon,
     required this.color,
     this.isDecimal = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: color,
-            letterSpacing: 1,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.numberWithOptions(decimal: isDecimal),
+      inputFormatters: isDecimal
+          ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
+          : [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: color, size: 20),
+        filled: true,
+        fillColor: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : AppColors.bgSoft.withValues(alpha: 0.72),
+        border: OutlineInputBorder(
+          borderRadius: AppRadius.buttonRadius,
+          borderSide: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.borderSoft,
           ),
         ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: TextInputType.numberWithOptions(decimal: isDecimal),
-          inputFormatters: isDecimal
-              ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
-              : [FilteringTextInputFormatter.digitsOnly],
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.05),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: color.withValues(alpha: 0.3)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: color.withValues(alpha: 0.3)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: color, width: 1.5),
-            ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: AppRadius.buttonRadius,
+          borderSide: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.borderSoft,
           ),
         ),
-      ],
+        focusedBorder: OutlineInputBorder(
+          borderRadius: AppRadius.buttonRadius,
+          borderSide: BorderSide(color: color, width: 1.4),
+        ),
+      ),
     );
   }
 }
 
-// ------------------------------------------------------------------
-// Crop result card
-// ------------------------------------------------------------------
+class _CropGuideCard extends StatelessWidget {
+  final String name;
+  final String range;
+  final String description;
+  final IconData icon;
+  final Color color;
+
+  const _CropGuideCard({
+    required this.name,
+    required this.range,
+    required this.description,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+
+    return SoftWhiteCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.chip),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: theme.titleMedium),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  range,
+                  style: theme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(description, style: theme.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CropResultCard extends StatelessWidget {
   final CropRecommendation recommendation;
   final int rank;
@@ -398,191 +437,173 @@ class _CropResultCard extends StatelessWidget {
   Color get _accentColor {
     switch (recommendation.cropName) {
       case 'Chickpea':
-        return const Color(0xFFFFC107);
+        return AppColors.accentOrange;
       case 'Mung Beans':
-        return const Color(0xFF66BB6A);
+        return AppColors.accentGreen;
       case 'Kidney Beans':
-        return const Color(0xFFEF5350);
+        return AppColors.accentRose;
       default:
-        return const Color(0xFF00E5FF);
+        return AppColors.accentCyan;
     }
   }
 
   IconData get _cropIcon {
     switch (recommendation.cropName) {
       case 'Chickpea':
-        return Icons.grass;
+        return Icons.grass_rounded;
       case 'Mung Beans':
-        return Icons.spa;
+        return Icons.spa_rounded;
       case 'Kidney Beans':
-        return Icons.local_florist;
+        return Icons.local_florist_rounded;
       default:
-        return Icons.eco;
+        return Icons.eco_rounded;
+    }
+  }
+
+  StatusBadgeTone get _tone {
+    switch (recommendation.confidence) {
+      case 'High':
+        return StatusBadgeTone.success;
+      case 'Medium':
+        return StatusBadgeTone.info;
+      default:
+        return StatusBadgeTone.warning;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final pct = (recommendation.fitScore * 100).toInt();
-    final Color confColor;
-    switch (recommendation.confidence) {
-      case 'High':
-        confColor = const Color(0xFF00FFC2);
-        break;
-      case 'Medium':
-        confColor = const Color(0xFF00E5FF);
-        break;
-      default:
-        confColor = const Color(0xFFFFA726);
-    }
+    final theme = Theme.of(context).textTheme;
 
-    return GlassCard(
-      startColor: isBest ? const Color(0xFF142A1E) : const Color(0xFF111C2E),
-      endColor: isBest ? const Color(0xFF0C1A14) : const Color(0xFF0B1221),
-      borderOpacity: isBest ? 0.25 : 0.1,
+    return SoftWhiteCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      backgroundColor: isBest ? _accentColor.withValues(alpha: 0.08) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: _accentColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: _accentColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
-                child: Icon(_cropIcon, color: _accentColor, size: 26),
+                child: Icon(_cropIcon, color: _accentColor, size: 24),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            recommendation.cropName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        if (isBest)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00FFC2)
-                                  .withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF00FFC2)
-                                    .withValues(alpha: 0.4),
-                              ),
-                            ),
-                            child: const Text(
-                              'Best Match',
-                              style: TextStyle(
-                                color: Color(0xFF00FFC2),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
+                    Text(recommendation.cropName, style: theme.titleLarge),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
-                      recommendation.confidence,
-                      style: TextStyle(
-                        color: confColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
+                      isBest ? 'Best match' : 'Rank #$rank',
+                      style: theme.labelSmall?.copyWith(color: _accentColor),
                     ),
                   ],
                 ),
               ),
+              StatusBadge(label: recommendation.confidence, tone: _tone),
             ],
           ),
-          const SizedBox(height: 14),
-
-          // Match bar
+          const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
-              const Text(
-                'Match  ',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    value: recommendation.fitScore,
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    value: recommendation.fitScore.clamp(0.0, 1.0).toDouble(),
+                    backgroundColor: _accentColor.withValues(alpha: 0.10),
                     valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
-                    minHeight: 7,
+                    minHeight: 8,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSpacing.md),
               Text(
                 '$pct%',
-                style: TextStyle(
+                style: theme.titleMedium?.copyWith(
                   color: _accentColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-
-          // Reason
-          Text(
-            recommendation.reason,
-            style: const TextStyle(color: Colors.white60, fontSize: 12),
-          ),
-          const SizedBox(height: 10),
-
-          // Ideal range chips
+          const SizedBox(height: AppSpacing.md),
+          Text(recommendation.reason, style: theme.bodyMedium),
+          const SizedBox(height: AppSpacing.md),
           Wrap(
-            spacing: 8,
-            runSpacing: 6,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
-              _chip('N', recommendation.idealRange.nMin,
-                  recommendation.idealRange.nMax),
-              _chip('P', recommendation.idealRange.pMin,
-                  recommendation.idealRange.pMax),
-              _chip('K', recommendation.idealRange.kMin,
-                  recommendation.idealRange.kMax),
-              _chip('pH', recommendation.idealRange.phMin,
-                  recommendation.idealRange.phMax,
-                  isDecimal: true),
+              _RangeChip(
+                label: 'N',
+                min: recommendation.idealRange.nMin,
+                max: recommendation.idealRange.nMax,
+              ),
+              _RangeChip(
+                label: 'P',
+                min: recommendation.idealRange.pMin,
+                max: recommendation.idealRange.pMax,
+              ),
+              _RangeChip(
+                label: 'K',
+                min: recommendation.idealRange.kMin,
+                max: recommendation.idealRange.kMax,
+              ),
+              _RangeChip(
+                label: 'pH',
+                min: recommendation.idealRange.phMin,
+                max: recommendation.idealRange.phMax,
+                isDecimal: true,
+              ),
             ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _chip(String label, double min, double max, {bool isDecimal = false}) {
+class _RangeChip extends StatelessWidget {
+  final String label;
+  final double min;
+  final double max;
+  final bool isDecimal;
+
+  const _RangeChip({
+    required this.label,
+    required this.min,
+    required this.max,
+    this.isDecimal = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final minStr = isDecimal ? min.toStringAsFixed(1) : min.toInt().toString();
     final maxStr = isDecimal ? max.toStringAsFixed(1) : max.toInt().toString();
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: AppRadius.chipRadius,
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.14)),
       ),
       child: Text(
-        '$label: $minStr\u2013$maxStr',
-        style: const TextStyle(color: Colors.white70, fontSize: 11),
+        '$label: $minStr-$maxStr',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w800,
+            ),
       ),
     );
   }

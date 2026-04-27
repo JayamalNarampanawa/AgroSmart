@@ -1,5 +1,19 @@
-﻿import 'package:flutter/material.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_shadows.dart';
+import '../theme/app_spacing.dart';
+import '../widgets/cards/alert_card.dart';
+import '../widgets/cards/health_card.dart';
+import '../widgets/cards/soft_white_card.dart';
+import '../widgets/common/app_scaffold.dart';
+import '../widgets/common/dashboard_header.dart';
+import '../widgets/common/modern_action_button.dart';
+import '../widgets/common/section_header.dart';
+import '../widgets/common/status_badge.dart';
 
 class SecurityAlarmScreen extends StatefulWidget {
   const SecurityAlarmScreen({super.key});
@@ -13,7 +27,8 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
   bool isAlarmTriggered = false;
   String lastAlert = 'No recent alerts';
   Timer? _alertTimer;
-  List<Map<String, dynamic>> alertHistory = [
+
+  final List<Map<String, dynamic>> alertHistory = [
     {
       'time': '2 hours ago',
       'type': 'Motion Detected',
@@ -58,22 +73,21 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
   }
 
   void _triggerAlert() {
-    if (mounted) {
-      setState(() {
-        isAlarmTriggered = true;
-        lastAlert =
-            'Motion detected - ${DateTime.now().toString().substring(11, 19)}';
-      });
+    if (!mounted) return;
+    final now =
+        '${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}:${DateTime.now().second.toString().padLeft(2, '0')}';
+    setState(() {
+      isAlarmTriggered = true;
+      lastAlert = 'Motion detected - $now';
+    });
 
-      // Auto-resolve after 10 seconds
-      Timer(const Duration(seconds: 10), () {
-        if (mounted) {
-          setState(() {
-            isAlarmTriggered = false;
-          });
-        }
-      });
-    }
+    Timer(const Duration(seconds: 10), () {
+      if (mounted) {
+        setState(() {
+          isAlarmTriggered = false;
+        });
+      }
+    });
   }
 
   void _toggleAlarmSystem() {
@@ -91,7 +105,9 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
               ? 'Security system activated'
               : 'Security system deactivated',
         ),
-        backgroundColor: isAlarmActive ? Colors.green : Colors.red,
+        backgroundColor:
+            isAlarmActive ? AppColors.accentGreen : AppColors.accentRose,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -104,209 +120,169 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Alert acknowledged'),
-        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
   Color _getStatusColor() {
-    if (!isAlarmActive) return Colors.grey;
-    if (isAlarmTriggered) return Colors.red;
-    return Colors.green;
+    if (!isAlarmActive) return AppColors.textSecondary;
+    if (isAlarmTriggered) return AppColors.accentRose;
+    return AppColors.accentGreen;
   }
 
   String _getStatusText() {
-    if (!isAlarmActive) return 'DISABLED';
-    if (isAlarmTriggered) return 'ALERT';
-    return 'ARMED';
+    if (!isAlarmActive) return 'Disabled';
+    if (isAlarmTriggered) return 'Alert';
+    return 'Armed';
+  }
+
+  StatusBadgeTone _getStatusTone() {
+    if (!isAlarmActive) return StatusBadgeTone.neutral;
+    if (isAlarmTriggered) return StatusBadgeTone.error;
+    return StatusBadgeTone.success;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Security Alarm'),
-        centerTitle: true,
-      ),
+    return AppScaffold(
+      bottomInset: 110,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.xxl,
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Security Status Display
-            Card(
-              elevation: 8,
-              color:
-                  isAlarmTriggered ? Colors.red.withValues(alpha: 0.1) : null,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    Icon(
-                      isAlarmTriggered
-                          ? Icons.warning
-                          : isAlarmActive
-                              ? Icons.security
-                              : Icons.security_outlined,
-                      size: 64,
-                      color: _getStatusColor(),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _getStatusText(),
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: _getStatusColor(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      isAlarmTriggered
-                          ? 'SECURITY BREACH DETECTED'
-                          : isAlarmActive
-                              ? 'System monitoring active'
-                              : 'System disabled',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _getStatusColor(),
-                      ),
-                    ),
-                    if (isAlarmTriggered) ...[
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: _acknowledgeAlert,
-                        icon: const Icon(Icons.check),
-                        label: const Text('Acknowledge Alert'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+            DashboardHeader(
+              greeting: 'Security Alarm',
+              subtitle: isAlarmTriggered
+                  ? 'Immediate action required'
+                  : 'Farm perimeter monitoring',
+              avatarText: 'S',
+              trailing: StatusBadge(
+                label: _getStatusText(),
+                icon: isAlarmTriggered
+                    ? Icons.warning_rounded
+                    : Icons.shield_rounded,
+                tone: _getStatusTone(),
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // Control Panel
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Security Control',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton.icon(
+            const SizedBox(height: AppSpacing.xl),
+            _SecurityHero(
+              active: isAlarmActive,
+              triggered: isAlarmTriggered,
+              status: _getStatusText(),
+              statusColor: _getStatusColor(),
+              onAcknowledge: _acknowledgeAlert,
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            SoftWhiteCard(
+              title: 'Security Control',
+              subtitle: isAlarmActive
+                  ? 'Sensors are watching the farm perimeter.'
+                  : 'Monitoring is paused until re-enabled.',
+              action: StatusBadge(
+                label: isAlarmActive ? 'Online' : 'Offline',
+                tone: isAlarmActive
+                    ? StatusBadgeTone.success
+                    : StatusBadgeTone.neutral,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: isAlarmActive
+                    ? ModernActionButton.secondary(
+                        label: 'Disable Security',
+                        icon: Icons.security_outlined,
                         onPressed: _toggleAlarmSystem,
-                        icon: Icon(isAlarmActive
-                            ? Icons.security_outlined
-                            : Icons.security),
-                        label: Text(
-                          isAlarmActive
-                              ? 'Disable Security'
-                              : 'Enable Security',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              isAlarmActive ? Colors.red : Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Security Zones
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Security Zones',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSecurityZone(
-                        'Field Perimeter', true, 'Motion Sensors'),
-                    _buildSecurityZone('Equipment Shed', true, 'Door Sensor'),
-                    _buildSecurityZone(
-                        'Water Tank Area', true, 'Camera + Motion'),
-                    _buildSecurityZone('Main Gate', false, 'Access Control'),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Recent Alerts
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Recent Alerts',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    if (alertHistory.isEmpty)
-                      const Center(
-                        child: Text(
-                          'No recent alerts',
-                          style: TextStyle(color: Colors.grey),
-                        ),
                       )
-                    else
-                      ...alertHistory.map((alert) => _buildAlertItem(alert)),
-                  ],
-                ),
+                    : ModernActionButton.primary(
+                        label: 'Enable Security',
+                        icon: Icons.security_rounded,
+                        onPressed: _toggleAlarmSystem,
+                      ),
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // System Information
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'System Information',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInfoRow('System Status', _getStatusText(),
-                        color: _getStatusColor()),
-                    _buildInfoRow('Active Sensors', '8 of 8'),
-                    _buildInfoRow('Last System Check', '5 minutes ago'),
-                    _buildInfoRow('Battery Backup', '98%'),
-                    _buildInfoRow('Network Connection', 'Strong'),
-                    _buildInfoRow('Last Alert', lastAlert),
-                  ],
-                ),
+            const SizedBox(height: AppSpacing.xxl),
+            const SectionHeader(
+              title: 'Security Zones',
+              subtitle: 'Perimeter and equipment monitoring points',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const HealthCard(
+              title: 'Field Perimeter',
+              status: 'Active',
+              icon: Icons.fence_rounded,
+              tone: StatusBadgeTone.success,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const HealthCard(
+              title: 'Equipment Shed',
+              status: 'Active',
+              icon: Icons.warehouse_rounded,
+              tone: StatusBadgeTone.success,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const HealthCard(
+              title: 'Water Tank Area',
+              status: 'Active',
+              icon: Icons.videocam_rounded,
+              tone: StatusBadgeTone.success,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const HealthCard(
+              title: 'Main Gate',
+              status: 'Offline',
+              icon: Icons.sensor_door_rounded,
+              tone: StatusBadgeTone.error,
+              pulse: true,
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            const SectionHeader(
+              title: 'Recent Alerts',
+              subtitle: 'Latest security events and resolved incidents',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            if (isAlarmTriggered) ...[
+              AlertCard(
+                icon: Icons.warning_rounded,
+                title: 'Security breach detected',
+                message: lastAlert,
+                color: AppColors.accentRose,
+                tone: StatusBadgeTone.error,
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            ...alertHistory.map(
+              (alert) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: _AlertHistoryTile(alert: alert),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            const SectionHeader(
+              title: 'System Information',
+              subtitle: 'Security device health snapshot',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SoftWhiteCard(
+              child: Column(
+                children: [
+                  _InfoRow(
+                    label: 'System Status',
+                    value: _getStatusText(),
+                    color: _getStatusColor(),
+                  ),
+                  const _InfoRow(label: 'Active Sensors', value: '8 of 8'),
+                  const _InfoRow(
+                      label: 'Last System Check', value: '5 min ago'),
+                  const _InfoRow(label: 'Battery Backup', value: '98%'),
+                  const _InfoRow(label: 'Network Connection', value: 'Strong'),
+                  _InfoRow(label: 'Last Alert', value: lastAlert),
+                ],
               ),
             ),
           ],
@@ -314,109 +290,208 @@ class _SecurityAlarmScreenState extends State<SecurityAlarmScreen> {
       ),
     );
   }
+}
 
-  Widget _buildSecurityZone(String name, bool isActive, String sensorType) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
+class _SecurityHero extends StatelessWidget {
+  final bool active;
+  final bool triggered;
+  final String status;
+  final Color statusColor;
+  final VoidCallback onAcknowledge;
+
+  const _SecurityHero({
+    required this.active,
+    required this.triggered,
+    required this.status,
+    required this.statusColor,
+    required this.onAcknowledge,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    final gradient = triggered
+        ? const [Color(0xFFF43F5E), Color(0xFFEC4899)]
+        : active
+            ? const [Color(0xFF10B981), Color(0xFF22D3EE)]
+            : const [Color(0xFF6B7280), Color(0xFF374151)];
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+        borderRadius: AppRadius.cardRadius,
+        boxShadow: AppShadows.softGlow(statusColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isActive ? Icons.check_circle : Icons.error,
-            color: isActive ? Colors.green : Colors.red,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                Text(
-                  sensorType,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[400],
+          Row(
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.22),
                   ),
                 ),
-              ],
-            ),
+                child: Icon(
+                  triggered
+                      ? Icons.warning_rounded
+                      : active
+                          ? Icons.shield_rounded
+                          : Icons.shield_outlined,
+                  color: Colors.white,
+                  size: 34,
+                ),
+              ),
+              const Spacer(),
+              StatusBadge(
+                label: status,
+                tone: triggered
+                    ? StatusBadgeTone.error
+                    : active
+                        ? StatusBadgeTone.success
+                        : StatusBadgeTone.neutral,
+              ),
+            ],
           ),
+          const SizedBox(height: AppSpacing.xl),
           Text(
-            isActive ? 'Active' : 'Offline',
-            style: TextStyle(
-              color: isActive ? Colors.green : Colors.red,
-              fontWeight: FontWeight.w500,
+            triggered
+                ? 'Breach detected'
+                : active
+                    ? 'System armed'
+                    : 'System disabled',
+            style: theme.displayMedium?.copyWith(color: Colors.white),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            triggered
+                ? 'Check the perimeter and acknowledge the event.'
+                : active
+                    ? 'Security sensors are monitoring the farm.'
+                    : 'Enable security to resume monitoring.',
+            style: theme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.84),
             ),
           ),
+          if (triggered) ...[
+            const SizedBox(height: AppSpacing.xl),
+            SizedBox(
+              width: double.infinity,
+              child: ModernActionButton.primary(
+                label: 'Acknowledge Alert',
+                icon: Icons.check_rounded,
+                onPressed: onAcknowledge,
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+}
 
-  Widget _buildAlertItem(Map<String, dynamic> alert) {
-    Color severityColor = alert['severity'] == 'High'
-        ? Colors.red
-        : alert['severity'] == 'Medium'
-            ? Colors.orange
-            : Colors.yellow;
+class _AlertHistoryTile extends StatelessWidget {
+  final Map<String, dynamic> alert;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+  const _AlertHistoryTile({required this.alert});
+
+  @override
+  Widget build(BuildContext context) {
+    final severity = alert['severity']?.toString() ?? 'Low';
+    final resolved = alert['resolved'] == true;
+    final color = severity == 'High'
+        ? AppColors.accentRose
+        : severity == 'Medium'
+            ? AppColors.accentOrange
+            : AppColors.accentGreen;
+
+    return SoftWhiteCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Row(
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: alert['resolved'] ? Colors.grey : severityColor,
-              borderRadius: BorderRadius.circular(4),
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.chip),
+            ),
+            child: Icon(
+              resolved ? Icons.task_alt_rounded : Icons.priority_high_rounded,
+              color: color,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  alert['type'],
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  alert['type']?.toString() ?? 'Security Alert',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
-                  '${alert['location']} \u2022 ${alert['time']}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[400],
-                  ),
+                  '${alert['location']} - ${alert['time']}',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
           ),
-          if (alert['resolved'])
-            const Icon(
-              Icons.check_circle_outline,
-              color: Colors.green,
-              size: 16,
-            ),
+          const SizedBox(width: AppSpacing.sm),
+          StatusBadge(
+            label: resolved ? 'Resolved' : severity,
+            tone: resolved ? StatusBadgeTone.success : StatusBadgeTone.error,
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildInfoRow(String label, String value, {Color? color}) {
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? color;
+
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: color,
+          Expanded(child: Text(label, style: theme.bodyMedium)),
+          const SizedBox(width: AppSpacing.md),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.titleMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],

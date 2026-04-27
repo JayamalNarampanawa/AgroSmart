@@ -6,205 +6,313 @@ import 'package:intl/intl.dart';
 
 import '../models/sensor_data.dart';
 import '../services/firebase_service.dart';
-import '../widgets/glass_card.dart';
+import '../services/sensor_history_cache_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+import '../widgets/cards/sensor_metric_card.dart';
+import '../widgets/cards/soft_white_card.dart';
+import '../widgets/common/app_scaffold.dart';
+import '../widgets/common/dashboard_header.dart';
+import '../widgets/common/empty_state_widget.dart';
+import '../widgets/common/section_header.dart';
+import '../widgets/common/status_badge.dart';
 
-class AnalyticsScreen extends StatelessWidget {
+class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text('Analytics'),
-        centerTitle: true,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF050A14),
-              Color(0xFF0B1221),
-              Color(0xFF050A14),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: StreamBuilder<List<SensorData>>(
-            stream: FirebaseService.instance.historyStream(limit: 50),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting &&
-                  !snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final history = snapshot.data ?? [];
-
-              if (history.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.analytics_outlined,
-                          size: 64, color: Colors.white.withOpacity(0.3)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No history data yet',
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.5), fontSize: 16),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Summary Stats
-                    _SummaryRow(history: history),
-                    const SizedBox(height: 24),
-
-                    // Temperature Chart
-                    _SectionTitle(title: 'Temperature'),
-                    const SizedBox(height: 12),
-                    _TrendChart(
-                      history: history,
-                      getValue: (d) => d.temperature,
-                      color: const Color(0xFFFFA726),
-                      unit: '\u00B0C',
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Humidity Chart
-                    _SectionTitle(title: 'Humidity'),
-                    const SizedBox(height: 12),
-                    _TrendChart(
-                      history: history,
-                      getValue: (d) => d.humidity,
-                      color: const Color(0xFF00E5FF),
-                      unit: '%',
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Soil Moisture Chart
-                    _SectionTitle(title: 'Soil Moisture'),
-                    const SizedBox(height: 12),
-                    _TrendChart(
-                      history: history,
-                      getValue: (d) => d.soilMoisture,
-                      color: const Color(0xFF00FFC2),
-                      unit: '',
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
+  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
-// ── Summary row ──────────────────────────────────────────────────────────────
-
-class _SummaryRow extends StatelessWidget {
-  final List<SensorData> history;
-  const _SummaryRow({required this.history});
+class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  Future<void> _clearLocalCache() async {
+    await SensorHistoryCacheService.instance.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final temps = history.where((d) => d.temperature != null).toList();
-    final humids = history.where((d) => d.humidity != null).toList();
-    final soils = history.where((d) => d.soilMoisture != null).toList();
+    return AppScaffold(
+      bottomInset: 110,
+      body: StreamBuilder<SensorData?>(
+        stream: FirebaseService.instance.currentDataStream(),
+        initialData: FirebaseService.instance.latestSensorData,
+        builder: (context, liveSnapshot) {
+          final live = liveSnapshot.data;
+          return StreamBuilder<List<SensorData>>(
+            stream: FirebaseService.instance.historyStream(limit: 120),
+            builder: (context, remoteSnapshot) {
+              final remote = remoteSnapshot.data ?? const <SensorData>[];
 
-    final avgTemp = temps.isEmpty
-        ? '--'
-        : (temps.fold<double>(0, (s, d) => s + d.temperature!) / temps.length)
-            .toStringAsFixed(1);
-    final avgHumid = humids.isEmpty
-        ? '--'
-        : (humids.fold<double>(0, (s, d) => s + d.humidity!) / humids.length)
-            .toStringAsFixed(1);
-    final avgSoil = soils.isEmpty
-        ? '--'
-        : (soils.fold<double>(0, (s, d) => s + d.soilMoisture!) / soils.length)
-            .toStringAsFixed(0);
+              return ValueListenableBuilder<List<SensorData>>(
+                valueListenable: SensorHistoryCacheService.instance.history,
+                builder: (context, local, _) {
+                  if (remote.isNotEmpty) {
+                    SensorHistoryCacheService.instance.cacheSnapshots(remote);
+                  }
+                  final history = SensorHistoryCacheService.instance
+                      .mergeWithRemote(remote);
+                  final loading = remoteSnapshot.connectionState ==
+                          ConnectionState.waiting &&
+                      history.isEmpty;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
-            label: 'Avg Temp',
-            value: '$avgTemp\u00B0',
-            icon: Icons.thermostat,
-            color: const Color(0xFFFFA726),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            label: 'Avg Humidity',
-            value: '$avgHumid%',
-            icon: Icons.water_drop,
-            color: const Color(0xFF00E5FF),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            label: 'Avg Soil',
-            value: avgSoil,
-            icon: Icons.grass,
-            color: const Color(0xFF00FFC2),
-          ),
-        ),
-      ],
+                  return RefreshIndicator(
+                    onRefresh: () async => setState(() {}),
+                    color: AppColors.primary,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xl,
+                        AppSpacing.md,
+                        AppSpacing.xl,
+                        AppSpacing.sectionLarge,
+                      ),
+                      children: [
+                        DashboardHeader(
+                          leading: const SizedBox(width: 36, height: 44),
+                          greeting: 'Analytics',
+                          subtitle:
+                              '${history.length} samples - ${local.length} cached locally',
+                          avatarText: 'S',
+                          trailing: _SyncBadge(
+                            remoteCount: remote.length,
+                            localCount: local.length,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.section),
+                        _AnalyticsHero(history: history, live: live),
+                        const SizedBox(height: AppSpacing.sectionLarge),
+                        SectionHeader(
+                          title: 'Live Snapshot',
+                          subtitle:
+                              'Current readings are recorded locally for history',
+                          actionText: loading ? 'Syncing' : 'Ready',
+                          actionIcon: loading
+                              ? Icons.sync_rounded
+                              : Icons.history_rounded,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        _LiveSnapshotList(data: live),
+                        const SizedBox(height: AppSpacing.sectionLarge),
+                        SectionHeader(
+                          title: 'Trends',
+                          subtitle:
+                              'Firebase history merged with local Hive cache',
+                          actionText: 'Clear local',
+                          actionIcon: Icons.delete_sweep_rounded,
+                          onAction: local.isEmpty ? null : _clearLocalCache,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        if (history.isEmpty)
+                          const SoftWhiteCard(
+                            child: EmptyStateWidget(
+                              icon: Icons.analytics_outlined,
+                              title: 'No recorded samples yet',
+                              subtitle:
+                                  'Keep the app open while Firebase sensor values update. New snapshots will be saved locally and shown here.',
+                            ),
+                          )
+                        else ...[
+                          _TrendChartCard(
+                            title: 'Temperature',
+                            subtitle: 'Greenhouse climate trend',
+                            history: history,
+                            getValue: (d) => d.temperature,
+                            color: AppColors.accentOrange,
+                            unit: ' C',
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          _TrendChartCard(
+                            title: 'Humidity',
+                            subtitle: 'Air moisture trend',
+                            history: history,
+                            getValue: (d) => d.humidity,
+                            color: AppColors.accentCyan,
+                            unit: '%',
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          _TrendChartCard(
+                            title: 'Soil Moisture',
+                            subtitle: 'Root-zone moisture trend',
+                            history: history,
+                            getValue: (d) => d.soilMoisture,
+                            color: AppColors.accentGreen,
+                            unit: '',
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          _TrendChartCard(
+                            title: 'Light Level',
+                            subtitle: 'Canopy exposure trend',
+                            history: history,
+                            getValue: (d) => d.lightLevel,
+                            color: AppColors.accentPink,
+                            unit: ' lx',
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+                          _RecentSamplesCard(history: history),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
+class _SyncBadge extends StatelessWidget {
+  final int remoteCount;
+  final int localCount;
 
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
+  const _SyncBadge({
+    required this.remoteCount,
+    required this.localCount,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+    final hasRemote = remoteCount > 0;
+    return StatusBadge(
+      label: hasRemote ? 'Firebase' : 'Local',
+      tone: hasRemote ? StatusBadgeTone.success : StatusBadgeTone.info,
+      icon: hasRemote ? Icons.cloud_done_rounded : Icons.storage_rounded,
+    );
+  }
+}
+
+class _AnalyticsHero extends StatelessWidget {
+  final List<SensorData> history;
+  final SensorData? live;
+
+  const _AnalyticsHero({
+    required this.history,
+    required this.live,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    final latest = history.isNotEmpty ? history.last : live;
+    final lastUpdated = latest == null
+        ? 'Waiting for data'
+        : DateFormat('MMM d, HH:mm').format(latest.timestamp);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.primaryGradient,
+        ),
+        borderRadius: AppRadius.cardRadius,
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: TextStyle(
-                  color: color, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+          Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                child: const Icon(
+                  Icons.query_stats_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sensor History',
+                      style: theme.titleLarge?.copyWith(color: Colors.white),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Last update: $lastUpdated',
+                      style: theme.bodyMedium?.copyWith(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xl),
+          Row(
+            children: [
+              Expanded(
+                child: _HeroMetric(
+                  label: 'Samples',
+                  value: history.length.toString(),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _HeroMetric(
+                  label: 'Avg Temp',
+                  value: _avg(history, (d) => d.temperature, ' C'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _avg(
+    List<SensorData> history,
+    double? Function(SensorData) selector,
+    String unit,
+  ) {
+    final values = history.map(selector).whereType<double>().toList();
+    if (values.isEmpty) return '--';
+    final avg = values.reduce((a, b) => a + b) / values.length;
+    return '${avg.toStringAsFixed(1)}$unit';
+  }
+}
+
+class _HeroMetric extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _HeroMetric({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(AppRadius.button),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.labelSmall?.copyWith(color: Colors.white70)),
+          const SizedBox(height: AppSpacing.xs),
           Text(
-            label,
-            style: const TextStyle(color: Colors.white54, fontSize: 10),
-            textAlign: TextAlign.center,
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.titleMedium?.copyWith(color: Colors.white),
           ),
         ],
       ),
@@ -212,34 +320,72 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// ── Section title ────────────────────────────────────────────────────────────
+class _LiveSnapshotList extends StatelessWidget {
+  final SensorData? data;
 
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  const _SectionTitle({required this.title});
+  const _LiveSnapshotList({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 1.2,
-          ),
+    return Column(
+      children: [
+        SensorMetricCard(
+          label: 'Temperature',
+          value: _format(data?.temperature, ' C'),
+          icon: Icons.thermostat_rounded,
+          color: AppColors.accentOrange,
+          progress: _progress(data?.temperature, 0, 50),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SensorMetricCard(
+          label: 'Humidity',
+          value: _format(data?.humidity, '%'),
+          icon: Icons.water_drop_rounded,
+          color: AppColors.accentCyan,
+          progress: _progress(data?.humidity, 0, 100),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SensorMetricCard(
+          label: 'Soil Moisture',
+          value: _format(data?.soilMoisture, '', decimals: 0),
+          icon: Icons.grass_rounded,
+          color: AppColors.accentGreen,
+          progress: _progress(data?.soilMoisture, 0, 3000),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SensorMetricCard(
+          label: 'Light Level',
+          value: _format(data?.lightLevel, ' lx', decimals: 0),
+          icon: Icons.light_mode_rounded,
+          color: AppColors.accentPink,
+          progress: _progress(data?.lightLevel, 0, 5000),
+        ),
+      ],
     );
+  }
+
+  static String _format(double? value, String unit, {int decimals = 1}) {
+    if (value == null) return '--';
+    return '${value.toStringAsFixed(decimals)}$unit';
+  }
+
+  static double _progress(double? value, double min, double max) {
+    if (value == null || max <= min) return 0;
+    return (value.clamp(min, max) - min) / (max - min);
   }
 }
 
-// ── Trend chart card ─────────────────────────────────────────────────────────
-
-class _TrendChart extends StatelessWidget {
+class _TrendChartCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
   final List<SensorData> history;
   final double? Function(SensorData) getValue;
   final Color color;
   final String unit;
 
-  const _TrendChart({
+  const _TrendChartCard({
+    required this.title,
+    required this.subtitle,
     required this.history,
     required this.getValue,
     required this.color,
@@ -253,97 +399,82 @@ class _TrendChart extends StatelessWidget {
     double maxY = double.negativeInfinity;
 
     for (var i = 0; i < history.length; i++) {
-      final v = getValue(history[i]);
-      if (v == null) continue;
-      points.add(FlSpot(i.toDouble(), v));
-      minY = math.min(minY, v);
-      maxY = math.max(maxY, v);
+      final value = getValue(history[i]);
+      if (value == null) continue;
+      points.add(FlSpot(i.toDouble(), value));
+      minY = math.min(minY, value);
+      maxY = math.max(maxY, value);
     }
 
     if (points.isEmpty) {
-      return GlassCard(
-        child: SizedBox(
-          height: 140,
-          child: Center(
-            child: Text('No data',
-                style: TextStyle(color: Colors.white.withOpacity(0.4))),
-          ),
+      return SoftWhiteCard(
+        title: title,
+        subtitle: subtitle,
+        child: const SizedBox(
+          height: 150,
+          child: Center(child: Text('No samples for this metric')),
         ),
       );
     }
 
-    // Add some padding to y-axis range
     final range = maxY - minY;
     final padY = range < 1 ? 1.0 : range * 0.15;
-
-    // Compute current, min, max for the footer
     final current = points.last.y;
-    final timeFormat = DateFormat('HH:mm');
 
-    return GlassCard(
+    return SoftWhiteCard(
+      title: title,
+      subtitle: subtitle,
+      action: StatusBadge(
+        label: '${current.toStringAsFixed(1)}$unit',
+        tone: StatusBadgeTone.info,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Chart
           SizedBox(
-            height: 160,
+            height: 210,
             child: LineChart(
               LineChartData(
                 minY: minY - padY,
                 maxY: maxY + padY,
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 24,
-                      interval:
-                          math.max(1, (points.length / 5).floorToDouble()),
-                      getTitlesWidget: (value, meta) {
-                        final idx = value.toInt();
-                        if (idx < 0 || idx >= history.length) {
-                          return const SizedBox.shrink();
-                        }
-                        return Text(
-                          timeFormat.format(history[idx].timestamp),
-                          style: const TextStyle(
-                              color: Colors.white30, fontSize: 9),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          value.toInt().toString(),
-                          style: const TextStyle(
-                              color: Colors.white30, fontSize: 10),
-                        );
-                      },
-                    ),
-                  ),
-                ),
+                clipData: const FlClipData.all(),
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.white.withOpacity(0.04),
+                    color: AppColors.borderSoft.withValues(alpha: 0.55),
                     strokeWidth: 1,
                   ),
                 ),
                 borderData: FlBorderData(show: false),
+                titlesData: _titlesData(context, history),
+                lineTouchData: LineTouchData(
+                  handleBuiltInTouches: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => AppColors.textPrimary,
+                    tooltipRoundedRadius: 14,
+                    getTooltipItems: (spots) {
+                      return spots
+                          .map(
+                            (spot) => LineTooltipItem(
+                              '${spot.y.toStringAsFixed(1)}$unit',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          )
+                          .toList();
+                    },
+                  ),
+                ),
                 lineBarsData: [
                   LineChartBarData(
                     spots: points,
                     isCurved: true,
+                    curveSmoothness: 0.28,
                     color: color,
-                    barWidth: 2.5,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
@@ -351,37 +482,68 @@ class _TrendChart extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          color.withOpacity(0.25),
-                          color.withOpacity(0.0),
+                          color.withValues(alpha: 0.22),
+                          color.withValues(alpha: 0.02),
                         ],
                       ),
                     ),
                   ),
                 ],
               ),
+              duration: const Duration(milliseconds: 650),
+              curve: Curves.easeOutCubic,
             ),
           ),
-          const SizedBox(height: 12),
-
-          // Min / Current / Max footer
+          const SizedBox(height: AppSpacing.lg),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              _MiniStat(label: 'Min', value: '${minY.toStringAsFixed(1)}$unit'),
               _MiniStat(
-                  label: 'Min',
-                  value: '${minY.toStringAsFixed(1)}$unit',
-                  color: Colors.white54),
-              _MiniStat(
-                  label: 'Current',
-                  value: '${current.toStringAsFixed(1)}$unit',
-                  color: color),
-              _MiniStat(
-                  label: 'Max',
-                  value: '${maxY.toStringAsFixed(1)}$unit',
-                  color: Colors.white54),
+                label: 'Current',
+                value: '${current.toStringAsFixed(1)}$unit',
+                color: color,
+              ),
+              _MiniStat(label: 'Max', value: '${maxY.toStringAsFixed(1)}$unit'),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  FlTitlesData _titlesData(BuildContext context, List<SensorData> history) {
+    final theme = Theme.of(context).textTheme;
+    final timeFormat = DateFormat('HH:mm');
+
+    return FlTitlesData(
+      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      leftTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 38,
+          getTitlesWidget: (value, meta) {
+            return Text(value.toInt().toString(), style: theme.labelSmall);
+          },
+        ),
+      ),
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 28,
+          interval: math.max(1, (history.length / 4).floorToDouble()),
+          getTitlesWidget: (value, meta) {
+            final index = value.toInt();
+            if (index < 0 || index >= history.length) {
+              return const SizedBox.shrink();
+            }
+            return Text(
+              timeFormat.format(history[index].timestamp),
+              style: theme.labelSmall,
+            );
+          },
+        ),
       ),
     );
   }
@@ -390,20 +552,81 @@ class _TrendChart extends StatelessWidget {
 class _MiniStat extends StatelessWidget {
   final String label;
   final String value;
-  final Color color;
-  const _MiniStat(
-      {required this.label, required this.value, required this.color});
+  final Color? color;
+
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
     return Column(
       children: [
-        Text(value,
-            style: TextStyle(
-                color: color, fontSize: 13, fontWeight: FontWeight.w600)),
-        Text(label,
-            style: const TextStyle(color: Colors.white38, fontSize: 10)),
+        Text(
+          value,
+          style: theme.bodyLarge?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Text(label, style: theme.labelSmall),
       ],
+    );
+  }
+}
+
+class _RecentSamplesCard extends StatelessWidget {
+  final List<SensorData> history;
+
+  const _RecentSamplesCard({required this.history});
+
+  @override
+  Widget build(BuildContext context) {
+    final latest = history.reversed.take(6).toList();
+    final theme = Theme.of(context).textTheme;
+
+    return SoftWhiteCard(
+      title: 'Recent Samples',
+      subtitle: 'Last cached sensor records',
+      child: Column(
+        children: [
+          for (var i = 0; i < latest.length; i++) ...[
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppRadius.chip),
+                  ),
+                  child: const Icon(
+                    Icons.history_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    DateFormat('MMM d, HH:mm').format(latest[i].timestamp),
+                    style: theme.bodyLarge,
+                  ),
+                ),
+                Text(
+                  _LiveSnapshotList._format(latest[i].temperature, ' C'),
+                  style: theme.bodyMedium,
+                ),
+              ],
+            ),
+            if (i != latest.length - 1)
+              const Divider(height: AppSpacing.xl, color: AppColors.borderSoft),
+          ],
+        ],
+      ),
     );
   }
 }

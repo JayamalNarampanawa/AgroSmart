@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/analytics_point.dart';
+import '../theme/app_colors.dart';
 
 class TemperatureHumidityChart extends StatelessWidget {
   final List<AnalyticsPoint> points;
@@ -28,23 +29,43 @@ class TemperatureHumidityChart extends StatelessWidget {
 
     return LineChart(
       LineChartData(
-        gridData: const FlGridData(show: true, drawVerticalLine: false),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: AppColors.borderSoft.withValues(alpha: 0.7),
+            strokeWidth: 1,
+          ),
+        ),
         titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
+        lineTouchData: _touchData(),
         lineBarsData: [
           LineChartBarData(
             spots: tempSpots,
             isCurved: true,
-            barWidth: 2.5,
+            curveSmoothness: 0.28,
+            barWidth: 3,
+            isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            color: const Color(0xFFFB7185),
+            color: AppColors.accentRose,
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppColors.accentRose.withValues(alpha: 0.08),
+            ),
           ),
           LineChartBarData(
             spots: humiditySpots,
             isCurved: true,
-            barWidth: 2.0,
+            curveSmoothness: 0.28,
+            barWidth: 3,
+            isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            color: const Color(0xFF38BDF8),
+            color: AppColors.accentCyan,
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppColors.accentCyan.withValues(alpha: 0.06),
+            ),
           ),
         ],
       ),
@@ -72,21 +93,31 @@ class SoilMoistureChart extends StatelessWidget {
 
     return LineChart(
       LineChartData(
-        gridData: const FlGridData(show: true, drawVerticalLine: false),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: AppColors.borderSoft.withValues(alpha: 0.7),
+            strokeWidth: 1,
+          ),
+        ),
         titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
+        lineTouchData: _touchData(),
         lineBarsData: [
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            barWidth: 2.5,
+            curveSmoothness: 0.28,
+            barWidth: 3,
+            isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            color: const Color(0xFF34D399),
+            color: AppColors.accentGreen,
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF34D399).withOpacity(0.35),
+                  AppColors.accentGreen.withValues(alpha: 0.20),
                   Colors.transparent,
                 ],
                 begin: Alignment.topCenter,
@@ -98,12 +129,12 @@ class SoilMoistureChart extends StatelessWidget {
         extraLinesData: ExtraLinesData(horizontalLines: [
           HorizontalLine(
             y: 1200,
-            color: Colors.white.withOpacity(0.25),
+            color: AppColors.accentOrange.withValues(alpha: 0.35),
             dashArray: [6, 4],
           ),
           HorizontalLine(
             y: 2200,
-            color: Colors.white.withOpacity(0.25),
+            color: AppColors.accentGreen.withValues(alpha: 0.35),
             dashArray: [6, 4],
           ),
         ]),
@@ -146,9 +177,13 @@ class PumpActivityChart extends StatelessWidget {
               barRods: [
                 BarChartRodData(
                   toY: entries[i].value.toDouble(),
-                  width: 12,
-                  color: const Color(0xFF38BDF8),
-                  borderRadius: BorderRadius.circular(6),
+                  width: 14,
+                  gradient: const LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: AppColors.violetCyanGradient,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ],
             ),
@@ -173,12 +208,27 @@ class MoistureStatusPie extends StatelessWidget {
     final wet = (soilMoisture ?? 0) <= 1200 ? 70.0 : 20.0;
     return PieChart(
       PieChartData(
-        sectionsSpace: 2,
-        centerSpaceRadius: 28,
+        sectionsSpace: 4,
+        centerSpaceRadius: 34,
         sections: [
-          PieChartSectionData(value: dry, color: const Color(0xFFF97316), showTitle: false),
-          PieChartSectionData(value: optimal, color: const Color(0xFF10B981), showTitle: false),
-          PieChartSectionData(value: wet, color: const Color(0xFF0EA5E9), showTitle: false),
+          PieChartSectionData(
+            value: dry,
+            color: AppColors.accentOrange,
+            radius: 16,
+            showTitle: false,
+          ),
+          PieChartSectionData(
+            value: optimal,
+            color: AppColors.accentGreen,
+            radius: 16,
+            showTitle: false,
+          ),
+          PieChartSectionData(
+            value: wet,
+            color: AppColors.accentCyan,
+            radius: 16,
+            showTitle: false,
+          ),
         ],
       ),
     );
@@ -189,7 +239,31 @@ Widget _empty(String label) {
   return Center(
     child: Text(
       label,
-      style: const TextStyle(color: Colors.white60),
+      style: const TextStyle(color: AppColors.textSecondary),
+    ),
+  );
+}
+
+LineTouchData _touchData() {
+  return LineTouchData(
+    handleBuiltInTouches: true,
+    touchTooltipData: LineTouchTooltipData(
+      getTooltipColor: (_) => AppColors.textPrimary,
+      tooltipRoundedRadius: 14,
+      tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      getTooltipItems: (spots) {
+        return spots
+            .map(
+              (spot) => LineTooltipItem(
+                spot.y.toStringAsFixed(1),
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            )
+            .toList();
+      },
     ),
   );
 }

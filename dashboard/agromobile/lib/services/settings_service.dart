@@ -15,7 +15,7 @@ class SettingsService {
 
   late Box _box;
   final ValueNotifier<ThemeMode> themeMode =
-      ValueNotifier<ThemeMode>(ThemeMode.dark);
+      ValueNotifier<ThemeMode>(ThemeMode.light);
   final ValueNotifier<bool> alertsEnabled = ValueNotifier<bool>(true);
   final ValueNotifier<bool> highPriorityOnly = ValueNotifier<bool>(false);
 
@@ -32,7 +32,7 @@ class SettingsService {
     } else if (stored == 'system') {
       themeMode.value = ThemeMode.system;
     } else {
-      themeMode.value = ThemeMode.dark;
+      themeMode.value = ThemeMode.light;
     }
     alertsEnabled.value =
         _box.get(_alertsEnabledKey, defaultValue: true) as bool;

@@ -3,6 +3,7 @@
     <!-- Internet permission for API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <!-- Camera permissions for camera feed -->
     <uses-permission android:name="android.permission.CAMERA" />

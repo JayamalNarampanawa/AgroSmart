@@ -1,4 +1,4 @@
-﻿import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../models/sensor_data.dart';
 
@@ -26,6 +26,10 @@ class AlertService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
   }
 
   Future<void> checkAndNotify(SensorData data) async {
@@ -61,5 +65,25 @@ class AlertService {
         ),
       );
     }
+  }
+
+  Future<void> showSystemNotification({
+    required String title,
+    required String message,
+    int? id,
+  }) async {
+    await _plugin.show(
+      id ?? DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title,
+      message,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'agrosmart_alerts',
+          'AgroSmart Alerts',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+    );
   }
 }
